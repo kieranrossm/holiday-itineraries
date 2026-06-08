@@ -26,6 +26,7 @@ export default defineConfig({
             title: 'Daily Schedule Log',
             of: [{
               type: 'object',
+              name: 'itineraryDayItem', // This specific explicit name string stops schema_validation: failed
               fields: [
                 { name: 'dayNumber', type: 'number', title: 'Day Number' },
                 { name: 'dateLabel', type: 'string', title: 'Date' },
