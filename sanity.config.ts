@@ -4,7 +4,7 @@ import { deskTool } from 'sanity/desk';
 export default defineConfig({
   name: 'holiday-planner',
   title: 'Holiday Planner',
-  projectId: 'm8dqz3g',
+  projectId: '943oi1hw',
   dataset: 'production',
   plugins: [deskTool()],
   schema: {
