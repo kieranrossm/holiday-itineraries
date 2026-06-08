@@ -1,6 +1,6 @@
 ---
-// By using a cache-busting timestamp parameter, we force the CDN to bypass cached states and pull new entries instantly.
-const response = await fetch('https://943oi1hw.apicdn.sanity.io/v2026-05-04/data/query/production?query=*[_type == "trip"]&cb=' + Date.now());
+// Fetch live data instantly bypassing CDN cache
+const response = await fetch('https://943oi1hw.apicdn.sanity.io/v2026-05-04/data/query/production?query=*[_type == "trip"]|order(startDate asc)&cb=' + Date.now());
 const payload = await response.json();
 const itineraries = payload.result || [];
 ---
@@ -10,27 +10,68 @@ const itineraries = payload.result || [];
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>My Holiday Itineraries</title>
+    <title>Holiday Portals | Dashboard</title>
     <style>
-      body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #f9f9f9; color: #333; }
-      h1 { border-bottom: 2px solid #eaeaea; padding-bottom: 10px; }
-      .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
-      .no-data { color: #666; font-style: italic; }
+      :root { --bg: #f8fafc; --panel: #ffffff; --text: #0f172a; --muted: #64748b; --accent: #2563eb; --border: #e2e8f0; }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 40px 20px; }
+      .container { max-width: 900px; margin: 0 auto; }
+      header { margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+      h1 { font-size: 2rem; font-weight: 700; tracking: -0.05em; margin: 0; }
+      .trip-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+      .trip-header { margin-bottom: 24px; }
+      .trip-title { font-size: 1.5rem; margin: 0 0 8px 0; color: var(--text); }
+      .meta-group { display: flex; gap: 16px; font-size: 0.875rem; color: var(--muted); }
+      .meta-item strong { color: var(--text); }
+      
+      .timeline { display: flex; flex-direction: column; gap: 16px; border-left: 2px solid var(--border); padding-left: 20px; margin-left: 8px; }
+      .day-row { position: relative; }
+      .day-row::before { content: ''; position: absolute; left: -27px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--panel); }
+      .day-meta { font-size: 0.875rem; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+      .day-desc { margin: 0; color: var(--text); line-height: 1.5; font-size: 0.95rem; white-space: pre-line; }
+      .no-data { text-align: center; padding: 60px 20px; color: var(--muted); background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
     </style>
   </head>
   <body>
-    <h1>My Holiday Itineraries</h1>
+    <div class="container">
+      <header>
+        <h1>Holiday Itineraries</h1>
+      </header>
 
-    {itineraries.length === 0 ? (
-      <p class="no-data">No itineraries found. Create and publish one in the admin panel!</p>
-    ) : (
-      itineraries.map((itinerary: any) => (
-        <div class="card">
-          <h2>{itinerary.title || "Untitled Itinerary"}</h2>
-          {itinerary.destination && <p><strong>Destination:</strong> {itinerary.destination}</p>}
-        </div>
-      ))
-    )}
+      <main>
+        {itineraries.length === 0 ? (
+          <div class="no-data">
+            <p>No active itineraries found. Add records in the content studio.</p>
+          </div>
+        ) : (
+          itineraries.map((trip: any) => (
+            <section class="trip-card">
+              <div class="trip-header">
+                <h2 class="trip-title">{trip.title || "Untitled Trip"}</h2>
+                <div class="meta-group">
+                  {trip.startDate && (
+                    <div class="meta-item">
+                      Departure: <strong>{new Date(trip.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {trip.itineraryDays && trip.itineraryDays.length > 0 && (
+                <div class="timeline">
+                  {trip.itineraryDays.map((day: any) => (
+                    <div class="day-row">
+                      <div class="day-meta">
+                        Day {day.dayNumber} {day.dateLabel ? `• ${day.dateLabel}` : ''}
+                      </div>
+                      {day.description && <p class="day-desc">{day.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          ))
+        )}
+      </main>
+    </div>
   </body>
 </html>
