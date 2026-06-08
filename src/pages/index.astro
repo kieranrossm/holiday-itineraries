@@ -1,6 +1,6 @@
 ---
-// 1. Fetch data directly from your new Sanity project API edge
-const response = await fetch('https://943oi1hw.api.sanity.io/v2026-05-04/data/query/production?query=*[_type == "holidayItinerary"]');
+// Fetch data matching your actual schema type: 'trip'
+const response = await fetch('https://943oi1hw.api.sanity.io/v2026-05-04/data/query/production?query=*[_type == "trip"]');
 const payload = await response.json();
 const itineraries = payload.result || [];
 ---
