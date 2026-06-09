@@ -1,64 +1,151 @@
 ---
-// Clean, direct query targeting your exact schema name: "trip"
-const response = await fetch('https://943oi1hw.apicdn.sanity.io/v2026-05-04/data/query/production?query=*[_type == "trip"]|order(startDate asc)&cb=' + Date.now());
-const payload = await response.json();
-const itineraries = payload.result || [];
+// src/pages/index.astro
+
+const projectId = "943oi1hw";
+const dataset = "production";
+
+// GROQ Query: Fetch the latest trip and explicitly expand the photo asset into a usable URL string
+const query = encodeURIComponent(`*[_type == "trip"] | order(startDate desc)[0] {
+  title,
+  startDate,
+  sections[] {
+    sectionTitle,
+    layoutStyle,
+    places[] {
+      placeName,
+      time,
+      info,
+      "photoUrl": photo.asset->url
+    }
+  }
+}`);
+
+// Direct API endpoint with cache-busting
+const url = `https://${projectId}.apicdn.sanity.io/v2021-10-21/data/query/${dataset}?query=${query}&cb=${Date.now()}`;
+
+const response = await fetch(url);
+const { result: trip } = await response.json();
 ---
 
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <title>My Holiday Portals</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{trip?.title || "Holiday Itineraries"}</title>
     <style>
-      :root { --bg: #f8fafc; --panel: #ffffff; --text: #0f172a; --muted: #64748b; --accent: #2563eb; --border: #e2e8f0; }
-      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 40px 20px; }
-      .container { max-width: 800px; margin: 0 auto; }
-      header { margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
-      h1 { font-size: 2rem; font-weight: 700; margin: 0; }
-      .trip-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-      .trip-title { font-size: 1.5rem; margin: 0 0 16px 0; color: var(--text); }
-      .timeline { display: flex; flex-direction: column; gap: 20px; border-left: 2px solid var(--border); padding-left: 20px; margin-left: 8px; }
-      .day-row { position: relative; }
-      .day-row::before { content: ''; position: absolute; left: -27px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--panel); }
-      .day-meta { font-size: 0.875rem; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
-      .day-desc { margin: 0; color: var(--text); line-height: 1.5; font-size: 0.95rem; white-space: pre-line; }
-      .no-data { text-align: center; padding: 60px 20px; color: var(--muted); background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+        color: #333;
+        background: #fdfdfd;
+      }
+      
+      .trip-header {
+        margin-bottom: 3rem;
+        border-bottom: 2px solid #eaeaea;
+        padding-bottom: 1rem;
+      }
+
+      .section-container {
+        margin-bottom: 4rem;
+      }
+
+      .place-card {
+        background: #ffffff;
+        border: 1px solid #eaeaea;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      }
+
+      .time-badge {
+        display: inline-block;
+        background: #e2e8f0;
+        color: #475569;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .place-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin-top: 1rem;
+      }
+
+      /* Dynamic Layout: Grid */
+      .layout-grid .places-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+      }
+
+      /* Dynamic Layout: Timeline */
+      .layout-timeline .places-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        border-left: 3px solid #cbd5e1;
+        padding-left: 2rem;
+        margin-left: 1rem;
+      }
+
+      .layout-timeline .place-card {
+        position: relative;
+      }
+
+      /* Timeline bullet node */
+      .layout-timeline .place-card::before {
+        content: '';
+        position: absolute;
+        left: -2.5rem;
+        top: 1.5rem;
+        width: 1rem;
+        height: 1rem;
+        background: #3b82f6;
+        border-radius: 50%;
+        border: 4px solid #fdfdfd;
+      }
     </style>
   </head>
   <body>
-    <div class="container">
-      <header>
-        <h1>Holiday Itineraries</h1>
-      </header>
-
+    {trip ? (
       <main>
-        {itineraries.length === 0 ? (
-          <div class="no-data">
-            <p>No active itineraries found. Make sure your entries are Published in Sanity.</p>
-          </div>
-        ) : (
-          itineraries.map((trip: any) => (
-            <section class="trip-card">
-              <h2 class="trip-title">{trip.title || "Untitled Trip"}</h2>
+        <header class="trip-header">
+          <h1>{trip.title}</h1>
+          <p><strong>Departure:</strong> {new Date(trip.startDate).toLocaleDateString('en-GB')}</p>
+        </header>
 
-              {trip.itineraryDays && trip.itineraryDays.length > 0 && (
-                <div class="timeline">
-                  {trip.itineraryDays.map((day: any) => (
-                    <div class="day-row">
-                      <div class="day-meta">
-                        Day {day.dayNumber} {day.dateLabel ? `• ${day.dateLabel}` : ''}
-                      </div>
-                      {day.description && <p class="day-desc">{day.description}</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          ))
-        )}
+        {trip.sections && trip.sections.map((section) => (
+          <section class={`section-container layout-${section.layoutStyle}`}>
+            <h2>{section.sectionTitle}</h2>
+            <div class="places-container">
+              
+              {section.places && section.places.map((place) => (
+                <article class="place-card">
+                  {place.time && <span class="time-badge">{place.time}</span>}
+                  <h3>{place.placeName}</h3>
+                  {place.info && <p>{place.info}</p>}
+                  {place.photoUrl && (
+                    <img src={place.photoUrl} alt={place.placeName} class="place-image" loading="lazy" />
+                  )}
+                </article>
+              ))}
+
+            </div>
+          </section>
+        ))}
       </main>
-    </div>
+    ) : (
+      <main>
+        <h1>No Data Found</h1>
+        <p>Ensure you have published a trip document in the Sanity admin dashboard.</p>
+      </main>
+    )}
   </body>
 </html>
