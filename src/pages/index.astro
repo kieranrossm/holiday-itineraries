@@ -1,11 +1,9 @@
 ---
 // src/pages/index.astro
+import { sanityClient } from "sanity:client";
 
-const projectId = "943oi1hw";
-const dataset = "production";
-
-// GROQ Query: Fetch the latest trip and explicitly expand the photo asset into a usable URL string
-const query = encodeURIComponent(`*[_type == "trip"] | order(startDate desc)[0] {
+// Clean GROQ Query without manual URL encoding
+const query = `*[_type == "trip"] | order(startDate desc)[0] {
   title,
   startDate,
   sections[] {
@@ -18,13 +16,10 @@ const query = encodeURIComponent(`*[_type == "trip"] | order(startDate desc)[0] 
       "photoUrl": photo.asset->url
     }
   }
-}`);
+}`;
 
-// Direct API endpoint with cache-busting
-const url = `https://${projectId}.apicdn.sanity.io/v2021-10-21/data/query/${dataset}?query=${query}&cb=${Date.now()}`;
-
-const response = await fetch(url);
-const { result: trip } = await response.json();
+// Fetch directly using your configured astro.config.mjs client
+const trip = await sanityClient.fetch(query);
 ---
 
 <html lang="en-GB">
