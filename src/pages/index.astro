@@ -2,8 +2,8 @@
 // src/pages/index.astro
 import { sanityClient } from "sanity:client";
 
-// Clean GROQ Query without manual URL encoding
-const query = `*[_type == "trip"] | order(startDate desc)[0] {
+// Fetch ALL trips, ordered chronologically by departure date
+const query = `*[_type == "trip"] | order(startDate asc) {
   title,
   startDate,
   sections[] {
@@ -18,15 +18,14 @@ const query = `*[_type == "trip"] | order(startDate desc)[0] {
   }
 }`;
 
-// Fetch directly using your configured astro.config.mjs client
-const trip = await sanityClient.fetch(query);
+const trips = await sanityClient.fetch(query);
 ---
 
 <html lang="en-GB">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{trip?.title || "Holiday Itineraries"}</title>
+    <title>Holiday Itineraries</title>
     <style>
       body {
         font-family: system-ui, -apple-system, sans-serif;
@@ -37,9 +36,19 @@ const trip = await sanityClient.fetch(query);
         background: #fdfdfd;
       }
       
+      .trip-wrapper {
+        margin-bottom: 6rem;
+        padding-bottom: 2rem;
+        border-bottom: 4px dashed #eaeaea;
+      }
+
+      .trip-wrapper:last-child {
+        border-bottom: none;
+      }
+
       .trip-header {
         margin-bottom: 3rem;
-        border-bottom: 2px solid #eaeaea;
+        border-bottom: 2px solid #333;
         padding-bottom: 1rem;
       }
 
@@ -73,14 +82,12 @@ const trip = await sanityClient.fetch(query);
         margin-top: 1rem;
       }
 
-      /* Dynamic Layout: Grid */
       .layout-grid .places-container {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 1.5rem;
       }
 
-      /* Dynamic Layout: Timeline */
       .layout-timeline .places-container {
         display: flex;
         flex-direction: column;
@@ -94,7 +101,6 @@ const trip = await sanityClient.fetch(query);
         position: relative;
       }
 
-      /* Timeline bullet node */
       .layout-timeline .place-card::before {
         content: '';
         position: absolute;
@@ -109,31 +115,35 @@ const trip = await sanityClient.fetch(query);
     </style>
   </head>
   <body>
-    {trip ? (
+    {trips && trips.length > 0 ? (
       <main>
-        <header class="trip-header">
-          <h1>{trip.title}</h1>
-          <p><strong>Departure:</strong> {new Date(trip.startDate).toLocaleDateString('en-GB')}</p>
-        </header>
+        {trips.map((trip) => (
+          <div class="trip-wrapper">
+            <header class="trip-header">
+              <h1>{trip.title}</h1>
+              <p><strong>Departure:</strong> {new Date(trip.startDate).toLocaleDateString('en-GB')}</p>
+            </header>
 
-        {trip.sections && trip.sections.map((section) => (
-          <section class={`section-container layout-${section.layoutStyle}`}>
-            <h2>{section.sectionTitle}</h2>
-            <div class="places-container">
-              
-              {section.places && section.places.map((place) => (
-                <article class="place-card">
-                  {place.time && <span class="time-badge">{place.time}</span>}
-                  <h3>{place.placeName}</h3>
-                  {place.info && <p>{place.info}</p>}
-                  {place.photoUrl && (
-                    <img src={place.photoUrl} alt={place.placeName} class="place-image" loading="lazy" />
-                  )}
-                </article>
-              ))}
+            {trip.sections && trip.sections.map((section) => (
+              <section class={`section-container layout-${section.layoutStyle}`}>
+                <h2>{section.sectionTitle}</h2>
+                <div class="places-container">
+                  
+                  {section.places && section.places.map((place) => (
+                    <article class="place-card">
+                      {place.time && <span class="time-badge">{place.time}</span>}
+                      <h3>{place.placeName}</h3>
+                      {place.info && <p style="white-space: pre-line;">{place.info}</p>}
+                      {place.photoUrl && (
+                        <img src={place.photoUrl} alt={place.placeName} class="place-image" loading="lazy" />
+                      )}
+                    </article>
+                  ))}
 
-            </div>
-          </section>
+                </div>
+              </section>
+            ))}
+          </div>
         ))}
       </main>
     ) : (
