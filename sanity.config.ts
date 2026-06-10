@@ -14,21 +14,21 @@ export default defineConfig({
         type: 'document',
         title: 'Holiday Itinerary',
         fields: [
-          { 
-            name: 'title', 
-            type: 'string', 
+          {
+            name: 'title',
+            type: 'string',
             title: 'Trip Name',
-            validation: (Rule) => Rule.required(), 
+            validation: (Rule) => Rule.required(),
           },
-          { 
-            name: 'slug', 
-            type: 'slug', 
-            title: 'Slug', 
-            options: { source: 'title' } 
+          {
+            name: 'slug',
+            type: 'slug',
+            title: 'Slug',
+            options: { source: 'title' },
           },
-          { 
-            name: 'startDate', 
-            type: 'date', 
+          {
+            name: 'startDate',
+            type: 'date',
             title: 'Departure Date',
             validation: (Rule) => Rule.required(),
           },
@@ -46,8 +46,14 @@ export default defineConfig({
                     name: 'sectionTitle',
                     title: 'Section Header',
                     type: 'string',
-                    description: 'e.g., "Day 1: Old Town" OR "Places to Eat"',
+                    description: 'Example: "Day 1: Old Town", "Places to Eat", "Big Hitters"',
                     validation: (Rule) => Rule.required(),
+                  },
+                  {
+                    name: 'sectionIntro',
+                    title: 'Section Intro',
+                    type: 'text',
+                    description: 'Optional intro text shown underneath the section heading.',
                   },
                   {
                     name: 'layoutStyle',
@@ -81,14 +87,86 @@ export default defineConfig({
                           },
                           {
                             name: 'time',
-                            title: 'Time',
+                            title: 'Start Time',
                             type: 'string',
-                            description: 'Leave blank for categorical lists.',
+                            description: 'Optional. Example: 09:30. Leave blank for categorical lists.',
+                          },
+                          {
+                            name: 'endTime',
+                            title: 'End Time',
+                            type: 'string',
+                            description: 'Optional. Example: 11:00.',
+                          },
+                          {
+                            name: 'category',
+                            title: 'Category',
+                            type: 'string',
+                            options: {
+                              list: [
+                                { title: 'Attraction', value: 'Attraction' },
+                                { title: 'Museum', value: 'Museum' },
+                                { title: 'Food', value: 'Food' },
+                                { title: 'Bar', value: 'Bar' },
+                                { title: 'Hotel', value: 'Hotel' },
+                                { title: 'Transport', value: 'Transport' },
+                                { title: 'Walk', value: 'Walk' },
+                                { title: 'Shopping', value: 'Shopping' },
+                                { title: 'Viewpoint', value: 'Viewpoint' },
+                                { title: 'Other', value: 'Other' },
+                              ],
+                            },
+                          },
+                          {
+                            name: 'area',
+                            title: 'Area',
+                            type: 'string',
+                            description: 'Example: Old Town, Kazimierz, Grünerløkka.',
+                          },
+                          {
+                            name: 'shortDescription',
+                            title: 'Short Description',
+                            type: 'text',
+                            description: 'One or two sentence summary shown near the top of the card.',
                           },
                           {
                             name: 'info',
                             title: 'Information & Notes',
                             type: 'text',
+                            description: 'Longer notes. Line breaks will be preserved on the site.',
+                          },
+                          {
+                            name: 'practicalInfo',
+                            title: 'Practical Info',
+                            type: 'text',
+                            description: 'Opening hours, entry notes, dress code, booking tips, etc.',
+                          },
+                          {
+                            name: 'priceGuide',
+                            title: 'Price Guide',
+                            type: 'string',
+                            description: 'Example: Free, £, ££, £££, €15 entry.',
+                          },
+                          {
+                            name: 'bookingRequired',
+                            title: 'Booking Required',
+                            type: 'boolean',
+                            initialValue: false,
+                          },
+                          {
+                            name: 'bookingUrl',
+                            title: 'Booking URL',
+                            type: 'url',
+                          },
+                          {
+                            name: 'websiteUrl',
+                            title: 'Website URL',
+                            type: 'url',
+                          },
+                          {
+                            name: 'travelNote',
+                            title: 'Travel Note',
+                            type: 'string',
+                            description: 'Example: 15 min walk from hotel.',
                           },
                           {
                             name: 'photo',
@@ -100,17 +178,37 @@ export default defineConfig({
                             name: 'coordinates',
                             title: 'Map Coordinates',
                             type: 'geopoint',
+                            description: 'Optional. Stored for later, not currently shown on the page.',
                           },
                         ],
+                        preview: {
+                          select: {
+                            title: 'placeName',
+                            subtitle: 'category',
+                            media: 'photo',
+                          },
+                        },
                       },
                     ],
                   },
                 ],
+                preview: {
+                  select: {
+                    title: 'sectionTitle',
+                    subtitle: 'layoutStyle',
+                  },
+                },
               },
             ],
-          }
-        ]
-      }
+          },
+        ],
+        preview: {
+          select: {
+            title: 'title',
+            subtitle: 'startDate',
+          },
+        },
+      },
     ],
   },
 });
