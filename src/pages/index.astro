@@ -4,6 +4,8 @@ import { sanityClient } from "sanity:client";
 const query = `*[_type == "trip"] | order(startDate asc) {
   title,
   startDate,
+  heroIntro,
+  "heroImageUrl": heroImage.asset->url,
   sections[] {
     sectionTitle,
     sectionIntro,
@@ -128,12 +130,23 @@ const formatDate = (dateString) => {
 
       .trip-header {
         margin-bottom: 3rem;
-        padding: 1.5rem;
         border: 1px solid var(--soft);
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.72);
-        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
-        backdrop-filter: blur(10px);
+        border-radius: 28px;
+        background: #ffffff;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+      }
+
+      .trip-hero-image {
+        width: 100%;
+        height: clamp(240px, 42vw, 460px);
+        object-fit: cover;
+        display: block;
+        background: var(--soft-2);
+      }
+
+      .trip-header-content {
+        padding: 1.5rem;
       }
 
       .trip-header h1 {
@@ -147,6 +160,14 @@ const formatDate = (dateString) => {
         margin: 0;
         color: var(--muted);
         font-weight: 650;
+      }
+
+      .hero-intro {
+        max-width: 760px;
+        margin: 1rem 0 0;
+        color: #475569;
+        line-height: 1.7;
+        white-space: pre-line;
       }
 
       .section-container {
@@ -346,8 +367,11 @@ const formatDate = (dateString) => {
         }
 
         .trip-header {
+          border-radius: 20px;
+        }
+
+        .trip-header-content {
           padding: 1.1rem;
-          border-radius: 18px;
         }
 
         .layout-grid .places-container {
@@ -380,13 +404,28 @@ const formatDate = (dateString) => {
         {trips.map((trip) => (
           <article class="trip-wrapper">
             <header class="trip-header">
-              <h1>{trip.title}</h1>
-
-              {trip.startDate && (
-                <p class="trip-date">
-                  <strong>Departure:</strong> {formatDate(trip.startDate)}
-                </p>
+              {trip.heroImageUrl && (
+                <img
+                  src={trip.heroImageUrl}
+                  alt={`${trip.title} hero image`}
+                  class="trip-hero-image"
+                  loading="lazy"
+                />
               )}
+
+              <div class="trip-header-content">
+                <h1>{trip.title}</h1>
+
+                {trip.startDate && (
+                  <p class="trip-date">
+                    <strong>Departure:</strong> {formatDate(trip.startDate)}
+                  </p>
+                )}
+
+                {trip.heroIntro && (
+                  <p class="hero-intro">{trip.heroIntro}</p>
+                )}
+              </div>
             </header>
 
             {trip.sections && trip.sections.map((section) => (
