@@ -33,6 +33,19 @@ export default defineConfig({
             validation: (Rule) => Rule.required(),
           },
           {
+            name: 'heroImage',
+            title: 'Hero Image',
+            type: 'image',
+            description: 'Main image shown in the trip header.',
+            options: { hotspot: true },
+          },
+          {
+            name: 'heroIntro',
+            title: 'Hero Intro',
+            type: 'text',
+            description: 'Optional short intro shown over or near the hero image.',
+          },
+          {
             name: 'sections',
             title: 'Page Sections',
             type: 'array',
@@ -206,6 +219,7 @@ export default defineConfig({
           select: {
             title: 'title',
             subtitle: 'startDate',
+            media: 'heroImage',
           },
         },
       },
