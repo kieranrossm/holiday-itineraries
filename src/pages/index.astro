@@ -1,7 +1,7 @@
 ---
 import { sanityClient } from "sanity:client";
 
-const query = `*[_type == "trip"] | order(startDate asc) {
+const query = `*[_type == "trip" && (!defined(displayStatus) || displayStatus == "visible")] | order(startDate asc) {
   title,
   startDate,
   heroIntro,
