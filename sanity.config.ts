@@ -24,7 +24,11 @@ export default defineConfig({
             name: 'slug',
             type: 'slug',
             title: 'Slug',
-            options: { source: 'title' },
+            options: { 
+              source: 'title',
+              maxLength: 96
+            },
+            validation: (Rule) => Rule.required(),
           },
           {
             name: 'startDate',
@@ -32,20 +36,21 @@ export default defineConfig({
             title: 'Departure Date',
             validation: (Rule) => Rule.required(),
           },
-          {name: 'displayStatus',
-          title: 'Visibility',
-          type: 'string',
-          description: 'Choose whether this trip appears on the public website.',
-          options: {
+          {
+            name: 'displayStatus',
+            title: 'Visibility',
+            type: 'string',
+            description: 'Choose whether this trip appears on the public website.',
+            options: {
               list: [
-                      { title: 'Show on website', value: 'visible' },
-                      { title: 'Hide from website', value: 'hidden' },
-    ],
-    layout: 'radio',
-  },
-  initialValue: 'visible',
-  validation: (Rule) => Rule.required(),
-},
+                { title: 'Show on website', value: 'visible' },
+                { title: 'Hide from website', value: 'hidden' },
+              ],
+              layout: 'radio',
+            },
+            initialValue: 'visible',
+            validation: (Rule) => Rule.required(),
+          },
           {
             name: 'heroImage',
             title: 'Hero Image',
