@@ -1,0 +1,225 @@
+---
+import { sanityClient } from "sanity:client";
+
+export async function getStaticPaths() {
+  const data = await sanityClient.fetch(`*[_type == "trip" && (!defined(displayStatus) || displayStatus == "visible")] { "slug": slug.current }`);
+  return data.map((item) => ({
+    params: { slug: item.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+
+const query = `*[_type == "trip" && slug.current == $slug][0] {
+  title,
+  startDate,
+  heroIntro,
+  "heroImageUrl": heroImage.asset->url,
+  sections[] {
+    sectionTitle,
+    sectionIntro,
+    layoutStyle,
+    places[] {
+      placeName,
+      time,
+      endTime,
+      category,
+      area,
+      shortDescription,
+      info,
+      practicalInfo,
+      priceGuide,
+      bookingRequired,
+      bookingUrl,
+      websiteUrl,
+      travelNote,
+      "photoUrl": photo.asset->url
+    }
+  }
+}`;
+
+const trip = await sanityClient.fetch(query, { slug });
+
+if (!trip) {
+  return Astro.redirect("/404");
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  return new Date(dateString).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+---
+
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{trip.title} | Itinerary</title>
+
+    <style>
+      :root {
+        --page-bg: #f8fafc;
+        --card-bg: #ffffff;
+        --ink: #111827;
+        --muted: #64748b;
+        --soft: #e2e8f0;
+        --soft-2: #f1f5f9;
+        --blue-bg: #dbeafe;
+        --blue-ink: #1d4ed8;
+        --amber-bg: #fef3c7;
+        --amber-ink: #92400e;
+        --green-bg: #dcfce7;
+        --green-ink: #166534;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+        color: var(--ink);
+        background: var(--page-bg);
+      }
+
+      .back-nav { margin-bottom: 2rem; }
+      .back-button { text-decoration: none; font-weight: 700; color: var(--muted); font-size: 0.95rem; }
+      .back-button:hover { color: var(--ink); }
+
+      .trip-header {
+        margin-bottom: 3.5rem;
+        border: 1px solid var(--soft);
+        border-radius: 28px;
+        background: #ffffff;
+        box-shadow: 0 15px 40px rgba(15, 23, 42, 0.05);
+        overflow: hidden;
+      }
+
+      .trip-hero-image { width: 100%; height: clamp(240px, 35vw, 400px); object-fit: cover; display: block; }
+      .trip-header-content { padding: 2rem; }
+      .trip-header h1 { margin: 0 0 0.75rem; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1; letter-spacing: -0.05em; }
+      .trip-date { margin: 0; color: var(--muted); font-weight: 650; }
+      .hero-intro { max-width: 760px; margin: 1.25rem 0 0; color: #475569; line-height: 1.7; white-space: pre-line; }
+
+      .section-container { margin-bottom: 4.5rem; }
+      .section-header { margin-bottom: 2rem; }
+      .section-header h2 { margin: 0 0 0.5rem; font-size: clamp(1.5rem, 4vw, 2.2rem); letter-spacing: -0.04em; }
+      .section-header p { margin: 0; color: var(--muted); line-height: 1.6; }
+
+      .places-container { width: 100%; }
+      .place-card { position: relative; background: var(--card-bg); border: 1px solid var(--soft); border-radius: 22px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); }
+      .place-image { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block; }
+      .place-content { padding: 1.5rem; }
+      .place-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
+
+      .time-badge, .category-badge, .area-badge { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1; }
+      .time-badge { background: var(--blue-bg); color: var(--blue-ink); }
+      .category-badge { background: var(--amber-bg); color: var(--amber-ink); }
+      .area-badge { background: var(--green-bg); color: var(--green-ink); }
+
+      .place-card h3 { margin: 0.5rem 0; font-size: 1.35rem; line-height: 1.2; }
+      .short-description { margin: 0.5rem 0; font-weight: 600; color: var(--ink); line-height: 1.5; }
+      .place-info { margin: 1rem 0 0; color: #475569; line-height: 1.65; white-space: pre-line; }
+
+      .detail-list { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--soft); font-size: 0.95rem; }
+      .detail-list p { margin: 0.5rem 0; color: #475569; }
+
+      .place-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
+      .place-links a { display: inline-flex; align-items: center; padding: 0.55rem 1rem; border-radius: 999px; background: var(--ink); color: #ffffff; text-decoration: none; font-weight: 700; font-size: 0.85rem; }
+      .place-links a:hover { background: #334155; }
+
+      .layout-grid .places-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+      
+      .layout-timeline .places-container { display: flex; flex-direction: column; gap: 2.5rem; border-left: 3px solid #cbd5e1; padding-left: 2rem; margin-left: 0.5rem; }
+      .layout-timeline .place-card::before {
+        content: ""; position: absolute; left: -2.65rem; top: 1.75rem; width: 1rem; height: 1rem; background: #3b82f6; border-radius: 50%; border: 4px solid var(--page-bg);
+      }
+
+      @media (max-width: 720px) {
+        .layout-timeline .places-container { margin-left: 0.25rem; padding-left: 1.25rem; }
+        .layout-timeline .place-card::before { left: -1.9rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="back-nav">
+      <a href="/" class="back-button">← Back to All Itineraries</a>
+    </nav>
+
+    <main>
+      <article class="trip-wrapper">
+        <header class="trip-header">
+          {trip.heroImageUrl && (
+            <img src={trip.heroImageUrl} alt="" class="trip-hero-image" />
+          )}
+          <div class="trip-header-content">
+            <h1>{trip.title}</h1>
+            {trip.startDate && (
+              <p class="trip-date"><strong>Departure:</strong> {formatDate(trip.startDate)}</p>
+            )}
+            {trip.heroIntro && <p class="hero-intro">{trip.heroIntro}</p>}
+          </div>
+        </header>
+
+        {trip.sections && trip.sections.map((section) => (
+          <section class={`section-container layout-${section.layoutStyle || "timeline"}`}>
+            <header class="section-header">
+              <h2>{section.sectionTitle}</h2>
+              {section.sectionIntro && <p>{section.sectionIntro}</p>}
+            </header>
+
+            {section.places && section.places.length > 0 && (
+              <div class="places-container">
+                {section.places.map((place) => (
+                  <article class="place-card">
+                    {place.photoUrl && (
+                      <img src={place.photoUrl} alt={place.placeName} class="place-image" loading="lazy" />
+                    )}
+
+                    <div class="place-content">
+                      <div class="place-meta">
+                        {place.time && (
+                          <span class="time-badge">
+                            {place.time}{place.endTime ? ` - ${place.endTime}` : ""}
+                          </span>
+                        )}
+                        {place.category && <span class="category-badge">{place.category}</span>}
+                        {place.area && <span class="area-badge">{place.area}</span>}
+                      </div>
+
+                      <h3>{place.placeName}</h3>
+                      {place.shortDescription && <p class="short-description">{place.shortDescription}</p>}
+                      {place.info && <p class="place-info">{place.info}</p>}
+
+                      {(place.priceGuide || place.practicalInfo || place.travelNote || place.bookingRequired) && (
+                        <div class="detail-list">
+                          {place.priceGuide && <p><strong>Price:</strong> {place.priceGuide}</p>}
+                          {place.practicalInfo && <p><strong>Good to know:</strong> {place.practicalInfo}</p>}
+                          {place.travelNote && <p><strong>Getting there:</strong> {place.travelNote}</p>}
+                          {place.bookingRequired && <p><strong>Booking:</strong> Recommended</p>}
+                        </div>
+                      )}
+
+                      {(place.bookingUrl || place.websiteUrl) && (
+                        <div class="place-links">
+                          {place.bookingUrl && <a href={place.bookingUrl} target="_blank" rel="noreferrer">Book</a>}
+                          {place.websiteUrl && <a href={place.websiteUrl} target="_blank" rel="noreferrer">Website</a>}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        ))}
+      </article>
+    </main>
+  </body>
+</html>
