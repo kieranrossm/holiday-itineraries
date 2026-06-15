@@ -28,12 +28,13 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
       shortDescription,
       info,
       practicalInfo,
-      priceGuide,
+      costStructure,
       bookingRequired,
       bookingUrl,
       websiteUrl,
       travelNote,
-      "photoUrl": photo.asset->url
+      "photoUrl": photo.asset->url,
+      coordinates
     }
   }
 }`;
@@ -44,7 +45,45 @@ if (!trip) {
   return Astro.redirect("/404");
 }
 
-const formatDate = (dateString) => {
+// Fixed exchange rates mapping configuration parameters
+const EXCHANGE_RATES: Record<string, number> = {
+  EUR: 0.85,
+  CNY: 0.11,
+  JPY: 0.0052,
+  CHF: 0.88,
+  GBP: 1.0
+};
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  EUR: "€",
+  CNY: "¥",
+  JPY: "¥",
+  CHF: "CHF ",
+  GBP: "£"
+};
+
+// Formats cost structures safely into dual presentations containing accurate GBP output tracking
+const formatCost = (costObj: any) => {
+  if (!costObj) return "";
+  const { localAmount, currencyType, textFallback } = costObj;
+  
+  if (localAmount !== undefined && localAmount !== null) {
+    const symbol = CURRENCY_SYMBOLS[currencyType] || "£";
+    const localFormatted = `${symbol}${localAmount.toLocaleString("en-GB")}`;
+    
+    if (currencyType === "GBP") {
+      return localFormatted;
+    }
+    
+    const rate = EXCHANGE_RATES[currencyType] || 1;
+    const gbpEquivalent = Math.round(localAmount * rate);
+    return `${localFormatted} (£${gbpEquivalent.toLocaleString("en-GB")})`;
+  }
+  
+  return textFallback || "";
+};
+
+const formatDate = (dateString: string) => {
   if (!dateString) return "";
   return new Date(dateString).toLocaleDateString("en-GB", {
     weekday: "long",
@@ -59,7 +98,7 @@ const formatDate = (dateString) => {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{trip.title} | Itinerary</title>
+    <title>{trip.title} | Technical Route Management</title>
 
     <style>
       :root {
@@ -75,6 +114,8 @@ const formatDate = (dateString) => {
         --amber-ink: #92400e;
         --green-bg: #dcfce7;
         --green-ink: #166534;
+        --purple-bg: #f3e8ff;
+        --purple-ink: #6b21a8;
       }
 
       * { box-sizing: border-box; }
@@ -114,25 +155,32 @@ const formatDate = (dateString) => {
 
       .places-container { width: 100%; }
       .place-card { position: relative; background: var(--card-bg); border: 1px solid var(--soft); border-radius: 22px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); }
-      .place-image { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block; }
+      .place-image { width: 100%; height: 260px; object-fit: cover; display: block; }
       .place-content { padding: 1.5rem; }
       .place-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
 
       .time-badge, .category-badge, .area-badge { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1; }
       .time-badge { background: var(--blue-bg); color: var(--blue-ink); }
       .category-badge { background: var(--amber-bg); color: var(--amber-ink); }
+      .category-badge.transport { background: var(--purple-bg); color: var(--purple-ink); }
       .area-badge { background: var(--green-bg); color: var(--green-ink); }
 
-      .place-card h3 { margin: 0.5rem 0; font-size: 1.35rem; line-height: 1.2; }
+      .place-card h3 { margin: 0.5rem 0; font-size: 1.35rem; line-height: 1.2; letter-spacing: -0.02em; }
       .short-description { margin: 0.5rem 0; font-weight: 600; color: var(--ink); line-height: 1.5; }
       .place-info { margin: 1rem 0 0; color: #475569; line-height: 1.65; white-space: pre-line; }
+
+      .logistics-block { background: var(--soft-2); padding: 1rem; border-radius: 12px; margin: 1rem 0; font-size: 0.9rem; border: 1px solid var(--soft); }
+      .logistics-title { font-weight: 800; text-transform: uppercase; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+      .logistics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; }
 
       .detail-list { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--soft); font-size: 0.95rem; }
       .detail-list p { margin: 0.5rem 0; color: #475569; }
 
       .place-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
-      .place-links a { display: inline-flex; align-items: center; padding: 0.55rem 1rem; border-radius: 999px; background: var(--ink); color: #ffffff; text-decoration: none; font-weight: 700; font-size: 0.85rem; }
-      .place-links a:hover { background: #334155; }
+      .place-links a, .copy-coords-btn { display: inline-flex; align-items: center; padding: 0.55rem 1rem; border-radius: 999px; background: var(--ink); color: #ffffff; text-decoration: none; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; }
+      .place-links a:hover, .copy-coords-btn:hover { background: #334155; }
+      .copy-coords-btn { background: transparent; color: var(--ink); border: 1px solid var(--soft); }
+      .copy-coords-btn:hover { background: var(--soft-2); }
 
       .layout-grid .places-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
       
@@ -167,7 +215,7 @@ const formatDate = (dateString) => {
           </div>
         </header>
 
-        {trip.sections && trip.sections.map((section) => (
+        {trip.sections && trip.sections.map((section: any) => (
           <section class={`section-container layout-${section.layoutStyle || "timeline"}`}>
             <header class="section-header">
               <h2>{section.sectionTitle}</h2>
@@ -176,7 +224,7 @@ const formatDate = (dateString) => {
 
             {section.places && section.places.length > 0 && (
               <div class="places-container">
-                {section.places.map((place) => (
+                {section.places.map((place: any) => (
                   <article class="place-card">
                     {place.photoUrl && (
                       <img src={place.photoUrl} alt={place.placeName} class="place-image" loading="lazy" />
@@ -189,29 +237,76 @@ const formatDate = (dateString) => {
                             {place.time}{place.endTime ? ` - ${place.endTime}` : ""}
                           </span>
                         )}
-                        {place.category && <span class="category-badge">{place.category}</span>}
+                        {place.category && (
+                          <span class={`category-badge ${place.category.toLowerCase()}`}>
+                            {place.category}
+                          </span>
+                        )}
                         {place.area && <span class="area-badge">{place.area}</span>}
                       </div>
 
                       <h3>{place.placeName}</h3>
                       {place.shortDescription && <p class="short-description">{place.shortDescription}</p>}
+                      
+                      {/* --- CONDITIONAL TRANSLATION LAYER: TRANSPORT METADATA --- */}
+                      {place.category === "Transport" && place.transitDetails && (
+                        <div class="logistics-block">
+                          <div class="logistics-title">Connection Parameters</div>
+                          <div class="logistics-grid">
+                            {place.transitDetails.origin && <p><strong>From:</strong> {place.transitDetails.origin}</p>}
+                            {place.transitDetails.destination && <p><strong>To:</strong> {place.transitDetails.destination}</p>}
+                            {place.transitDetails.carrier && <p><strong>Carrier:</strong> {place.transitDetails.carrier}</p>}
+                            {place.transitDetails.reference && <p><strong>Ref:</strong> {place.transitDetails.reference}</p>}
+                            {place.transitDetails.seatAssignment && <p><strong>Seat/Class:</strong> {place.transitDetails.seatAssignment}</p>}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* --- CONDITIONAL TRANSLATION LAYER: HOTEL METADATA --- */}
+                      {place.category === "Hotel" && place.hotelDetails && (
+                        <div class="logistics-block">
+                          <div class="logistics-title">Accommodation Logistics</div>
+                          <div class="logistics-grid">
+                            {place.hotelDetails.bookingRef && <p><strong>Booking Ref:</strong> {place.hotelDetails.bookingRef}</p>}
+                            {place.hotelDetails.roomType && <p><strong>Room:</strong> {place.hotelDetails.roomType}</p>}
+                            {place.hotelDetails.checkInNotes && <p><strong>Notes:</strong> {place.hotelDetails.checkInNotes}</p>}
+                          </div>
+                        </div>
+                      )}
+
                       {place.info && <p class="place-info">{place.info}</p>}
 
-                      {(place.priceGuide || place.practicalInfo || place.travelNote || place.bookingRequired) && (
+                      {(place.costStructure || place.practicalInfo || place.travelNote || place.bookingRequired) && (
                         <div class="detail-list">
-                          {place.priceGuide && <p><strong>Price:</strong> {place.priceGuide}</p>}
+                          {formatCost(place.costStructure) && (
+                            <p><strong>Price:</strong> {formatCost(place.costStructure)}</p>
+                          )}
                           {place.practicalInfo && <p><strong>Good to know:</strong> {place.practicalInfo}</p>}
                           {place.travelNote && <p><strong>Getting there:</strong> {place.travelNote}</p>}
                           {place.bookingRequired && <p><strong>Booking:</strong> Recommended</p>}
                         </div>
                       )}
 
-                      {(place.bookingUrl || place.websiteUrl) && (
-                        <div class="place-links">
-                          {place.bookingUrl && <a href={place.bookingUrl} target="_blank" rel="noreferrer">Book</a>}
-                          {place.websiteUrl && <a href={place.websiteUrl} target="_blank" rel="noreferrer">Website</a>}
-                        </div>
-                      )}
+                      <div class="place-links">
+                        {place.bookingUrl && <a href={place.bookingUrl} target="_blank" rel="noreferrer">Book</a>}
+                        {place.websiteUrl && <a href={place.websiteUrl} target="_blank" rel="noreferrer">Website</a>}
+                        
+                        {/* --- HIGH-EFFICIENCY UTILITY: INTERACTIVE CLIPBOARD COUPLING --- */}
+                        {place.coordinates && (
+                          <button 
+                            class="copy-coords-btn" 
+                            data-lat={place.coordinates.lat} 
+                            data-lng={place.coordinates.lng}
+                            onclick={`
+                              navigator.clipboard.writeText('${place.coordinates.lat},${place.coordinates.lng}');
+                              this.innerText = 'Copied!';
+                              setTimeout(() => this.innerText = '📋 Copy Coords', 1500);
+                            `}
+                          >
+                            📋 Copy Coords
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </article>
                 ))}
