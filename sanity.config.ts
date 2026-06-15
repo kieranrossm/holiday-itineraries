@@ -231,8 +231,8 @@ export default defineConfig({
                             description: 'Track internal financial settlement state.',
                             options: {
                               list: [
-                                { title: '✅ Paid / Settled', value: 'paid' },
-                                { title: '⚠️ Not Paid / Action Required', value: 'unpaid' }
+                                { title: 'Paid / Settled', value: 'paid' },
+                                { title: 'Not Paid / Action Required', value: 'unpaid' }
                               ],
                               layout: 'radio'
                             },
