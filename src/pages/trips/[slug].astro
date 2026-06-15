@@ -29,7 +29,7 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
       info,
       practicalInfo,
       costStructure,
-      bookingRequired,
+      bookingLogistics,
       paymentStatus,
       bookingUrl,
       websiteUrl,
@@ -89,6 +89,15 @@ const formatDate = (dateString: string) => {
     day: "numeric",
     month: "long",
     year: "numeric",
+  });
+};
+
+const formatInlineDate = (dateString: string) => {
+  if (!dateString) return "";
+  return new Date(dateString).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
   });
 };
 ---
@@ -160,15 +169,18 @@ const formatDate = (dateString: string) => {
       .place-content { padding: 1.5rem; }
       .place-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
 
-      .time-badge, .category-badge, .area-badge, .payment-badge { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1; }
+      .time-badge, .category-badge, .area-badge, .payment-badge, .booking-badge { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1; }
       .time-badge { background: var(--blue-bg); color: var(--blue-ink); }
       .category-badge { background: var(--amber-bg); color: var(--amber-ink); }
       .category-badge.transport { background: var(--purple-bg); color: var(--purple-ink); }
       .area-badge { background: var(--green-bg); color: var(--green-ink); }
       
-      /* Payment Status Badge Styling */
       .payment-badge.paid { background: var(--green-bg); color: var(--green-ink); }
-      .payment-badge.unpaid { background: var(--rose-bg); color: var(--rose-ink); animation: pulse 2s infinite alternate; }
+      .payment-badge.unpaid { background: var(--rose-bg); color: var(--rose-ink); }
+      
+      /* New Lifecycle State Badges */
+      .booking-badge.to-book { background: var(--amber-bg); color: var(--amber-ink); border: 1px dashed var(--amber-ink); }
+      .booking-badge.booked { background: var(--blue-bg); color: var(--blue-ink); }
 
       .place-card h3 { margin: 0.5rem 0; font-size: 1.35rem; line-height: 1.2; letter-spacing: -0.02em; }
       .short-description { margin: 0.5rem 0; font-weight: 600; color: var(--ink); line-height: 1.5; }
@@ -249,13 +261,18 @@ const formatDate = (dateString: string) => {
                         )}
                         {place.area && <span class="area-badge">{place.area}</span>}
                         
-                        {/* --- PAYMENT STATUS STATE INDICATOR BADGE --- */}
-                        {place.paymentStatus === "unpaid" ? (
-                          <span class="payment-badge unpaid">⚠️ Unpaid</span>
-                        ) : (
-                          (place.category === "Transport" || place.category === "Hotel" || place.bookingRequired) && (
-                            <span class="payment-badge paid">✓ Paid</span>
-                          )
+                        {/* --- RENDERING MATRIX: EXPLICIT PAYMENT COUPLING --- */}
+                        {place.paymentStatus === "paid" && <span class="payment-badge paid">✓ Paid</span>}
+                        {place.paymentStatus === "unpaid" && <span class="payment-badge unpaid">⚠️ Unpaid</span>}
+
+                        {/* --- RENDERING MATRIX: DETAILED BOOKING LIFECYCLE --- */}
+                        {place.bookingLogistics?.bookingStatus === "to-book" && (
+                          <span class="booking-badge to-book">
+                            ⏳ To Book {place.bookingLogistics.bookOnDate ? `(On ${formatInlineDate(place.bookingLogistics.bookOnDate)})` : ""}
+                          </span>
+                        )}
+                        {place.bookingLogistics?.bookingStatus === "booked" && (
+                          <span class="booking-badge booked">✓ Booked</span>
                         )}
                       </div>
 
@@ -288,14 +305,21 @@ const formatDate = (dateString: string) => {
 
                       {place.info && <p class="place-info">{place.info}</p>}
 
-                      {(place.costStructure || place.practicalInfo || place.travelNote || place.bookingRequired) && (
+                      {(place.costStructure || place.practicalInfo || place.travelNote || place.bookingLogistics) && (
                         <div class="detail-list">
                           {formatCost(place.costStructure) && (
                             <p><strong>Price:</strong> {formatCost(place.costStructure)}</p>
                           )}
                           {place.practicalInfo && <p><strong>Good to know:</strong> {place.practicalInfo}</p>}
                           {place.travelNote && <p><strong>Getting there:</strong> {place.travelNote}</p>}
-                          {place.bookingRequired && <p><strong>Booking:</strong> Recommended</p>}
+                          
+                          {/* Text summary display mapping configuration */}
+                          {place.bookingLogistics?.bookingStatus === "to-book" && (
+                            <p><strong>Booking:</strong> Required {place.bookingLogistics.bookOnDate ? `- Window opens ${formatInlineDate(place.bookingLogistics.bookOnDate)}` : ""}</p>
+                          )}
+                          {place.bookingLogistics?.bookingStatus === "booked" && (
+                            <p><strong>Booking:</strong> Confirmed</p>
+                          )}
                         </div>
                       )}
 
