@@ -135,23 +135,18 @@ export default defineConfig({
                             name: 'placeName',
                             title: 'Name / Title of Entry',
                             type: 'string',
-                            description: 'e.g. "Qatar Qsuites QR28", "TRIBE Krakow Old Town", "Louvre Museum"',
                             validation: (Rule) => Rule.required(),
                           },
                           {
                             name: 'time',
                             title: 'Start Time / Departure Time',
                             type: 'string',
-                            description: 'Format: HH:MM (e.g. 13:30)',
                           },
                           {
                             name: 'endTime',
                             title: 'End Time / Arrival Time',
                             type: 'string',
-                            description: 'Format: HH:MM (e.g. 15:00)',
                           },
-                          
-                          // --- TRANSPORT EXCLUSIVE FIELDS ---
                           {
                             name: 'transitDetails',
                             title: 'Transit Connection Details',
@@ -160,65 +155,51 @@ export default defineConfig({
                             fields: [
                               { name: 'origin', type: 'string', title: 'Origin Station/Airport' },
                               { name: 'destination', type: 'string', title: 'Destination Station/Airport' },
-                              { name: 'carrier', type: 'string', title: 'Carrier / Line Name (e.g. Eurostar, China Railway)' },
-                              { name: 'reference', type: 'string', title: 'Flight / Train / Booking Reference Number' },
-                              { name: 'seatAssignment', type: 'string', title: 'Seat / Class Assignment' },
+                              { name: 'carrier', type: 'string', title: 'Carrier / Line' },
+                              { name: 'reference', type: 'string', title: 'Booking Reference' },
+                              { name: 'seatAssignment', type: 'string', title: 'Seat / Class' },
                             ]
                           },
-
-                          // --- HOTEL EXCLUSIVE FIELDS ---
                           {
                             name: 'hotelDetails',
                             title: 'Hotel Check-in Details',
                             type: 'object',
                             hidden: ({ parent }) => parent?.category !== 'Hotel',
                             fields: [
-                              { name: 'bookingRef', type: 'string', title: 'Booking Confirmation Reference' },
-                              { name: 'roomType', type: 'string', title: 'Room Description / Tier booked' },
-                              { name: 'checkInNotes', type: 'string', title: 'Check-in Policy / Luggage Hold Notes' },
+                              { name: 'bookingRef', type: 'string', title: 'Booking Reference' },
+                              { name: 'roomType', type: 'string', title: 'Room Type' },
+                              { name: 'checkInNotes', type: 'string', title: 'Check-in Notes' },
                             ]
                           },
-
                           {
                             name: 'area',
                             title: 'Area / District',
                             type: 'string',
-                            description: 'Example: Old Town, Shinjuku, Futian.',
                           },
                           {
                             name: 'shortDescription',
                             title: 'Short Description',
                             type: 'text',
                             rows: 2,
-                            description: 'High-density summary sentence displayed prominently at top.',
                           },
                           {
                             name: 'info',
                             title: 'Information & Strategic Notes',
                             type: 'text',
-                            description: 'Comprehensive workflow observations. Line breaks are outputted directly.',
                           },
                           {
                             name: 'practicalInfo',
                             title: 'Practical Info',
                             type: 'text',
                             rows: 3,
-                            description: 'Dress codes, booking logic windows, or optimal security line parameters.',
                           },
-
-                          // --- METRIC DATA HANDLING: AUTOMATED CURRENCY COUPLING ---
                           {
                             name: 'costStructure',
                             title: 'Pricing Logistics Metrics',
                             type: 'object',
                             options: { columns: 2 },
                             fields: [
-                              {
-                                name: 'localAmount',
-                                title: 'Local Currency Cost (Numeric Amount)',
-                                type: 'number',
-                                description: 'Leave empty if completely free.'
-                              },
+                              { name: 'localAmount', title: 'Local Currency Cost (Numeric)', type: 'number' },
                               {
                                 name: 'currencyType',
                                 title: 'Local Currency Type',
@@ -234,20 +215,28 @@ export default defineConfig({
                                 },
                                 initialValue: 'EUR'
                               },
-                              {
-                                name: 'textFallback',
-                                title: 'Price Guide Override String',
-                                type: 'string',
-                                description: 'Fallback string structure if exact metrics are unavailable (e.g. "Free", "££", "€15 entry").'
-                              }
+                              { name: 'textFallback', title: 'Price Override String', type: 'string' }
                             ]
                           },
-
                           {
                             name: 'bookingRequired',
                             title: 'Booking Explicitly Required',
                             type: 'boolean',
                             initialValue: false,
+                          },
+                          {
+                            name: 'paymentStatus',
+                            title: 'Operational Payment Status',
+                            type: 'string',
+                            description: 'Track internal financial settlement state.',
+                            options: {
+                              list: [
+                                { title: '✅ Paid / Settled', value: 'paid' },
+                                { title: '⚠️ Not Paid / Action Required', value: 'unpaid' }
+                              ],
+                              layout: 'radio'
+                            },
+                            initialValue: 'paid'
                           },
                           {
                             name: 'bookingUrl',
@@ -263,7 +252,6 @@ export default defineConfig({
                             name: 'travelNote',
                             title: 'Micro Transit Connection Instruction',
                             type: 'string',
-                            description: 'Example: "12 min rapid rail exit 3B."',
                           },
                           {
                             name: 'photo',
@@ -275,7 +263,6 @@ export default defineConfig({
                             name: 'coordinates',
                             title: 'Map Geopoint Coordinates',
                             type: 'geopoint',
-                            description: 'Enables mobile-ready clipboard coordinate targets.',
                           },
                         ],
                         preview: {
