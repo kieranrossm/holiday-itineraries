@@ -186,6 +186,7 @@ export default defineConfig({
                             name: 'info',
                             title: 'Information & Strategic Notes',
                             type: 'text',
+          
                           },
                           {
                             name: 'practicalInfo',
@@ -218,12 +219,38 @@ export default defineConfig({
                               { name: 'textFallback', title: 'Price Override String', type: 'string' }
                             ]
                           },
+                          
+                          // --- UPDATED LIFECYCLE MANAGEMENT BLOCK: ADVANCED BOOKING PARAMETERS ---
                           {
-                            name: 'bookingRequired',
-                            title: 'Booking Explicitly Required',
-                            type: 'boolean',
-                            initialValue: false,
+                            name: 'bookingLogistics',
+                            title: 'Booking & Ticket Lifecycle Logistics',
+                            type: 'object',
+                            fields: [
+                              {
+                                name: 'bookingStatus',
+                                title: 'Reservation Status',
+                                type: 'string',
+                                options: {
+                                  list: [
+                                    { title: '⚪ Not Needed', value: 'not-needed' },
+                                    { title: '⏳ To Book (Action Required)', value: 'to-book' },
+                                    { title: '✅ Booked / Confirmed', value: 'booked' }
+                                  ],
+                                  layout: 'dropdown'
+                                },
+                                initialValue: 'not-needed',
+                                validation: (Rule) => Rule.required(),
+                              },
+                              {
+                                name: 'bookOnDate',
+                                title: 'Booking Opening Target Date',
+                                type: 'date',
+                                description: 'Specify when the booking window officially opens.',
+                                hidden: ({ parent }) => parent?.bookingStatus !== 'to-book'
+                              }
+                            ]
                           },
+
                           {
                             name: 'paymentStatus',
                             title: 'Operational Payment Status',
@@ -231,12 +258,13 @@ export default defineConfig({
                             description: 'Track internal financial settlement state.',
                             options: {
                               list: [
-                                { title: 'Paid / Settled', value: 'paid' },
-                                { title: 'Not Paid / Action Required', value: 'unpaid' }
+                                { title: '✅ Paid / Settled', value: 'paid' },
+                                { title: '⚠️ Not Paid / Balance Outstanding', value: 'unpaid' },
+                                { title: '❌ N/A (No payment required)', value: 'na' }
                               ],
                               layout: 'radio'
                             },
-                            initialValue: 'paid'
+                            initialValue: 'na'
                           },
                           {
                             name: 'bookingUrl',
