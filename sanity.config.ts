@@ -186,7 +186,6 @@ export default defineConfig({
                             name: 'info',
                             title: 'Information & Strategic Notes',
                             type: 'text',
-          
                           },
                           {
                             name: 'practicalInfo',
@@ -219,8 +218,6 @@ export default defineConfig({
                               { name: 'textFallback', title: 'Price Override String', type: 'string' }
                             ]
                           },
-                          
-                          // --- UPDATED LIFECYCLE MANAGEMENT BLOCK: ADVANCED BOOKING PARAMETERS ---
                           {
                             name: 'bookingLogistics',
                             title: 'Booking & Ticket Lifecycle Logistics',
@@ -250,7 +247,6 @@ export default defineConfig({
                               }
                             ]
                           },
-
                           {
                             name: 'paymentStatus',
                             title: 'Operational Payment Status',
@@ -264,7 +260,8 @@ export default defineConfig({
                               ],
                               layout: 'radio'
                             },
-                            initialValue: 'na'
+                            initialValue: 'na',
+                            validation: (Rule) => Rule.required(),
                           },
                           {
                             name: 'bookingUrl',
