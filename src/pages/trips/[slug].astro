@@ -106,7 +106,7 @@ const formatInlineDate = (dateString: string) => {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{trip.title} | Trip Execution Plan</title>
+    <title>{trip.title} | Technical Route Management</title>
 
     <style>
       :root {
@@ -178,7 +178,6 @@ const formatInlineDate = (dateString: string) => {
       .payment-badge.paid { background: var(--green-bg); color: var(--green-ink); }
       .payment-badge.unpaid { background: var(--rose-bg); color: var(--rose-ink); }
       
-      /* New Lifecycle State Badges */
       .booking-badge.to-book { background: var(--amber-bg); color: var(--amber-ink); border: 1px dashed var(--amber-ink); }
       .booking-badge.booked { background: var(--blue-bg); color: var(--blue-ink); }
 
@@ -261,11 +260,10 @@ const formatInlineDate = (dateString: string) => {
                         )}
                         {place.area && <span class="area-badge">{place.area}</span>}
                         
-                        {/* --- RENDERING MATRIX: EXPLICIT PAYMENT COUPLING --- */}
+                        {/* --- STRICT OPERATIONAL BADGING LOGIC MATRIX --- */}
                         {place.paymentStatus === "paid" && <span class="payment-badge paid">✓ Paid</span>}
                         {place.paymentStatus === "unpaid" && <span class="payment-badge unpaid">⚠️ Unpaid</span>}
 
-                        {/* --- RENDERING MATRIX: DETAILED BOOKING LIFECYCLE --- */}
                         {place.bookingLogistics?.bookingStatus === "to-book" && (
                           <span class="booking-badge to-book">
                             ⏳ To Book {place.bookingLogistics.bookOnDate ? `(On ${formatInlineDate(place.bookingLogistics.bookOnDate)})` : ""}
@@ -313,7 +311,6 @@ const formatInlineDate = (dateString: string) => {
                           {place.practicalInfo && <p><strong>Good to know:</strong> {place.practicalInfo}</p>}
                           {place.travelNote && <p><strong>Getting there:</strong> {place.travelNote}</p>}
                           
-                          {/* Text summary display mapping configuration */}
                           {place.bookingLogistics?.bookingStatus === "to-book" && (
                             <p><strong>Booking:</strong> Required {place.bookingLogistics.bookOnDate ? `- Window opens ${formatInlineDate(place.bookingLogistics.bookOnDate)}` : ""}</p>
                           )}
