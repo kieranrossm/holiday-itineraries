@@ -30,11 +30,14 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
       practicalInfo,
       costStructure,
       bookingRequired,
+      paymentStatus,
       bookingUrl,
       websiteUrl,
       travelNote,
       "photoUrl": photo.asset->url,
-      coordinates
+      coordinates,
+      transitDetails,
+      hotelDetails
     }
   }
 }`;
@@ -45,7 +48,6 @@ if (!trip) {
   return Astro.redirect("/404");
 }
 
-// Fixed exchange rates mapping configuration parameters
 const EXCHANGE_RATES: Record<string, number> = {
   EUR: 0.85,
   CNY: 0.11,
@@ -62,7 +64,6 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   GBP: "£"
 };
 
-// Formats cost structures safely into dual presentations containing accurate GBP output tracking
 const formatCost = (costObj: any) => {
   if (!costObj) return "";
   const { localAmount, currencyType, textFallback } = costObj;
@@ -71,9 +72,7 @@ const formatCost = (costObj: any) => {
     const symbol = CURRENCY_SYMBOLS[currencyType] || "£";
     const localFormatted = `${symbol}${localAmount.toLocaleString("en-GB")}`;
     
-    if (currencyType === "GBP") {
-      return localFormatted;
-    }
+    if (currencyType === "GBP") return localFormatted;
     
     const rate = EXCHANGE_RATES[currencyType] || 1;
     const gbpEquivalent = Math.round(localAmount * rate);
@@ -98,7 +97,7 @@ const formatDate = (dateString: string) => {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{trip.title} | Technical Route Management</title>
+    <title>{trip.title} | Trip Execution Plan</title>
 
     <style>
       :root {
@@ -116,6 +115,8 @@ const formatDate = (dateString: string) => {
         --green-ink: #166534;
         --purple-bg: #f3e8ff;
         --purple-ink: #6b21a8;
+        --rose-bg: #ffe4e6;
+        --rose-ink: #9f1239;
       }
 
       * { box-sizing: border-box; }
@@ -159,11 +160,15 @@ const formatDate = (dateString: string) => {
       .place-content { padding: 1.5rem; }
       .place-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
 
-      .time-badge, .category-badge, .area-badge { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1; }
+      .time-badge, .category-badge, .area-badge, .payment-badge { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1; }
       .time-badge { background: var(--blue-bg); color: var(--blue-ink); }
       .category-badge { background: var(--amber-bg); color: var(--amber-ink); }
       .category-badge.transport { background: var(--purple-bg); color: var(--purple-ink); }
       .area-badge { background: var(--green-bg); color: var(--green-ink); }
+      
+      /* Payment Status Badge Styling */
+      .payment-badge.paid { background: var(--green-bg); color: var(--green-ink); }
+      .payment-badge.unpaid { background: var(--rose-bg); color: var(--rose-ink); animation: pulse 2s infinite alternate; }
 
       .place-card h3 { margin: 0.5rem 0; font-size: 1.35rem; line-height: 1.2; letter-spacing: -0.02em; }
       .short-description { margin: 0.5rem 0; font-weight: 600; color: var(--ink); line-height: 1.5; }
@@ -243,12 +248,20 @@ const formatDate = (dateString: string) => {
                           </span>
                         )}
                         {place.area && <span class="area-badge">{place.area}</span>}
+                        
+                        {/* --- PAYMENT STATUS STATE INDICATOR BADGE --- */}
+                        {place.paymentStatus === "unpaid" ? (
+                          <span class="payment-badge unpaid">⚠️ Unpaid</span>
+                        ) : (
+                          (place.category === "Transport" || place.category === "Hotel" || place.bookingRequired) && (
+                            <span class="payment-badge paid">✓ Paid</span>
+                          )
+                        )}
                       </div>
 
                       <h3>{place.placeName}</h3>
                       {place.shortDescription && <p class="short-description">{place.shortDescription}</p>}
                       
-                      {/* --- CONDITIONAL TRANSLATION LAYER: TRANSPORT METADATA --- */}
                       {place.category === "Transport" && place.transitDetails && (
                         <div class="logistics-block">
                           <div class="logistics-title">Connection Parameters</div>
@@ -262,7 +275,6 @@ const formatDate = (dateString: string) => {
                         </div>
                       )}
 
-                      {/* --- CONDITIONAL TRANSLATION LAYER: HOTEL METADATA --- */}
                       {place.category === "Hotel" && place.hotelDetails && (
                         <div class="logistics-block">
                           <div class="logistics-title">Accommodation Logistics</div>
@@ -291,7 +303,6 @@ const formatDate = (dateString: string) => {
                         {place.bookingUrl && <a href={place.bookingUrl} target="_blank" rel="noreferrer">Book</a>}
                         {place.websiteUrl && <a href={place.websiteUrl} target="_blank" rel="noreferrer">Website</a>}
                         
-                        {/* --- HIGH-EFFICIENCY UTILITY: INTERACTIVE CLIPBOARD COUPLING --- */}
                         {place.coordinates && (
                           <button 
                             class="copy-coords-btn" 
