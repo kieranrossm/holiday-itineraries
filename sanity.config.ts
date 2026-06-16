@@ -147,6 +147,8 @@ export default defineConfig({
                             title: 'End Time / Arrival Time',
                             type: 'string',
                           },
+                          
+                          // --- UPDATED LOGISTICS SCHEMAS: DEDICATED TRANSIT MATRIX ---
                           {
                             name: 'transitDetails',
                             title: 'Transit Connection Details',
@@ -155,9 +157,37 @@ export default defineConfig({
                             fields: [
                               { name: 'origin', type: 'string', title: 'Origin Station/Airport' },
                               { name: 'destination', type: 'string', title: 'Destination Station/Airport' },
-                              { name: 'carrier', type: 'string', title: 'Carrier / Line' },
+                              { name: 'carrier', type: 'string', title: 'Carrier / Line Name (e.g. British Airways, Eurostar)' },
                               { name: 'reference', type: 'string', title: 'Booking Reference' },
-                              { name: 'seatAssignment', type: 'string', title: 'Seat / Class' },
+                              { name: 'seatAssignment', type: 'string', title: 'Seat / Class Assignment' },
+                              { name: 'bookingDetailsText', type: 'string', title: 'Booking Details (Additional Notes String)' },
+                              {
+                                name: 'airportParkingLogistics',
+                                title: 'Airport Parking Logistics',
+                                type: 'object',
+                                fields: [
+                                  {
+                                    name: 'status',
+                                    title: 'Parking Status',
+                                    type: 'string',
+                                    options: {
+                                      list: [
+                                        { title: '⚪ Not Needed', value: 'not-needed' },
+                                        { title: '⏳ Required / To Book', value: 'required' },
+                                        { title: '✅ Booked', value: 'booked' }
+                                      ]
+                                    },
+                                    initialValue: 'not-needed'
+                                  },
+                                  {
+                                    name: 'locationInfo',
+                                    title: 'Car Park Location / Terminal Area',
+                                    type: 'string',
+                                    description: 'e.g. Manchester T1 Multi-Storey, JetParks 2',
+                                    hidden: ({ parent }) => parent?.status === 'not-needed'
+                                  }
+                                ]
+                              }
                             ]
                           },
                           {
@@ -197,7 +227,6 @@ export default defineConfig({
                             name: 'costStructure',
                             title: 'Pricing Logistics Metrics',
                             type: 'object',
-                            options: { columns: 2 },
                             fields: [
                               { name: 'localAmount', title: 'Local Currency Cost (Numeric)', type: 'number' },
                               {
@@ -215,7 +244,26 @@ export default defineConfig({
                                 },
                                 initialValue: 'EUR'
                               },
-                              { name: 'textFallback', title: 'Price Override String', type: 'string' }
+                              { name: 'textFallback', title: 'Price Override String', type: 'string' },
+                              
+                              // --- ADDED METRIC DATA: FLEXIBLE CANCELLATION ENGINE ---
+                              {
+                                name: 'cancellationPolicy',
+                                title: 'Cancellation Terms',
+                                type: 'string',
+                                options: {
+                                  list: [
+                                    { title: '❌ Non-refundable', value: 'non-refundable' },
+                                    { title: '🟢 Free Cancellation', value: 'free' }
+                                  ]
+                                }
+                              },
+                              {
+                                name: 'cancellationDeadline',
+                                title: 'Free Cancellation Deadline Date',
+                                type: 'date',
+                                hidden: ({ parent }) => parent?.cancellationPolicy !== 'free'
+                              }
                             ]
                           },
                           {
