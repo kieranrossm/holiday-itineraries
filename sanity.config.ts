@@ -40,7 +40,7 @@ export default defineConfig({
             name: 'coordinates',
             title: 'Primary Destination Coordinates (Weather Fetch Anchor)',
             type: 'geopoint',
-            description: 'Provide the primary coordinates for this trip destination to drive the live 7-day weather engine.',
+            description: 'Provide coordinates for the primary trip location to drive the live weather engine.',
           },
           {
             name: 'displayStatus',
@@ -70,8 +70,6 @@ export default defineConfig({
             type: 'text',
             description: 'Optional short intro shown over or near the hero image.',
           },
-          
-          // --- SORTABLE LAYOUT ORDER BLOCK: DRAG AND DROP CAPABLE ARRAY CONTAINER ---
           {
             name: 'sections',
             title: 'Page Sections (Drag & Drop to Re-order Site Layout)',
@@ -87,8 +85,21 @@ export default defineConfig({
                     name: 'sectionTitle',
                     title: 'Section Header',
                     type: 'string',
-                    description: 'Example: "Day 1: Old Town", "Places to Eat", "Big Hitters"',
+                    description: 'Example: "Day 1: Arrival", "Places to Eat", "Must See Sights"',
                     validation: (Rule) => Rule.required(),
+                  },
+                  {
+                    name: 'cityRegion',
+                    title: 'City / Macro Location',
+                    type: 'string',
+                    description: 'Example: "Beijing", "Chongqing", "Shanghai", "Istanbul"',
+                  },
+                  {
+                    name: 'sectionImage',
+                    title: 'Section Banner Image',
+                    type: 'image',
+                    description: 'Optional banner image shown at the start of this city/section block.',
+                    options: { hotspot: true },
                   },
                   {
                     name: 'sectionIntro',
@@ -209,8 +220,9 @@ export default defineConfig({
                           },
                           {
                             name: 'area',
-                            title: 'Area / District',
+                            title: 'Neighborhood / Local District',
                             type: 'string',
+                            description: 'Example: Chaoyang, Jiefangbei, Bund, Shinjuku.',
                           },
                           {
                             name: 'shortDescription',
@@ -356,7 +368,7 @@ export default defineConfig({
                 preview: {
                   select: {
                     title: 'sectionTitle',
-                    subtitle: 'layoutStyle',
+                    subtitle: 'cityRegion',
                   },
                 },
               },
