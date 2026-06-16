@@ -37,6 +37,12 @@ export default defineConfig({
             validation: (Rule) => Rule.required(),
           },
           {
+            name: 'coordinates',
+            title: 'Primary Destination Coordinates (Weather Fetch Anchor)',
+            type: 'geopoint',
+            description: 'Provide the primary coordinates for this trip destination to drive the live 7-day weather engine.',
+          },
+          {
             name: 'displayStatus',
             title: 'Visibility',
             type: 'string',
@@ -64,14 +70,17 @@ export default defineConfig({
             type: 'text',
             description: 'Optional short intro shown over or near the hero image.',
           },
+          
+          // --- SORTABLE LAYOUT ORDER BLOCK: DRAG AND DROP CAPABLE ARRAY CONTAINER ---
           {
             name: 'sections',
-            title: 'Page Sections',
+            title: 'Page Sections (Drag & Drop to Re-order Site Layout)',
             type: 'array',
+            description: 'Add and arrange sections here. The visual layout order on the website directly mirrors this sequence.',
             of: [
               {
                 name: 'section',
-                title: 'Section',
+                title: 'Section Workspace',
                 type: 'object',
                 fields: [
                   {
@@ -147,8 +156,6 @@ export default defineConfig({
                             title: 'End Time / Arrival Time',
                             type: 'string',
                           },
-                          
-                          // --- UPDATED LOGISTICS SCHEMAS: DEDICATED TRANSIT MATRIX ---
                           {
                             name: 'transitDetails',
                             title: 'Transit Connection Details',
@@ -157,9 +164,9 @@ export default defineConfig({
                             fields: [
                               { name: 'origin', type: 'string', title: 'Origin Station/Airport' },
                               { name: 'destination', type: 'string', title: 'Destination Station/Airport' },
-                              { name: 'carrier', type: 'string', title: 'Carrier / Line Name (e.g. British Airways, Eurostar)' },
+                              { name: 'carrier', type: 'string', title: 'Carrier / Line' },
                               { name: 'reference', type: 'string', title: 'Booking Reference' },
-                              { name: 'seatAssignment', type: 'string', title: 'Seat / Class Assignment' },
+                              { name: 'seatAssignment', type: 'string', title: 'Seat / Class' },
                               { name: 'bookingDetailsText', type: 'string', title: 'Booking Details (Additional Notes String)' },
                               {
                                 name: 'airportParkingLogistics',
@@ -183,7 +190,6 @@ export default defineConfig({
                                     name: 'locationInfo',
                                     title: 'Car Park Location / Terminal Area',
                                     type: 'string',
-                                    description: 'e.g. Manchester T1 Multi-Storey, JetParks 2',
                                     hidden: ({ parent }) => parent?.status === 'not-needed'
                                   }
                                 ]
@@ -228,7 +234,7 @@ export default defineConfig({
                             title: 'Pricing Logistics Metrics',
                             type: 'object',
                             fields: [
-                              { name: 'localAmount', title: 'Local Currency Cost (Numeric)', type: 'number' },
+                              { name: 'localAmount', type: 'number', title: 'Local Currency Cost (Numeric)' },
                               {
                                 name: 'currencyType',
                                 title: 'Local Currency Type',
@@ -245,8 +251,6 @@ export default defineConfig({
                                 initialValue: 'EUR'
                               },
                               { name: 'textFallback', title: 'Price Override String', type: 'string' },
-                              
-                              // --- ADDED METRIC DATA: FLEXIBLE CANCELLATION ENGINE ---
                               {
                                 name: 'cancellationPolicy',
                                 title: 'Cancellation Terms',
