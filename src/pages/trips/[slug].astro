@@ -13,6 +13,7 @@ const { slug } = Astro.params;
 const query = `*[_type == "trip" && slug.current == $slug][0] {
   title,
   startDate,
+  coordinates,
   heroIntro,
   "heroImageUrl": heroImage.asset->url,
   sections[] {
@@ -48,6 +49,40 @@ if (!trip) {
   return Astro.redirect("/404");
 }
 
+// --- LIVE WEATHER DATA PIPELINE LAYER (OPEN-METEO ENGINE INTEGRATION) ---
+let weatherForecast = null;
+if (trip.coordinates?.lat && trip.coordinates?.lng) {
+  try {
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${trip.coordinates.lat}&longitude=${trip.coordinates.lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+    const response = await fetch(weatherUrl);
+    if (response.ok) {
+      const data = await response.json();
+      weatherForecast = data.daily?.time.map((dateStr: string, idx: number) => {
+        return {
+          date: new Date(dateStr).toLocaleDateString("en-GB", { weekday: "short", day: "numeric" }),
+          maxTemp: Math.round(data.daily.temperature_2m_max[idx]),
+          minTemp: Math.round(data.daily.temperature_2m_min[idx]),
+          code: data.daily.weathercode[idx]
+        };
+      });
+    }
+  } catch (e) {
+    console.error("Failed executing weather matrix endpoint build trigger", e);
+  }
+}
+
+// Map WMO code strings into explicit visual condition icons
+const getWeatherIcon = (code: number) => {
+  if (code === 0) return "☀️ Sunny";
+  if (code >= 1 && code <= 3) return "⛅ Partly Cloudy";
+  if (code >= 45 && code <= 48) return "🌫️ Foggy";
+  if (code >= 51 && code <= 67) return "🌧️ Rain Drizzle";
+  if (code >= 71 && code <= 77) return "❄️ Snowing";
+  if (code >= 80 && code <= 82) return " showers";
+  if (code >= 95) return "⛈️ Thunderstorms";
+  return "🌤️ Clear";
+};
+
 const EXCHANGE_RATES: Record<string, number> = {
   EUR: 0.85,
   CNY: 0.11,
@@ -71,7 +106,6 @@ const formatCost = (costObj: any) => {
   if (localAmount !== undefined && localAmount !== null) {
     const symbol = CURRENCY_SYMBOLS[currencyType] || "£";
     const localFormatted = `${symbol}${localAmount.toLocaleString("en-GB")}`;
-    
     if (currencyType === "GBP") return localFormatted;
     
     const rate = EXCHANGE_RATES[currencyType] || 1;
@@ -146,7 +180,7 @@ const formatInlineDate = (dateString: string) => {
       .back-button:hover { color: var(--ink); }
 
       .trip-header {
-        margin-bottom: 3.5rem;
+        margin-bottom: 2rem;
         border: 1px solid var(--soft);
         border-radius: 28px;
         background: #ffffff;
@@ -159,6 +193,23 @@ const formatInlineDate = (dateString: string) => {
       .trip-header h1 { margin: 0 0 0.75rem; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1; letter-spacing: -0.05em; }
       .trip-date { margin: 0; color: var(--muted); font-weight: 650; }
       .hero-intro { max-width: 760px; margin: 1.25rem 0 0; color: #475569; line-height: 1.7; white-space: pre-line; }
+
+      /* --- WEATHER MODULE STYLING PARAMETERS --- */
+      .weather-section {
+        background: #ffffff;
+        border: 1px solid var(--soft);
+        border-radius: 24px;
+        padding: 1.5rem;
+        margin-bottom: 3.5rem;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.03);
+      }
+      .weather-title { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 1rem; }
+      .weather-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.75rem; }
+      .weather-day-card { background: var(--soft-2); padding: 0.75rem; border-radius: 14px; text-align: center; border: 1px solid transparent; }
+      .weather-day-name { font-size: 0.85rem; font-weight: 700; color: var(--slate-ink); margin-bottom: 0.25rem; }
+      .weather-day-icon { font-size: 1.1rem; margin: 0.35rem 0; }
+      .weather-day-temps { font-size: 0.85rem; font-weight: 800; }
+      .weather-day-temps .min-t { color: var(--muted); font-weight: 500; margin-left: 0.25rem; }
 
       .section-container { margin-bottom: 4.5rem; }
       .section-header { margin-bottom: 2rem; }
@@ -236,6 +287,26 @@ const formatInlineDate = (dateString: string) => {
           </div>
         </header>
 
+        {/* --- DYNAMIC FRONTEND RENDERING LAYER: LIVE WEATHER SUMMARY FORECAST --- */}
+        {weatherForecast && (
+          <div class="weather-section">
+            <h4 class="weather-title">🌤️ Live 7-Day Destination Forecast Summary</h4>
+            <div class="weather-grid">
+              {weatherForecast.map((day: any) => (
+                <div class="weather-day-card">
+                  <div class="weather-day-name">{day.date}</div>
+                  <div class="weather-day-icon">{getWeatherIcon(day.code)}</div>
+                  <div class="weather-day-temps">
+                    <span class="max-t">{day.maxTemp}°C</span>
+                    <span class="min-t">{day.minTemp}°C</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* --- DRAG & DROP COUPLING LOOP: RENDERS IN THE EXACT ORDER ARRANGED IN SANITY --- */}
         {trip.sections && trip.sections.map((section: any) => (
           <section class={`section-container layout-${section.layoutStyle || "timeline"}`}>
             <header class="section-header">
@@ -277,7 +348,6 @@ const formatInlineDate = (dateString: string) => {
                           <span class="booking-badge booked">✓ Booked</span>
                         )}
 
-                        {/* --- RENDER MATRIX: EXTENDED CANCELLATION BADGES --- */}
                         {place.costStructure?.cancellationPolicy === "free" && (
                           <span class="cancellation-badge free">
                             🟢 Free Cancellation {place.costStructure.cancellationDeadline ? `until ${formatInlineDate(place.costStructure.cancellationDeadline)}` : ""}
@@ -291,7 +361,6 @@ const formatInlineDate = (dateString: string) => {
                       <h3>{place.placeName}</h3>
                       {place.shortDescription && <p class="short-description">{place.shortDescription}</p>}
                       
-                      {/* --- COMPREHENSIVE ROAD/RAIL/FLIGHT TRACKING DATA BLOCKS --- */}
                       {place.category === "Transport" && place.transitDetails && (
                         <div class="logistics-block">
                           <div class="logistics-title">Connection Parameters</div>
@@ -303,7 +372,6 @@ const formatInlineDate = (dateString: string) => {
                             {place.transitDetails.seatAssignment && <p><strong>Seat/Class:</strong> {place.transitDetails.seatAssignment}</p>}
                           </div>
                           
-                          {/* Dedicated Airport Parking Display Blocks */}
                           {place.transitDetails.airportParkingLogistics && place.transitDetails.airportParkingLogistics.status !== "not-needed" && (
                             <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--soft);">
                               <p>
