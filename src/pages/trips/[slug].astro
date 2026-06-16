@@ -140,7 +140,7 @@ const formatInlineDate = (dateString: string) => {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{trip.title} | Trip Execution Plan</title>
+    <title>{trip.title} | Technical Route Management</title>
 
     <style>
       :root {
@@ -150,7 +150,7 @@ const formatInlineDate = (dateString: string) => {
         --muted: #64748b;
         --soft: #e2e8f0;
         --soft-2: #f1f5f9;
-        --blue-bg: #dbeafe;
+        --blue-bg: #eff6ff;
         --blue-ink: #1d4ed8;
         --amber-bg: #fef3c7;
         --amber-ink: #92400e;
@@ -168,9 +168,9 @@ const formatInlineDate = (dateString: string) => {
 
       body {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        max-width: 900px;
+        max-width: 940px; /* Aligned global footprint bounds contract */
         margin: 0 auto;
-        padding: 2rem 1rem;
+        padding: 2rem 1.25rem;
         color: var(--ink);
         background: var(--page-bg);
       }
@@ -180,7 +180,7 @@ const formatInlineDate = (dateString: string) => {
       .back-button:hover { color: var(--ink); }
 
       .trip-header {
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
         border: 1px solid var(--soft);
         border-radius: 24px;
         background: #ffffff;
@@ -188,7 +188,7 @@ const formatInlineDate = (dateString: string) => {
         overflow: hidden;
       }
 
-      /* --- TIER 1 IMAGE: CINEMATIC CANOPY HERO --- */
+      /* Widescreen canopy crop constraint */
       .trip-hero-image { 
         width: 100%; 
         aspect-ratio: 21 / 9;
@@ -206,7 +206,7 @@ const formatInlineDate = (dateString: string) => {
         border: 1px solid var(--soft);
         border-radius: 24px;
         padding: 1.5rem;
-        margin-bottom: 3.5rem;
+        margin-bottom: 4rem;
         box-shadow: 0 10px 25px rgba(15, 23, 42, 0.03);
       }
       .weather-title { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 1rem; }
@@ -217,83 +217,137 @@ const formatInlineDate = (dateString: string) => {
       .weather-day-temps { font-size: 0.85rem; font-weight: 800; }
       .weather-day-temps .min-t { color: var(--muted); font-weight: 500; margin-left: 0.25rem; }
 
-      .section-container { margin-bottom: 5rem; }
+      /* --- CRITIQUE POINT 5: STRONGER CHAPTER SEPARATION BREAKS --- */
+      .section-container { 
+        margin-top: 5rem;
+        padding-top: 2.5rem;
+        border-top: 2px dashed var(--soft);
+      }
+      .section-container:first-of-type {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+      }
+      
       .section-header { margin-bottom: 2rem; }
       .section-location-eyebrow { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue-ink); margin: 0 0 0.35rem; }
-      .section-header h2 { margin: 0 0 0.5rem; font-size: clamp(1.6rem, 4.5vw, 2.4rem); letter-spacing: -0.04em; line-height: 1.1; }
-      .section-header p { margin: 0.5rem 0 0; color: var(--muted); line-height: 1.6; }
       
-      /* --- TIER 2 IMAGE: PANORAMIC CITY divider BELT --- */
+      /* --- CRITIQUE POINT 7: HIGH-DENSITY PROGRAMMATIC COMPILING HEADERS --- */
+      .section-summary-stats { font-size: 0.85rem; color: var(--muted); font-weight: 600; margin: 0.25rem 0 1rem; background: var(--soft-2); width: fit-content; padding: 0.25rem 0.75rem; border-radius: 6px; }
+      
+      .section-header h2 { margin: 0 0 0.25rem; font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: -0.04em; line-height: 1.1; }
+      .section-header p.sec-intro { margin: 0.75rem 0 0; color: var(--muted); line-height: 1.6; font-size: 1.05rem; }
+      
+      /* --- CRITIQUE POINT 1: CONSTISTENT PANORAMIC CITY BANNER HEIGHTS --- */
       .section-banner-image { 
         width: 100%; 
-        aspect-ratio: 16 / 5;
+        aspect-ratio: 16 / 4.5;
         object-fit: cover; 
-        border-radius: 18px; 
-        margin: 1.25rem 0 1.75rem; 
+        border-radius: 16px; 
+        margin: 1rem 0 1.5rem; 
         border: 1px solid var(--soft); 
         display: block; 
         background: var(--soft-2);
       }
 
       .places-container { width: 100%; }
-      .place-card { position: relative; background: var(--card-bg); border: 1px solid var(--soft); border-radius: 22px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); }
       
-      /* --- TIER 3 IMAGE: UNIFORM COMPACT CONTAINER FOR ITEMS --- */
+      /* --- CRITIQUE POINT 2 & 8: VISUALLY ISOLATED PARENT-CHILD CARDS --- */
+      .place-card { 
+        position: relative; 
+        background: var(--card-bg); 
+        border: 1px solid var(--soft); 
+        border-radius: 20px; 
+        overflow: hidden; 
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); 
+        margin-bottom: 1.5rem;
+      }
+      
+      /* --- CRITIQUE POINT 1 & 6: CONTROLLED COMPACT IMAGE MAPPING OVER CARD ENTRIES --- */
       .place-image { 
         width: 100%; 
-        aspect-ratio: 4 / 3;
+        aspect-ratio: 16 / 7; /* Magazine profile ratio */
+        max-height: 280px;
         object-fit: cover; 
         display: block; 
         background: var(--soft-2);
         border-bottom: 1px solid var(--soft);
       }
-      .place-content { padding: 1.5rem; }
-      .place-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
+      .place-content { padding: 1.75rem; }
+      .place-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
 
-      .time-badge, .category-badge, .area-badge, .payment-badge, .booking-badge, .cancellation-badge { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1; }
-      .time-badge { background: var(--blue-bg); color: var(--blue-ink); }
-      .category-badge { background: var(--amber-bg); color: var(--amber-ink); }
+      /* --- CRITIQUE POINT 4: HIGH-HIERARCHY SOLID BADGE EMBED BLOCKS --- */
+      .time-badge, .category-badge, .area-badge, .payment-badge, .booking-badge, .cancellation-badge { 
+        display: inline-flex; 
+        align-items: center; 
+        padding: 0.35rem 0.75rem; 
+        border-radius: 8px; 
+        font-size: 0.75rem; 
+        font-weight: 750; 
+        line-height: 1; 
+        letter-spacing: -0.01em;
+      }
+      .time-badge { background: var(--blue-bg); color: var(--blue-ink); font-family: monospace; font-size: 0.8rem; }
+      .category-badge { background: var(--soft-2); color: var(--slate-ink); border: 1px solid var(--soft); }
       .category-badge.transport { background: var(--purple-bg); color: var(--purple-ink); }
-      .area-badge { background: var(--green-bg); color: var(--green-ink); }
+      .area-badge { background: #f0fdf4; color: #166534; }
       
       .payment-badge.paid { background: var(--green-bg); color: var(--green-ink); }
-      .payment-badge.unpaid { background: var(--rose-bg); color: var(--rose-ink); }
+      .payment-badge.unpaid { background: var(--rose-bg); color: var(--rose-ink); font-weight: 800; }
       
-      .booking-badge.to-book { background: var(--amber-bg); color: var(--amber-ink); border: 1px dashed var(--amber-ink); }
-      .booking-badge.booked { background: var(--blue-bg); color: var(--blue-ink); }
+      .booking-badge.to-book { background: var(--amber-bg); color: var(--amber-ink); font-weight: 800; }
+      .booking-badge.booked { background: #ecfeff; color: #0369a1; }
       
-      .cancellation-badge.free { background: var(--green-bg); color: var(--green-ink); }
-      .cancellation-badge.non-refundable { background: var(--slate-bg); color: var(--slate-ink); }
+      .cancellation-badge.free { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+      .cancellation-badge.non-refundable { background: #f1f5f9; color: #475569; }
 
-      .place-card h3 { margin: 0.5rem 0; font-size: 1.35rem; line-height: 1.2; letter-spacing: -0.02em; }
-      .short-description { margin: 0.5rem 0; font-weight: 600; color: var(--ink); line-height: 1.5; }
-      .place-info { margin: 1rem 0 0; color: #475569; line-height: 1.65; white-space: pre-line; }
+      .place-card h3 { margin: 0 0 0.5rem; font-size: 1.4rem; line-height: 1.2; letter-spacing: -0.03em; color: var(--ink); }
+      .short-description { margin: 0.5rem 0; font-weight: 600; color: #334155; line-height: 1.5; font-size: 1.05rem; }
+      .place-info { margin: 1rem 0 0; color: #475569; line-height: 1.65; white-space: pre-line; font-size: 0.95rem; }
 
-      .logistics-block { background: var(--soft-2); padding: 1rem; border-radius: 12px; margin: 1rem 0; font-size: 0.9rem; border: 1px solid var(--soft); }
-      .logistics-title { font-weight: 800; text-transform: uppercase; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.5rem; letter-spacing: 0.05em; }
-      .logistics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; }
+      /* --- CRITIQUE POINT 3: PREMIUM UNIFIED LOGISTICS FRAMEWORK --- */
+      .logistics-block { 
+        background: var(--soft-2); 
+        padding: 1.25rem; 
+        border-radius: 14px; 
+        margin: 1.25rem 0; 
+        font-size: 0.9rem; 
+        border: 1px solid var(--soft); 
+      }
+      .logistics-title { font-weight: 800; text-transform: uppercase; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.75rem; letter-spacing: 0.05em; }
+      .logistics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.65rem; }
+      .logistics-grid p { margin: 0; color: #334155; line-height: 1.4; }
 
-      .detail-list { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--soft); font-size: 0.95rem; }
-      .detail-list p { margin: 0.5rem 0; color: #475569; }
+      .detail-list { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--soft); font-size: 0.95rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.5rem; }
+      .detail-list p { margin: 0; color: #475569; line-height: 1.5; }
 
-      .place-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
-      .place-links a, .copy-coords-btn { display: inline-flex; align-items: center; padding: 0.55rem 1rem; border-radius: 999px; background: var(--ink); color: #ffffff; text-decoration: none; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; }
+      .place-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--soft-2); }
+      .place-links a, .copy-coords-btn { display: inline-flex; align-items: center; padding: 0.6rem 1.1rem; border-radius: 10px; background: var(--ink); color: #ffffff; text-decoration: none; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; transition: background 0.15s ease; }
       .place-links a:hover, .copy-coords-btn:hover { background: #334155; }
       .copy-coords-btn { background: transparent; color: var(--ink); border: 1px solid var(--soft); }
       .copy-coords-btn:hover { background: var(--soft-2); }
 
-      .layout-grid .places-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+      .layout-grid .places-container { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); 
+        gap: 1.5rem; 
+      }
+      .layout-grid .place-card { margin-bottom: 0; }
+      .layout-grid .place-image { aspect-ratio: 16 / 9; }
       
-      .layout-timeline .places-container { display: flex; flex-direction: column; gap: 2.5rem; border-left: 3px solid #cbd5e1; padding-left: 2rem; margin-left: 0.5rem; }
+      .layout-timeline .places-container { display: flex; flex-direction: column; gap: 2rem; border-left: 3px solid #cbd5e1; padding-left: 2.25rem; margin-left: 0.5rem; }
       .layout-timeline .place-card::before {
-        content: ""; position: absolute; left: -2.65rem; top: 1.75rem; width: 1rem; height: 1rem; background: #3b82f6; border-radius: 50%; border: 4px solid var(--page-bg);
+        content: ""; position: absolute; left: -2.9rem; top: 1.85rem; width: 1.1rem; height: 1.1rem; background: #3b82f6; border-radius: 50%; border: 4px solid var(--page-bg); z-index: 10;
       }
 
-      @media (max-width: 720px) {
-        .trip-hero-image { aspect-ratio: 16 / 7; }
+      @media (max-width: 768px) {
+        body { padding: 1rem 0.75rem; }
+        .trip-hero-image { aspect-ratio: 16 / 8; }
         .section-banner-image { aspect-ratio: 16 / 6; }
+        .layout-grid .places-container { grid-template-columns: 1fr; }
         .layout-timeline .places-container { margin-left: 0.25rem; padding-left: 1.25rem; }
         .layout-timeline .place-card::before { left: -1.9rem; }
+        .detail-list { grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -335,159 +389,167 @@ const formatInlineDate = (dateString: string) => {
           </div>
         )}
 
-        {trip.sections && trip.sections.map((section: any) => (
-          <section class={`section-container layout-${section.layoutStyle || "timeline"}`}>
-            <header class="section-header">
-              {section.cityRegion && (
-                <p class="section-location-eyebrow">📍 Location: {section.cityRegion}</p>
-              )}
-              <h2>{section.sectionTitle}</h2>
-              
-              {section.sectionImageUrl && (
-                <img 
-                  src={section.sectionImageUrl} 
-                  alt="" 
-                  class="section-banner-image" 
-                  loading="lazy" 
-                />
-              )}
-              
-              {section.sectionIntro && <p>{section.sectionIntro}</p>}
-            </header>
+        {trip.sections && trip.sections.map((section: any) => {
+          // --- COMPILING LOGISTIC CALCULATIONS FOR POINT 7 ---
+          const totalElements = section.places?.length || 0;
+          const outstandingBookings = section.places?.filter((p: any) => p.bookingLogistics?.bookingStatus === "to-book").length || 0;
+          
+          return (
+            <section class={`section-container layout-${section.layoutStyle || "timeline"}`}>
+              <header class="section-header">
+                {section.cityRegion && (
+                  <p class="section-location-eyebrow">📍 Destination: {section.cityRegion}</p>
+                )}
+                <h2>{section.sectionTitle}</h2>
+                
+                {/* Programmatic Summary Metrics Banner Block */}
+                {totalElements > 0 && (
+                  <div class="section-summary-stats">
+                    {totalElements} {totalElements === 1 ? 'item' : 'items'} mapped 
+                    {outstandingBookings > 0 ? ` • ⚠️ ${outstandingBookings} booking action required` : ' • 📑 Logged'}
+                  </div>
+                )}
+                
+                {section.sectionImageUrl && (
+                  <img 
+                    src={section.sectionImageUrl} 
+                    alt="" 
+                    class="section-banner-image" 
+                    loading="lazy" 
+                  />
+                )}
+                
+                {section.sectionIntro && <p class="sec-intro">{section.sectionIntro}</p>}
+              </header>
 
-            {section.places && section.places.length > 0 && (
-              <div class="places-container">
-                {section.places.map((place: any) => (
-                  <article class="place-card">
-                    {place.photoUrl && (
-                      <img src={place.photoUrl} alt="" class="place-image" loading="lazy" />
-                    )}
-
-                    <div class="place-content">
-                      <div class="place-meta">
-                        {place.time && (
-                          <span class="time-badge">
-                            {place.time}{place.endTime ? ` - ${place.endTime}` : ""}
-                          </span>
-                        )}
-                        {place.category && (
-                          <span class={`category-badge ${place.category.toLowerCase()}`}>
-                            {place.category}
-                          </span>
-                        )}
-                        {place.area && <span class="area-badge">{place.area}</span>}
-                        
-                        {place.paymentStatus === "paid" && <span class="payment-badge paid">✓ Paid</span>}
-                        {place.paymentStatus === "unpaid" && <span class="payment-badge unpaid">⚠️ Unpaid</span>}
-
-                        {place.bookingLogistics?.bookingStatus === "to-book" && (
-                          <span class="booking-badge to-book">
-                            ⏳ To Book {place.bookingLogistics.bookOnDate ? `(On ${formatInlineDate(place.bookingLogistics.bookOnDate)})` : ""}
-                          </span>
-                        )}
-                        {place.bookingLogistics?.bookingStatus === "booked" && (
-                          <span class="booking-badge booked">✓ Booked</span>
-                        )}
-
-                        {place.costStructure?.cancellationPolicy === "free" && (
-                          <span class="cancellation-badge free">
-                            🟢 Free {place.costStructure.cancellationDeadline ? `until ${formatInlineDate(place.costStructure.cancellationDeadline)}` : ""}
-                          </span>
-                        )}
-                        {place.costStructure?.cancellationPolicy === "non-refundable" && (
-                          <span class="cancellation-badge non-refundable">❌ Non-ref</span>
-                        )}
-                      </div>
-
-                      <h3>{place.placeName}</h3>
-                      {place.shortDescription && <p class="short-description">{place.shortDescription}</p>}
-                      
-                      {place.category === "Transport" && place.transitDetails && (
-                        <div class="logistics-block">
-                          <div class="logistics-title">Connection Parameters</div>
-                          <div class="logistics-grid">
-                            {place.transitDetails.origin && <p><strong>From:</strong> {place.transitDetails.origin}</p>}
-                            {place.transitDetails.destination && <p><strong>To:</strong> {place.transitDetails.destination}</p>}
-                            {place.transitDetails.carrier && <p><strong>Carrier:</strong> {place.transitDetails.carrier}</p>}
-                            {place.transitDetails.reference && <p><strong>Ref:</strong> {place.transitDetails.reference}</p>}
-                            {place.transitDetails.seatAssignment && <p><strong>Seat/Class:</strong> {place.transitDetails.seatAssignment}</p>}
-                          </div>
-                          
-                          {place.transitDetails.airportParkingLogistics && place.transitDetails.airportParkingLogistics.status !== "not-needed" && (
-                            <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--soft);">
-                              <p>
-                                <strong>Airport Parking:</strong> 
-                                {place.transitDetails.airportParkingLogistics.status === "booked" ? " ✅ Booked" : " ⏳ Required / To Book"}
-                                {place.transitDetails.airportParkingLogistics.locationInfo ? ` — ${place.transitDetails.airportParkingLogistics.locationInfo}` : ""}
-                              </p>
-                            </div>
-                          )}
-
-                          {place.transitDetails.bookingDetailsText && (
-                            <div style="margin-top: 0.5rem; font-style: italic; color: var(--muted);">
-                              <strong>Booking Dets:</strong> {place.transitDetails.bookingDetailsText}
-                            </div>
-                          )}
-                        </div>
+              {section.places && section.places.length > 0 && (
+                <div class="places-container">
+                  {section.places.map((place: any) => (
+                    <article class="place-card">
+                      {place.photoUrl && (
+                        <img src={place.photoUrl} alt="" class="place-image" loading="lazy" />
                       )}
 
-                      {place.category === "Hotel" && place.hotelDetails && (
-                        <div class="logistics-block">
-                          <div class="logistics-title">Accommodation Logistics</div>
-                          <div class="logistics-grid">
-                            {place.hotelDetails.bookingRef && <p><strong>Booking Ref:</strong> {place.hotelDetails.bookingRef}</p>}
-                            {place.hotelDetails.roomType && <p><strong>Room:</strong> {place.hotelDetails.roomType}</p>}
-                            {place.hotelDetails.checkInNotes && <p><strong>Notes:</strong> {place.hotelDetails.checkInNotes}</p>}
-                          </div>
-                        </div>
-                      )}
-
-                      {place.info && <p class="place-info">{place.info}</p>}
-
-                      {(place.costStructure || place.practicalInfo || place.travelNote || place.bookingLogistics) && (
-                        <div class="detail-list">
-                          {formatCost(place.costStructure) && (
-                            <p><strong>Price:</strong> {formatCost(place.costStructure)}</p>
+                      <div class="place-content">
+                        <div class="place-meta">
+                          {place.time && (
+                            <span class="time-badge">
+                              ⏰ {place.time}{place.endTime ? ` - ${place.endTime}` : ""}
+                            </span>
                           )}
-                          {place.practicalInfo && <p><strong>Good to know:</strong> {place.practicalInfo}</p>}
-                          {place.travelNote && <p><strong>Getting there:</strong> {place.travelNote}</p>}
+                          {place.category && (
+                            <span class={`category-badge ${place.category.toLowerCase()}`}>
+                              {place.category}
+                            </span>
+                          )}
+                          {place.area && <span class="area-badge">🏙️ {place.area}</span>}
                           
+                          {place.paymentStatus === "paid" && <span class="payment-badge paid">✓ Paid</span>}
+                          {place.paymentStatus === "unpaid" && <span class="payment-badge unpaid">⚠️ Unpaid</span>}
+
                           {place.bookingLogistics?.bookingStatus === "to-book" && (
-                            <p><strong>Booking:</strong> Required {place.bookingLogistics.bookOnDate ? `- Window opens ${formatInlineDate(place.bookingLogistics.bookOnDate)}` : ""}</p>
+                            <span class="booking-badge to-book">
+                              ⏳ To Book {place.bookingLogistics.bookOnDate ? `(On ${formatInlineDate(place.bookingLogistics.bookOnDate)})` : ""}
+                            </span>
                           )}
                           {place.bookingLogistics?.bookingStatus === "booked" && (
-                            <p><strong>Booking:</strong> Confirmed</p>
+                            <span class="booking-badge booked">✓ Booked</span>
+                          )}
+
+                          {place.costStructure?.cancellationPolicy === "free" && (
+                            <span class="cancellation-badge free">
+                              🟢 Free Cancel {place.costStructure.cancellationDeadline ? `before ${formatInlineDate(place.costStructure.cancellationDeadline)}` : ""}
+                            </span>
+                          )}
+                          {place.costStructure?.cancellationPolicy === "non-refundable" && (
+                            <span class="cancellation-badge non-refundable">❌ Non-Ref</span>
                           )}
                         </div>
-                      )}
 
-                      <div class="place-links">
-                        {place.bookingUrl && <a href={place.bookingUrl} target="_blank" rel="noreferrer">Book</a>}
-                        {place.websiteUrl && <a href={place.websiteUrl} target="_blank" rel="noreferrer">Website</a>}
+                        <h3>{place.placeName}</h3>
+                        {place.shortDescription && <p class="short-description">{place.shortDescription}</p>}
                         
-                        {place.coordinates && (
-                          <button 
-                            class="copy-coords-btn" 
-                            data-lat={place.coordinates.lat} 
-                            data-lng={place.coordinates.lng}
-                            onclick={`
-                              navigator.clipboard.writeText('${place.coordinates.lat},${place.coordinates.lng}');
-                              this.innerText = 'Copied!';
-                              setTimeout(() => this.innerText = '📋 Copy Coords', 1500);
-                            `}
-                          >
-                            📋 Copy Coords
-                          </button>
+                        {place.category === "Transport" && place.transitDetails && (
+                          <div class="logistics-block">
+                            <div class="logistics-title">✈️ Transit Connection Parameters</div>
+                            <div class="logistics-grid">
+                              {place.transitDetails.origin && <p><strong>From:</strong> {place.transitDetails.origin}</p>}
+                              {place.transitDetails.destination && <p><strong>To:</strong> {place.transitDetails.destination}</p>}
+                              {place.transitDetails.carrier && <p><strong>Carrier:</strong> {place.transitDetails.carrier}</p>}
+                              {place.transitDetails.reference && <p><strong>Ref Code:</strong> {place.transitDetails.reference}</p>}
+                              {place.transitDetails.seatAssignment && <p><strong>Seat/Class:</strong> {place.transitDetails.seatAssignment}</p>}
+                            </div>
+                            
+                            {place.transitDetails.airportParkingLogistics && place.transitDetails.airportParkingLogistics.status !== "not-needed" && (
+                              <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--soft);">
+                                <p>
+                                  <strong>Airport Parking:</strong> 
+                                  {place.transitDetails.airportParkingLogistics.status === "booked" ? " ✅ Booked" : " ⏳ Required / To Book"}
+                                  {place.transitDetails.airportParkingLogistics.locationInfo ? ` — ${place.transitDetails.airportParkingLogistics.locationInfo}` : ""}
+                                </p>
+                              </div>
+                            )}
+
+                            {place.transitDetails.bookingDetailsText && (
+                              <div style="margin-top: 0.5rem; font-size: 0.85rem; background: rgba(15,23,42,0.03); padding: 0.5rem; border-radius: 6px; color: var(--slate-ink);">
+                                <strong>Booking Details:</strong> {place.transitDetails.bookingDetailsText}
+                              </div>
+                            )}
+                          </div>
                         )}
+
+                        {place.category === "Hotel" && place.hotelDetails && (
+                          <div class="logistics-block">
+                            <div class="logistics-title">🏨 Accommodation Logistics</div>
+                            <div class="logistics-grid">
+                              {place.hotelDetails.bookingRef && <p><strong>Booking Ref:</strong> {place.hotelDetails.bookingRef}</p>}
+                              {place.hotelDetails.roomType && <p><strong>Room Config:</strong> {place.hotelDetails.roomType}</p>}
+                              {place.hotelDetails.checkInNotes && <p><strong>Check-in:</strong> {place.hotelDetails.checkInNotes}</p>}
+                            </div>
+                          </div>
+                        )}
+
+                        {place.info && <p class="place-info">{place.info}</p>}
+
+                        {(place.costStructure || place.practicalInfo || place.travelNote || place.bookingLogistics) && (
+                          <div class="detail-list">
+                            {formatCost(place.costStructure) && (
+                              <p><strong>Cost Matrix:</strong> {formatCost(place.costStructure)}</p>
+                            )}
+                            {place.practicalInfo && <p><strong>Practical Notes:</strong> {place.practicalInfo}</p>}
+                            {place.travelNote && <p><strong>Transit Route:</strong> {place.travelNote}</p>}
+                          </div>
+                        )}
+
+                        <div class="place-links">
+                          {place.bookingUrl && <a href={place.bookingUrl} target="_blank" rel="noreferrer">Open Ticket Booking</a>}
+                          {place.websiteUrl && <a href={place.websiteUrl} target="_blank" rel="noreferrer">Official Site Resource</a>}
+                          
+                          {place.coordinates && (
+                            <button 
+                              class="copy-coords-btn" 
+                              data-lat={place.coordinates.lat} 
+                              data-lng={place.coordinates.lng}
+                              onclick={`
+                                navigator.clipboard.writeText('${place.coordinates.lat},${place.coordinates.lng}');
+                                this.innerText = 'Copied!';
+                                setTimeout(() => this.innerText = '📋 Copy Coords', 1500);
+                              `}
+                            >
+                              📋 Copy Geopoint Coords
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        ))}
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          );
+        })}
       </article>
     </main>
   </body>
 </html>
+
