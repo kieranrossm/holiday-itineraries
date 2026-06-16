@@ -18,6 +18,8 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
   "heroImageUrl": heroImage.asset->url,
   sections[] {
     sectionTitle,
+    cityRegion,
+    "sectionImageUrl": sectionImage.asset->url,
     sectionIntro,
     layoutStyle,
     places[] {
@@ -49,7 +51,6 @@ if (!trip) {
   return Astro.redirect("/404");
 }
 
-// --- LIVE WEATHER DATA PIPELINE LAYER (OPEN-METEO ENGINE INTEGRATION) ---
 let weatherForecast = null;
 if (trip.coordinates?.lat && trip.coordinates?.lng) {
   try {
@@ -71,14 +72,13 @@ if (trip.coordinates?.lat && trip.coordinates?.lng) {
   }
 }
 
-// Map WMO code strings into explicit visual condition icons
 const getWeatherIcon = (code: number) => {
   if (code === 0) return "☀️ Sunny";
   if (code >= 1 && code <= 3) return "⛅ Partly Cloudy";
   if (code >= 45 && code <= 48) return "🌫️ Foggy";
   if (code >= 51 && code <= 67) return "🌧️ Rain Drizzle";
   if (code >= 71 && code <= 77) return "❄️ Snowing";
-  if (code >= 80 && code <= 82) return " showers";
+  if (code >= 80 && code <= 82) return "🌦️ Showers";
   if (code >= 95) return "⛈️ Thunderstorms";
   return "🌤️ Clear";
 };
@@ -194,7 +194,6 @@ const formatInlineDate = (dateString: string) => {
       .trip-date { margin: 0; color: var(--muted); font-weight: 650; }
       .hero-intro { max-width: 760px; margin: 1.25rem 0 0; color: #475569; line-height: 1.7; white-space: pre-line; }
 
-      /* --- WEATHER MODULE STYLING PARAMETERS --- */
       .weather-section {
         background: #ffffff;
         border: 1px solid var(--soft);
@@ -211,10 +210,16 @@ const formatInlineDate = (dateString: string) => {
       .weather-day-temps { font-size: 0.85rem; font-weight: 800; }
       .weather-day-temps .min-t { color: var(--muted); font-weight: 500; margin-left: 0.25rem; }
 
-      .section-container { margin-bottom: 4.5rem; }
+      .section-container { margin-bottom: 5rem; }
       .section-header { margin-bottom: 2rem; }
-      .section-header h2 { margin: 0 0 0.5rem; font-size: clamp(1.5rem, 4vw, 2.2rem); letter-spacing: -0.04em; }
-      .section-header p { margin: 0; color: var(--muted); line-height: 1.6; }
+      
+      /* --- CITY/LOCATION HEADER AND EYEBROW STYLING --- */
+      .section-location-eyebrow { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue-ink); margin: 0 0 0.35rem; }
+      .section-header h2 { margin: 0 0 0.5rem; font-size: clamp(1.6rem, 4.5vw, 2.4rem); letter-spacing: -0.04em; line-height: 1.1; }
+      .section-header p { margin: 0.5rem 0 0; color: var(--muted); line-height: 1.6; }
+      
+      /* Section Banner Image Parameters */
+      .section-banner-image { width: 100%; height: 200px; object-fit: cover; border-radius: 18px; margin: 1rem 0 1.5rem; border: 1px solid var(--soft); display: block; }
 
       .places-container { width: 100%; }
       .place-card { position: relative; background: var(--card-bg); border: 1px solid var(--soft); border-radius: 22px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); }
@@ -287,7 +292,6 @@ const formatInlineDate = (dateString: string) => {
           </div>
         </header>
 
-        {/* --- DYNAMIC FRONTEND RENDERING LAYER: LIVE WEATHER SUMMARY FORECAST --- */}
         {weatherForecast && (
           <div class="weather-section">
             <h4 class="weather-title">🌤️ Live 7-Day Destination Forecast Summary</h4>
@@ -306,11 +310,25 @@ const formatInlineDate = (dateString: string) => {
           </div>
         )}
 
-        {/* --- DRAG & DROP COUPLING LOOP: RENDERS IN THE EXACT ORDER ARRANGED IN SANITY --- */}
+        {/* --- DYNAMIC SECTION GENERATION BLOCK --- */}
         {trip.sections && trip.sections.map((section: any) => (
           <section class={`section-container layout-${section.layoutStyle || "timeline"}`}>
             <header class="section-header">
+              {section.cityRegion && (
+                <p class="section-location-eyebrow">📍 Location: {section.cityRegion}</p>
+              )}
               <h2>{section.sectionTitle}</h2>
+              
+              {/* --- RENDER MATRIX: HIGH-FIDELITY OPTIONAL SECTION BANNERS --- */}
+              {section.sectionImageUrl && (
+                <img 
+                  src={section.sectionImageUrl} 
+                  alt={`${section.cityRegion || section.sectionTitle} banner`} 
+                  class="section-banner-image" 
+                  loading="lazy" 
+                />
+              )}
+              
               {section.sectionIntro && <p>{section.sectionIntro}</p>}
             </header>
 
