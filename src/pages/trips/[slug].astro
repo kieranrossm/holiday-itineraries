@@ -106,7 +106,7 @@ const formatInlineDate = (dateString: string) => {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{trip.title} | Technical Route Management</title>
+    <title>{trip.title} | Trip Execution Plan</title>
 
     <style>
       :root {
@@ -126,6 +126,8 @@ const formatInlineDate = (dateString: string) => {
         --purple-ink: #6b21a8;
         --rose-bg: #ffe4e6;
         --rose-ink: #9f1239;
+        --slate-bg: #e2e8f0;
+        --slate-ink: #334155;
       }
 
       * { box-sizing: border-box; }
@@ -169,7 +171,7 @@ const formatInlineDate = (dateString: string) => {
       .place-content { padding: 1.5rem; }
       .place-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
 
-      .time-badge, .category-badge, .area-badge, .payment-badge, .booking-badge { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1; }
+      .time-badge, .category-badge, .area-badge, .payment-badge, .booking-badge, .cancellation-badge { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1; }
       .time-badge { background: var(--blue-bg); color: var(--blue-ink); }
       .category-badge { background: var(--amber-bg); color: var(--amber-ink); }
       .category-badge.transport { background: var(--purple-bg); color: var(--purple-ink); }
@@ -180,6 +182,9 @@ const formatInlineDate = (dateString: string) => {
       
       .booking-badge.to-book { background: var(--amber-bg); color: var(--amber-ink); border: 1px dashed var(--amber-ink); }
       .booking-badge.booked { background: var(--blue-bg); color: var(--blue-ink); }
+      
+      .cancellation-badge.free { background: var(--green-bg); color: var(--green-ink); }
+      .cancellation-badge.non-refundable { background: var(--slate-bg); color: var(--slate-ink); }
 
       .place-card h3 { margin: 0.5rem 0; font-size: 1.35rem; line-height: 1.2; letter-spacing: -0.02em; }
       .short-description { margin: 0.5rem 0; font-weight: 600; color: var(--ink); line-height: 1.5; }
@@ -260,7 +265,6 @@ const formatInlineDate = (dateString: string) => {
                         )}
                         {place.area && <span class="area-badge">{place.area}</span>}
                         
-                        {/* --- STRICT OPERATIONAL BADGING LOGIC MATRIX --- */}
                         {place.paymentStatus === "paid" && <span class="payment-badge paid">✓ Paid</span>}
                         {place.paymentStatus === "unpaid" && <span class="payment-badge unpaid">⚠️ Unpaid</span>}
 
@@ -272,11 +276,22 @@ const formatInlineDate = (dateString: string) => {
                         {place.bookingLogistics?.bookingStatus === "booked" && (
                           <span class="booking-badge booked">✓ Booked</span>
                         )}
+
+                        {/* --- RENDER MATRIX: EXTENDED CANCELLATION BADGES --- */}
+                        {place.costStructure?.cancellationPolicy === "free" && (
+                          <span class="cancellation-badge free">
+                            🟢 Free Cancellation {place.costStructure.cancellationDeadline ? `until ${formatInlineDate(place.costStructure.cancellationDeadline)}` : ""}
+                          </span>
+                        )}
+                        {place.costStructure?.cancellationPolicy === "non-refundable" && (
+                          <span class="cancellation-badge non-refundable">❌ Non-refundable</span>
+                        )}
                       </div>
 
                       <h3>{place.placeName}</h3>
                       {place.shortDescription && <p class="short-description">{place.shortDescription}</p>}
                       
+                      {/* --- COMPREHENSIVE ROAD/RAIL/FLIGHT TRACKING DATA BLOCKS --- */}
                       {place.category === "Transport" && place.transitDetails && (
                         <div class="logistics-block">
                           <div class="logistics-title">Connection Parameters</div>
@@ -287,6 +302,23 @@ const formatInlineDate = (dateString: string) => {
                             {place.transitDetails.reference && <p><strong>Ref:</strong> {place.transitDetails.reference}</p>}
                             {place.transitDetails.seatAssignment && <p><strong>Seat/Class:</strong> {place.transitDetails.seatAssignment}</p>}
                           </div>
+                          
+                          {/* Dedicated Airport Parking Display Blocks */}
+                          {place.transitDetails.airportParkingLogistics && place.transitDetails.airportParkingLogistics.status !== "not-needed" && (
+                            <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--soft);">
+                              <p>
+                                <strong>Airport Parking:</strong> 
+                                {place.transitDetails.airportParkingLogistics.status === "booked" ? " ✅ Booked" : " ⏳ Required / To Book"}
+                                {place.transitDetails.airportParkingLogistics.locationInfo ? ` — ${place.transitDetails.airportParkingLogistics.locationInfo}` : ""}
+                              </p>
+                            </div>
+                          )}
+
+                          {place.transitDetails.bookingDetailsText && (
+                            <div style="margin-top: 0.5rem; font-style: italic; color: var(--muted);">
+                              <strong>Booking Dets:</strong> {place.transitDetails.bookingDetailsText}
+                            </div>
+                          )}
                         </div>
                       )}
 
