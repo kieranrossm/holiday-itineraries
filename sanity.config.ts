@@ -65,6 +65,34 @@ export default defineConfig({
             description: 'Optional short intro shown over or near the hero image.',
           },
           {
+            name: 'heroWeatherForecast',
+            title: 'Hero Weather Forecast',
+            type: 'object',
+            description: 'Optional live 7-day weather forecast shown near the trip hero image.',
+            fields: [
+              {
+                name: 'enabled',
+                title: 'Show Forecast',
+                type: 'boolean',
+                initialValue: false,
+              },
+              {
+                name: 'locationName',
+                title: 'Forecast Location',
+                type: 'string',
+                description: 'Example: Beijing, China. Used to find the forecast if coordinates are not supplied.',
+                hidden: ({ parent }) => !parent?.enabled,
+              },
+              {
+                name: 'coordinates',
+                title: 'Forecast Coordinates',
+                type: 'geopoint',
+                description: 'Optional, but more accurate than the location name.',
+                hidden: ({ parent }) => !parent?.enabled,
+              },
+            ],
+          },
+          {
             name: 'sections',
             title: 'Trip Sections',
             type: 'array',
@@ -93,6 +121,34 @@ export default defineConfig({
                     type: 'image',
                     description: 'Optional panoramic asset mapped to this structural itinerary group.',
                     options: { hotspot: true },
+                  },
+                  {
+                    name: 'weatherForecast',
+                    title: 'Section Weather Forecast',
+                    type: 'object',
+                    description: 'Optional live 7-day weather forecast shown underneath this section hero image.',
+                    fields: [
+                      {
+                        name: 'enabled',
+                        title: 'Show Forecast',
+                        type: 'boolean',
+                        initialValue: false,
+                      },
+                      {
+                        name: 'locationName',
+                        title: 'Forecast Location',
+                        type: 'string',
+                        description: 'Example: Beijing, China. Used to find the forecast if coordinates are not supplied.',
+                        hidden: ({ parent }) => !parent?.enabled,
+                      },
+                      {
+                        name: 'coordinates',
+                        title: 'Forecast Coordinates',
+                        type: 'geopoint',
+                        description: 'Optional, but more accurate than the location name.',
+                        hidden: ({ parent }) => !parent?.enabled,
+                      },
+                    ],
                   },
                   {
                     name: 'layoutStyle',
@@ -371,15 +427,17 @@ export default defineConfig({
                     title: 'sectionTitle',
                     layoutStyle: 'layoutStyle',
                     initialLoadState: 'initialLoadState',
+                    weatherEnabled: 'weatherForecast.enabled',
                     media: 'sectionImage',
                   },
-                  prepare({ title, layoutStyle, initialLoadState }) {
+                  prepare({ title, layoutStyle, initialLoadState, weatherEnabled }) {
                     const drawerState = initialLoadState === 'open' ? 'Loads open' : 'Loads closed';
                     const layoutLabel = layoutStyle === 'grid' ? 'Grid' : 'Timeline';
+                    const weatherLabel = weatherEnabled ? 'Weather on' : 'Weather off';
 
                     return {
                       title,
-                      subtitle: `${layoutLabel} • ${drawerState}`,
+                      subtitle: `${layoutLabel} • ${drawerState} • ${weatherLabel}`,
                     };
                   },
                 },
