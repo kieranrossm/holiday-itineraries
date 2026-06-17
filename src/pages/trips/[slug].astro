@@ -14,6 +14,11 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
   title,
   startDate,
   heroIntro,
+  heroWeatherForecast {
+    enabled,
+    locationName,
+    coordinates
+  },
   "heroImageUrl": heroImage.asset->url,
   sections[] {
     sectionTitle,
@@ -128,6 +133,10 @@ const getCategoryClass = (category: string | undefined) => {
 const isTransitCategory = (category: string | undefined) => {
   return category === "Transport" || category === "Transit";
 };
+
+const hasWeatherForecast = (forecast: any) => {
+  return Boolean(forecast?.enabled && (forecast.locationName || forecast.coordinates?.lat !== undefined));
+};
 ---
 
 <html lang="en-GB">
@@ -201,140 +210,6 @@ const isTransitCategory = (category: string | undefined) => {
       .trip-header h1 { margin: 0 0 0.75rem; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1; letter-spacing: -0.05em; }
       .trip-date { margin: 0; color: var(--muted); font-weight: 650; }
       .hero-intro { max-width: 820px; margin: 1.25rem 0 0; color: #475569; line-height: 1.7; white-space: pre-line; }
-
-      /* Visual Broadcast Forecast Layout */
-      .weather-forecast-card {
-        margin-top: 1.5rem;
-        padding: 1.25rem;
-        border-radius: 16px;
-        background: #1e293b;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        display: block !important;
-      }
-
-      .weather-forecast-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-
-      .weather-eyebrow {
-        color: #38bdf8;
-        font-size: 0.75rem;
-        font-weight: 900;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-      }
-
-      .weather-location {
-        color: #ffffff;
-        font-size: 1.25rem;
-        font-weight: 800;
-      }
-
-      .weather-source-note {
-        color: #94a3b8;
-        font-size: 0.8rem;
-        font-weight: 600;
-      }
-
-      .weather-status {
-        color: #ffffff;
-        font-weight: 600;
-        padding: 0.5rem 0;
-      }
-
-      .weather-days {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 6px;
-        background: #0f172a;
-        padding: 6px;
-        border-radius: 8px;
-      }
-
-      .weather-day {
-        background: #0284c7;
-        color: #ffffff;
-        padding: 0.85rem 0.15rem 0 0.15rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        min-height: auto;
-        box-shadow: none;
-        border: none;
-        border-radius: 4px;
-        overflow: hidden;
-      }
-
-      .weather-day-name {
-        display: block;
-        color: #ffffff;
-        font-size: 0.85rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.4rem;
-      }
-
-      .weather-icon-frame {
-        display: block;
-        width: auto;
-        height: auto;
-        margin: 0.25rem 0;
-      }
-
-      .weather-icon {
-        font-size: 2.25rem !important;
-        line-height: 1;
-      }
-
-      .weather-condition {
-        display: block;
-        color: #ffffff;
-        font-size: 0.65rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        line-height: 1.2;
-        min-height: 2.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 0.2rem;
-        letter-spacing: -0.01em;
-      }
-
-      .weather-temp {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
-        margin-top: auto;
-      }
-
-      .weather-temp-high {
-        color: #ffffff;
-        font-size: 1.95rem;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        margin-bottom: 0.5rem;
-        line-height: 1;
-      }
-
-      .weather-temp-low {
-        display: block;
-        width: 100%;
-        background: #ffffff;
-        color: #1e293b;
-        font-size: 1.1rem;
-        font-weight: 800;
-        padding: 0.4rem 0;
-        margin-top: 0.25rem;
-      }
 
       .section-container {
         margin-bottom: 3rem;
@@ -609,20 +484,159 @@ const isTransitCategory = (category: string | undefined) => {
         .layout-timeline .places-container { margin-left: 0.25rem; padding-left: 1.25rem; }
         .layout-timeline .place-card::before { left: -1.9rem; }
         .layout-grid .places-container { grid-template-columns: 1fr; }
-        
+      }
+    </style>
+
+    <!-- Global scoping maps un-hashed element structures straight to injected JS blocks -->
+    <style is:global>
+      .weather-forecast-card {
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        padding: 1.25rem;
+        border-radius: 16px;
+        background: #1e293b;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        display: block !important;
+      }
+
+      .weather-forecast-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .weather-eyebrow {
+        color: #38bdf8;
+        font-size: 0.75rem;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .weather-location {
+        color: #ffffff;
+        font-size: 1.25rem;
+        font-weight: 800;
+      }
+
+      .weather-source-note {
+        color: #94a3b8;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .weather-status {
+        color: #ffffff;
+        font-weight: 600;
+        padding: 0.5rem 0;
+      }
+
+      .weather-days {
+        display: grid !important;
+        grid-template-columns: repeat(7, 1fr) !important;
+        gap: 6px !important;
+        background: #0f172a !important;
+        padding: 6px !important;
+        border-radius: 8px !important;
+      }
+
+      .weather-day {
+        background: #0284c7 !important;
+        color: #ffffff !important;
+        padding: 0.85rem 0.15rem 0 0.15rem !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        min-height: auto !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 4px !important;
+        overflow: hidden !important;
+      }
+
+      .weather-day-name {
+        display: block !important;
+        color: #ffffff !important;
+        font-size: 0.85rem !important;
+        font-weight: 800 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        margin-bottom: 0.4rem !important;
+      }
+
+      .weather-icon-frame {
+        display: block !important;
+        width: auto !important;
+        height: auto !important;
+        margin: 0.25rem 0 !important;
+      }
+
+      .weather-icon {
+        font-size: 2.25rem !important;
+        line-height: 1 !important;
+      }
+
+      .weather-condition {
+        display: block !important;
+        color: #ffffff !important;
+        font-size: 0.65rem !important;
+        font-weight: 800 !important;
+        text-transform: uppercase !important;
+        line-height: 1.2 !important;
+        min-height: 2.5rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 0.2rem !important;
+        letter-spacing: -0.01em !important;
+      }
+
+      .weather-temp {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        width: 100% !important;
+        margin-top: auto !important;
+      }
+
+      .weather-temp-high {
+        color: #ffffff !important;
+        font-size: 1.95rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.02em !important;
+        margin-bottom: 0.5rem !important;
+        line-height: 1 !important;
+      }
+
+      .weather-temp-low {
+        display: block !important;
+        width: 100% !important;
+        background: #ffffff !important;
+        color: #1e293b !important;
+        font-size: 1.1rem !important;
+        font-weight: 800 !important;
+        padding: 0.4rem 0 !important;
+        margin-top: 0.25rem !important;
+      }
+
+      @media (max-width: 768px) {
         .weather-days {
-          display: flex;
-          overflow-x: auto;
-          scroll-snap-type: x mandatory;
-          gap: 4px;
-          padding: 4px;
+          display: flex !important;
+          overflow-x: auto !important;
+          scroll-snap-type: x mandatory !important;
+          gap: 4px !important;
+          padding: 4px !important;
         }
         .weather-day {
-          flex: 0 0 92px;
-          scroll-snap-align: start;
+          flex: 0 0 92px !important;
+          scroll-snap-align: start !important;
         }
         .weather-temp-high {
-          font-size: 1.6rem;
+          font-size: 1.6rem !important;
         }
       }
     </style>
@@ -632,8 +646,8 @@ const isTransitCategory = (category: string | undefined) => {
       <a href="/" class="back-button">← Back to All Itineraries</a>
     </nav>
 
-    <main>
-      <article class="trip-wrapper">
+    <main class="trip-wrapper">
+      <article>
         <header class="trip-header">
           {trip.heroImageUrl && (
             <img src={trip.heroImageUrl} alt={`${trip.title} hero image`} class="trip-hero-image" />
@@ -645,24 +659,26 @@ const isTransitCategory = (category: string | undefined) => {
             )}
             {trip.heroIntro && <p class="hero-intro">{trip.heroIntro}</p>}
 
-            {/* Hardcoded data attributes bypass query loops entirely to force compilation output */}
-            <section
-              class="weather-forecast-card hero-weather"
-              data-weather-forecast
-              data-weather-location="Tenerife"
-              data-weather-lat="28.4636"
-              data-weather-lng="-16.2518"
-            >
-              <div class="weather-forecast-header">
-                <div class="weather-forecast-title">
-                  <span class="weather-eyebrow">Weather outlook</span>
-                  <span class="weather-location">Tenerife</span>
+            {/* Guard condition restored: Ensures zero markup footprint on unconfigured trips */}
+            {hasWeatherForecast(trip.heroWeatherForecast) && (
+              <section
+                class="weather-forecast-card"
+                data-weather-forecast
+                data-weather-location={trip.heroWeatherForecast.locationName || ""}
+                data-weather-lat={trip.heroWeatherForecast.coordinates?.lat ?? ""}
+                data-weather-lng={trip.heroWeatherForecast.coordinates?.lng ?? ""}
+              >
+                <div class="weather-forecast-header">
+                  <div class="weather-forecast-title">
+                    <span class="weather-eyebrow">Weather outlook</span>
+                    <span class="weather-location">{trip.heroWeatherForecast.locationName || "Local Destination"}</span>
+                  </div>
+                  <span class="weather-source-note">7-day live forecast</span>
                 </div>
-                <span class="weather-source-note">7-day live forecast</span>
-              </div>
-              <p class="weather-status" aria-live="polite">Preparing the outlook…</p>
-              <div class="weather-days" aria-live="polite"></div>
-            </section>
+                <p class="weather-status" aria-live="polite">Preparing the outlook…</p>
+                <div class="weather-days" aria-live="polite"></div>
+              </section>
+            )}
           </div>
         </header>
 
@@ -878,6 +894,30 @@ const isTransitCategory = (category: string | undefined) => {
       const weatherPanels = document.querySelectorAll("[data-weather-forecast]");
       const getWeatherLabel = (code) => WEATHER_CODE_LOOKUP[code] || ["🌡️", "FORECAST"];
 
+      const getCoordinates = async (panel) => {
+        const lat = Number(panel.dataset.weatherLat);
+        const lng = Number(panel.dataset.weatherLng);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+
+        const location = panel.dataset.weatherLocation?.trim();
+        if (!location || location === "") throw new Error("No geographical definitions supplied");
+
+        const geocodeUrl = new URL("https://geocoding-api.open-meteo.com/v1/search");
+        geocodeUrl.searchParams.set("name", location);
+        geocodeUrl.searchParams.set("count", "1");
+        geocodeUrl.searchParams.set("language", "en");
+        geocodeUrl.searchParams.set("format", "json");
+
+        const response = await fetch(geocodeUrl);
+        if (!response.ok) throw new Error("Network resolution failed");
+
+        const data = await response.json();
+        const result = data.results?.[0];
+        if (!result) throw new Error("Location not resolved");
+
+        return { lat: result.latitude, lng: result.longitude };
+      };
+
       const renderForecast = (panel, daily) => {
         const daysContainer = panel.querySelector(".weather-days");
         const status = panel.querySelector(".weather-status");
@@ -928,8 +968,7 @@ const isTransitCategory = (category: string | undefined) => {
       const loadForecast = async (panel) => {
         const status = panel.querySelector(".weather-status");
         try {
-          const lat = panel.dataset.weatherLat;
-          const lng = panel.dataset.weatherLng;
+          const { lat, lng } = await getCoordinates(panel);
           
           const forecastUrl = new URL("https://api.open-meteo.com/v1/forecast");
           forecastUrl.searchParams.set("latitude", lat);
