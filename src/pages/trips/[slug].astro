@@ -3,14 +3,13 @@ import { sanityClient } from "sanity:client";
 
 export async function getStaticPaths() {
   const data = await sanityClient.fetch(`*[_type == "trip" && (!defined(displayStatus) || displayStatus == "visible")] { "slug": slug.current }`);
-  return data.map((item) => ({
+  return data.map((item: any) => ({
     params: { slug: item.slug },
   }));
 }
 
 const { slug } = Astro.params;
 
-// UPDATED GROQ LAYER: Now explicitly fetches "sectionImageUrl": sectionImage.asset->url
 const query = `*[_type == "trip" && slug.current == $slug][0] {
   title,
   startDate,
@@ -21,6 +20,7 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
     sectionIntro,
     "sectionImageUrl": sectionImage.asset->url,
     layoutStyle,
+    defaultExpanded,
     places[] {
       placeName,
       time,
@@ -55,7 +55,7 @@ const EXCHANGE_RATES: Record<string, number> = {
   CNY: 0.11,
   JPY: 0.0052,
   CHF: 0.88,
-  GBP: 1.0
+  GBP: 1.0,
 };
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -63,24 +63,24 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   CNY: "¥",
   JPY: "¥",
   CHF: "CHF ",
-  GBP: "£"
+  GBP: "£",
 };
 
 const formatCost = (costObj: any) => {
   if (!costObj) return "";
   const { localAmount, currencyType, textFallback } = costObj;
-  
+
   if (localAmount !== undefined && localAmount !== null) {
     const symbol = CURRENCY_SYMBOLS[currencyType] || "£";
     const localFormatted = `${symbol}${localAmount.toLocaleString("en-GB")}`;
-    
+
     if (currencyType === "GBP") return localFormatted;
-    
+
     const rate = EXCHANGE_RATES[currencyType] || 1;
     const gbpEquivalent = Math.round(localAmount * rate);
     return `${localFormatted} (£${gbpEquivalent.toLocaleString("en-GB")})`;
   }
-  
+
   return textFallback || "";
 };
 
@@ -99,8 +99,32 @@ const formatInlineDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
-    year: "numeric"
+    year: "numeric",
   });
+};
+
+const getBookingActionCount = (section: any) => {
+  return (section.places || []).filter((place: any) => place.bookingLogistics?.bookingStatus === "to-book").length;
+};
+
+const getSectionSummary = (section: any) => {
+  const placeCount = section.places?.length || 0;
+  const bookingActions = getBookingActionCount(section);
+
+  if (placeCount === 0) return "City notes added • itinerary details coming soon";
+
+  const itemLabel = placeCount === 1 ? "item" : "items";
+  const actionLabel = bookingActions === 1 ? "booking action" : "booking actions";
+  return `${placeCount} ${itemLabel} mapped • ${bookingActions} ${actionLabel} required`;
+};
+
+const getCategoryClass = (category: string | undefined) => {
+  if (!category) return "other";
+  return category.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+};
+
+const isTransitCategory = (category: string | undefined) => {
+  return category === "Transport" || category === "Transit";
 };
 ---
 
@@ -136,11 +160,17 @@ const formatInlineDate = (dateString: string) => {
 
       body {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 2rem 1rem;
+        margin: 0;
+        padding: 2rem 1rem 4rem;
         color: var(--ink);
         background: var(--page-bg);
+      }
+
+      .back-nav,
+      .trip-wrapper {
+        max-width: 1120px;
+        margin-left: auto;
+        margin-right: auto;
       }
 
       .back-nav { margin-bottom: 2rem; }
@@ -156,47 +186,169 @@ const formatInlineDate = (dateString: string) => {
         overflow: hidden;
       }
 
-      .trip-hero-image { width: 100%; height: clamp(240px, 35vw, 400px); object-fit: cover; display: block; }
-      .trip-header-content { padding: 2rem; }
-      .trip-header h1 { margin: 0 0 0.75rem; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1; letter-spacing: -0.05em; }
-      .trip-date { margin: 0; color: var(--muted); font-weight: 650; }
-      .hero-intro { max-width: 760px; margin: 1.25rem 0 0; color: #475569; line-height: 1.7; white-space: pre-line; }
-
-      .section-container { margin-bottom: 4.5rem; }
-      .section-header { margin-bottom: 2rem; }
-      .section-header h2 { margin: 0 0 0.5rem; font-size: clamp(1.5rem, 4vw, 2.2rem); letter-spacing: -0.04em; }
-      .section-header p { margin: 0; color: var(--muted); line-height: 1.6; }
-
-      /* Visual layout architecture for section wide landscape headers */
-      .section-banner-image {
+      .trip-hero-image {
         width: 100%;
-        height: 160px;
+        aspect-ratio: 21 / 9;
+        max-height: 460px;
         object-fit: cover;
         object-position: center;
-        border-radius: 16px;
-        margin: 1rem 0 1.5rem;
+        display: block;
+      }
+
+      .trip-header-content { padding: clamp(1.5rem, 4vw, 2.25rem); }
+      .trip-header h1 { margin: 0 0 0.75rem; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1; letter-spacing: -0.05em; }
+      .trip-date { margin: 0; color: var(--muted); font-weight: 650; }
+      .hero-intro { max-width: 820px; margin: 1.25rem 0 0; color: #475569; line-height: 1.7; white-space: pre-line; }
+
+      .section-container {
+        margin-bottom: 1.25rem;
+        border: 1px solid var(--soft);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.7);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
+        overflow: hidden;
+      }
+
+      .section-container[open] { margin-bottom: 3rem; }
+
+      .section-summary {
+        list-style: none;
+        cursor: pointer;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1rem;
+        align-items: center;
+        padding: 1.35rem 1.5rem;
+        background: #ffffff;
+      }
+
+      .section-summary::-webkit-details-marker { display: none; }
+
+      .section-summary h2 {
+        margin: 0;
+        font-size: clamp(1.45rem, 4vw, 2.1rem);
+        letter-spacing: -0.04em;
+      }
+
+      .section-kicker {
+        display: block;
+        margin-top: 0.4rem;
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 650;
+      }
+
+      .section-chevron {
+        width: 2.35rem;
+        height: 2.35rem;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        color: var(--ink);
+        background: var(--soft-2);
+        border: 1px solid var(--soft);
+        transition: transform 180ms ease, background 180ms ease;
+      }
+
+      .section-container[open] .section-chevron {
+        transform: rotate(90deg);
+        background: #ffffff;
+      }
+
+      .section-body {
+        padding: 0 1.5rem 1.5rem;
+      }
+
+      .section-banner-image {
+        width: 100%;
+        aspect-ratio: 21 / 7;
+        object-fit: cover;
+        object-position: center;
+        border-radius: 20px;
+        margin: 0.25rem 0 1rem;
         border: 1px solid var(--soft);
         background: var(--soft-2);
+        display: block;
+      }
+
+      .section-intro-panel {
+        margin: 0 0 1.5rem;
+        padding: 1.2rem 1.35rem;
+        border: 1px solid var(--soft);
+        border-radius: 18px;
+        background: #ffffff;
+        color: #475569;
+        line-height: 1.7;
+        white-space: pre-line;
+      }
+
+      .section-intro-panel p { margin: 0; }
+
+      .empty-section-note {
+        margin: 0;
+        padding: 1rem 1.2rem;
+        border: 1px dashed var(--soft);
+        border-radius: 16px;
+        color: var(--muted);
+        background: var(--soft-2);
+        font-weight: 650;
       }
 
       .places-container { width: 100%; }
-      .place-card { position: relative; background: var(--card-bg); border: 1px solid var(--soft); border-radius: 22px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); height: 100%; display: flex; flex-direction: column; }
-      .place-image { width: 100%; height: 240px; object-fit: cover; object-position: center; display: block; background: var(--soft-2); flex-shrink: 0; }
+
+      .place-card {
+        position: relative;
+        background: var(--card-bg);
+        border: 1px solid var(--soft);
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .place-image-wrap {
+        width: 100%;
+        overflow: hidden;
+        background: var(--soft-2);
+      }
+
+      .place-image {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        object-position: center;
+        display: block;
+      }
+
       .place-content { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
       .place-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
 
-      .time-badge, .category-badge, .area-badge, .payment-badge, .booking-badge, .cancellation-badge { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1; }
+      .time-badge,
+      .category-badge,
+      .area-badge,
+      .payment-badge,
+      .booking-badge,
+      .cancellation-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        line-height: 1;
+      }
+
       .time-badge { background: var(--blue-bg); color: var(--blue-ink); }
       .category-badge { background: var(--amber-bg); color: var(--amber-ink); }
-      .category-badge.transport { background: var(--purple-bg); color: var(--purple-ink); }
+      .category-badge.transport,
+      .category-badge.transit { background: var(--purple-bg); color: var(--purple-ink); }
       .area-badge { background: var(--green-bg); color: var(--green-ink); }
-      
       .payment-badge.paid { background: var(--green-bg); color: var(--green-ink); }
       .payment-badge.unpaid { background: var(--rose-bg); color: var(--rose-ink); }
-      
       .booking-badge.to-book { background: var(--amber-bg); color: var(--amber-ink); border: 1px dashed var(--amber-ink); }
       .booking-badge.booked { background: var(--blue-bg); color: var(--blue-ink); }
-      
       .cancellation-badge.free { background: var(--green-bg); color: var(--green-ink); }
       .cancellation-badge.non-refundable { background: var(--slate-bg); color: var(--slate-ink); }
 
@@ -207,24 +359,94 @@ const formatInlineDate = (dateString: string) => {
       .logistics-block { background: var(--soft-2); padding: 1rem; border-radius: 12px; margin: 1rem 0; font-size: 0.9rem; border: 1px solid var(--soft); }
       .logistics-title { font-weight: 800; text-transform: uppercase; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.5rem; letter-spacing: 0.05em; }
       .logistics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; }
+      .logistics-grid p { margin: 0.35rem 0; }
 
       .detail-list { margin-top: auto; padding-top: 1.25rem; border-top: 1px solid var(--soft); font-size: 0.95rem; }
       .detail-list p { margin: 0.5rem 0; color: #475569; }
 
       .place-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
-      .place-links a, .copy-coords-btn { display: inline-flex; align-items: center; padding: 0.55rem 1rem; border-radius: 999px; background: var(--ink); color: #ffffff; text-decoration: none; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; }
-      .place-links a:hover, .copy-coords-btn:hover { background: #334155; }
+      .place-links a,
+      .copy-coords-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.55rem 1rem;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.85rem;
+        border: none;
+        cursor: pointer;
+      }
+
+      .place-links a:hover,
+      .copy-coords-btn:hover { background: #334155; }
       .copy-coords-btn { background: transparent; color: var(--ink); border: 1px solid var(--soft); }
       .copy-coords-btn:hover { background: var(--soft-2); }
 
-      .layout-grid .places-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
-      
-      .layout-timeline .places-container { display: flex; flex-direction: column; gap: 2.5rem; border-left: 3px solid #cbd5e1; padding-left: 2rem; margin-left: 0.5rem; }
-      .layout-timeline .place-card::before {
-        content: ""; position: absolute; left: -2.65rem; top: 1.75rem; width: 1rem; height: 1rem; background: #3b82f6; border-radius: 50%; border: 4px solid var(--page-bg); z-index: 2;
+      .layout-grid .places-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
       }
 
+      .layout-grid .place-card {
+        border-radius: 22px;
+        overflow: hidden;
+        background: #ffffff;
+        border: 1px solid var(--soft);
+      }
+
+      .layout-grid .place-image { height: auto; }
+
+      .layout-timeline .places-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        border-left: 3px solid #cbd5e1;
+        padding-left: 2rem;
+        margin-left: 0.5rem;
+      }
+
+      .layout-timeline .place-card {
+        display: block;
+        box-shadow: none;
+      }
+
+      .layout-timeline .place-card::before {
+        content: "";
+        position: absolute;
+        left: -2.65rem;
+        top: 1.45rem;
+        width: 1rem;
+        height: 1rem;
+        background: #3b82f6;
+        border-radius: 50%;
+        border: 4px solid var(--page-bg);
+        z-index: 2;
+      }
+
+      .layout-timeline .place-image-wrap { display: none; }
+
+      .layout-timeline .category-transport,
+      .layout-timeline .category-transit {
+        border-left: 4px solid var(--blue-ink);
+      }
+
+      .layout-timeline .category-transport .place-content,
+      .layout-timeline .category-transit .place-content {
+        padding: 1.25rem;
+      }
+
+      .layout-timeline .place-card h3 { margin-top: 0; }
+
       @media (max-width: 720px) {
+        body { padding: 1rem 0.75rem 3rem; }
+        .section-summary { padding: 1.1rem 1rem; }
+        .section-body { padding: 0 1rem 1rem; }
+        .section-banner-image { aspect-ratio: 16 / 7; border-radius: 16px; }
         .layout-timeline .places-container { margin-left: 0.25rem; padding-left: 1.25rem; }
         .layout-timeline .place-card::before { left: -1.9rem; }
         .layout-grid .places-container { grid-template-columns: 1fr; }
@@ -240,7 +462,7 @@ const formatInlineDate = (dateString: string) => {
       <article class="trip-wrapper">
         <header class="trip-header">
           {trip.heroImageUrl && (
-            <img src={trip.heroImageUrl} alt="" class="trip-hero-image" />
+            <img src={trip.heroImageUrl} alt={`${trip.title} hero image`} class="trip-hero-image" />
           )}
           <div class="trip-header-content">
             <h1>{trip.title}</h1>
@@ -251,150 +473,179 @@ const formatInlineDate = (dateString: string) => {
           </div>
         </header>
 
-        {trip.sections && trip.sections.map((section: any) => (
-          <section class={`section-container layout-${section.layoutStyle || "timeline"}`}>
-            <header class="section-header">
-              <h2>{section.sectionTitle}</h2>
-              {section.sectionIntro && <p>{section.sectionIntro}</p>}
-              
-              {/* --- REGISTRATION DISPATCH: MOUNTS THE RECONCILED SECTION IMAGE --- */}
-              {section.sectionImageUrl && (
-                <img src={section.sectionImageUrl} alt="" class="section-banner-image" loading="lazy" />
-              )}
-            </header>
+        {trip.sections && trip.sections.map((section: any, index: number) => {
+          const placeCount = section.places?.length || 0;
+          const shouldOpen = section.defaultExpanded ?? index < 2;
 
-            {section.places && section.places.length > 0 && (
-              <div class="places-container">
-                {section.places.map((place: any) => (
-                  <article class="place-card">
-                    {place.photoUrl && (
-                      <img src={place.photoUrl} alt="" class="place-image" loading="lazy" />
-                    )}
+          return (
+            <details class={`section-container layout-${section.layoutStyle || "timeline"}`} open={shouldOpen}>
+              <summary class="section-summary">
+                <span>
+                  <h2>{section.sectionTitle}</h2>
+                  <span class={`section-kicker ${placeCount === 0 ? "is-empty" : ""}`}>{getSectionSummary(section)}</span>
+                </span>
+                <span class="section-chevron" aria-hidden="true">›</span>
+              </summary>
 
-                    <div class="place-content">
-                      <div class="place-meta">
-                        {place.time && (
-                          <span class="time-badge">
-                            {place.time}{place.endTime ? ` - ${place.endTime}` : ""}
-                          </span>
-                        )}
-                        {place.category && (
-                          <span class={`category-badge ${place.category.toLowerCase()}`}>
-                            {place.category}
-                          </span>
-                        )}
-                        {place.area && <span class="area-badge">{place.area}</span>}
-                        
-                        {place.paymentStatus === "paid" && <span class="payment-badge paid">✓ Paid</span>}
-                        {place.paymentStatus === "unpaid" && <span class="payment-badge unpaid">⚠️ Unpaid</span>}
+              <div class="section-body">
+                {section.sectionImageUrl && (
+                  <img
+                    src={section.sectionImageUrl}
+                    alt={`${section.sectionTitle} location view`}
+                    class="section-banner-image"
+                    loading="lazy"
+                  />
+                )}
 
-                        {place.bookingLogistics?.bookingStatus === "to-book" && (
-                          <span class="booking-badge to-book">
-                            ⏳ To Book {place.bookingLogistics.bookOnDate ? `(On ${formatInlineDate(place.bookingLogistics.bookOnDate)})` : ""}
-                          </span>
-                        )}
-                        {place.bookingLogistics?.bookingStatus === "booked" && (
-                          <span class="booking-badge booked">✓ Booked</span>
-                        )}
+                {section.sectionIntro && (
+                  <div class="section-intro-panel">
+                    <p>{section.sectionIntro}</p>
+                  </div>
+                )}
 
-                        {place.costStructure?.cancellationPolicy === "free" && (
-                          <span class="cancellation-badge free">
-                            🟢 Free Cancellation {place.costStructure.cancellationDeadline ? `until ${formatInlineDate(place.costStructure.cancellationDeadline)}` : ""}
-                          </span>
-                        )}
-                        {place.costStructure?.cancellationPolicy === "non-refundable" && (
-                          <span class="cancellation-badge non-refundable">❌ Non-refundable</span>
-                        )}
-                      </div>
-
-                      <h3>{place.placeName}</h3>
-                      {place.shortDescription && <p class="short-description">{place.shortDescription}</p>}
-                      
-                      {place.category === "Transport" && place.transitDetails && (
-                        <div class="logistics-block">
-                          <div class="logistics-title">Connection Parameters</div>
-                          <div class="logistics-grid">
-                            {place.transitDetails.origin && <p><strong>From:</strong> {place.transitDetails.origin}</p>}
-                            {place.transitDetails.destination && <p><strong>To:</strong> {place.transitDetails.destination}</p>}
-                            {place.transitDetails.carrier && <p><strong>Carrier:</strong> {place.transitDetails.carrier}</p>}
-                            {place.transitDetails.reference && <p><strong>Ref:</strong> {place.transitDetails.reference}</p>}
-                            {place.transitDetails.seatAssignment && <p><strong>Seat/Class:</strong> {place.transitDetails.seatAssignment}</p>}
+                {placeCount > 0 ? (
+                  <div class="places-container">
+                    {section.places.map((place: any) => (
+                      <article class={`place-card category-${getCategoryClass(place.category)}`}>
+                        {place.photoUrl && !isTransitCategory(place.category) && (
+                          <div class="place-image-wrap">
+                            <img
+                              src={place.photoUrl}
+                              alt={place.placeName || ""}
+                              class="place-image"
+                              loading="lazy"
+                            />
                           </div>
-                          
-                          {place.transitDetails.airportParkingLogistics && place.transitDetails.airportParkingLogistics.status !== "not-needed" && (
-                            <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--soft);">
-                              <p>
-                                <strong>Airport Parking:</strong> 
-                                {place.transitDetails.airportParkingLogistics.status === "booked" ? " ✅ Booked" : " ⏳ Required / To Book"}
-                                {place.transitDetails.airportParkingLogistics.locationInfo ? ` — ${place.transitDetails.airportParkingLogistics.locationInfo}` : ""}
-                              </p>
+                        )}
+
+                        <div class="place-content">
+                          <div class="place-meta">
+                            {place.time && (
+                              <span class="time-badge">
+                                {place.time}{place.endTime ? ` - ${place.endTime}` : ""}
+                              </span>
+                            )}
+                            {place.category && (
+                              <span class={`category-badge ${getCategoryClass(place.category)}`}>
+                                {place.category}
+                              </span>
+                            )}
+                            {place.area && <span class="area-badge">{place.area}</span>}
+
+                            {place.paymentStatus === "paid" && <span class="payment-badge paid">✓ Paid</span>}
+                            {place.paymentStatus === "unpaid" && <span class="payment-badge unpaid">⚠️ Unpaid</span>}
+
+                            {place.bookingLogistics?.bookingStatus === "to-book" && (
+                              <span class="booking-badge to-book">
+                                ⏳ To Book {place.bookingLogistics.bookOnDate ? `(On ${formatInlineDate(place.bookingLogistics.bookOnDate)})` : ""}
+                              </span>
+                            )}
+                            {place.bookingLogistics?.bookingStatus === "booked" && (
+                              <span class="booking-badge booked">✓ Booked</span>
+                            )}
+
+                            {place.costStructure?.cancellationPolicy === "free" && (
+                              <span class="cancellation-badge free">
+                                🟢 Free Cancellation {place.costStructure.cancellationDeadline ? `until ${formatInlineDate(place.costStructure.cancellationDeadline)}` : ""}
+                              </span>
+                            )}
+                            {place.costStructure?.cancellationPolicy === "non-refundable" && (
+                              <span class="cancellation-badge non-refundable">❌ Non-refundable</span>
+                            )}
+                          </div>
+
+                          <h3>{place.placeName}</h3>
+                          {place.shortDescription && <p class="short-description">{place.shortDescription}</p>}
+
+                          {isTransitCategory(place.category) && place.transitDetails && (
+                            <div class="logistics-block">
+                              <div class="logistics-title">Connection Parameters</div>
+                              <div class="logistics-grid">
+                                {place.transitDetails.origin && <p><strong>From:</strong> {place.transitDetails.origin}</p>}
+                                {place.transitDetails.destination && <p><strong>To:</strong> {place.transitDetails.destination}</p>}
+                                {place.transitDetails.carrier && <p><strong>Carrier:</strong> {place.transitDetails.carrier}</p>}
+                                {place.transitDetails.reference && <p><strong>Ref:</strong> {place.transitDetails.reference}</p>}
+                                {place.transitDetails.seatAssignment && <p><strong>Seat/Class:</strong> {place.transitDetails.seatAssignment}</p>}
+                              </div>
+
+                              {place.transitDetails.airportParkingLogistics && place.transitDetails.airportParkingLogistics.status !== "not-needed" && (
+                                <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--soft);">
+                                  <p>
+                                    <strong>Airport Parking:</strong>
+                                    {place.transitDetails.airportParkingLogistics.status === "booked" ? " ✅ Booked" : " ⏳ Required / To Book"}
+                                    {place.transitDetails.airportParkingLogistics.locationInfo ? ` — ${place.transitDetails.airportParkingLogistics.locationInfo}` : ""}
+                                  </p>
+                                </div>
+                              )}
+
+                              {place.transitDetails.bookingDetailsText && (
+                                <div style="margin-top: 0.5rem; font-style: italic; color: var(--muted); font-size: 0.85rem;">
+                                  <strong>Booking Dets:</strong> {place.transitDetails.bookingDetailsText}
+                                </div>
+                              )}
                             </div>
                           )}
 
-                          {place.transitDetails.bookingDetailsText && (
-                            <div style="margin-top: 0.5rem; font-style: italic; color: var(--muted); font-size: 0.85rem;">
-                              <strong>Booking Dets:</strong> {place.transitDetails.bookingDetailsText}
+                          {place.category === "Hotel" && place.hotelDetails && (
+                            <div class="logistics-block">
+                              <div class="logistics-title">Accommodation Logistics</div>
+                              <div class="logistics-grid">
+                                {place.hotelDetails.bookingRef && <p><strong>Booking Ref:</strong> {place.hotelDetails.bookingRef}</p>}
+                                {place.hotelDetails.roomType && <p><strong>Room:</strong> {place.hotelDetails.roomType}</p>}
+                                {place.hotelDetails.checkInNotes && <p><strong>Notes:</strong> {place.hotelDetails.checkInNotes}</p>}
+                              </div>
                             </div>
                           )}
-                        </div>
-                      )}
 
-                      {place.category === "Hotel" && place.hotelDetails && (
-                        <div class="logistics-block">
-                          <div class="logistics-title">Accommodation Logistics</div>
-                          <div class="logistics-grid">
-                            {place.hotelDetails.bookingRef && <p><strong>Booking Ref:</strong> {place.hotelDetails.bookingRef}</p>}
-                            {place.hotelDetails.roomType && <p><strong>Room:</strong> {place.hotelDetails.roomType}</p>}
-                            {place.hotelDetails.checkInNotes && <p><strong>Notes:</strong> {place.hotelDetails.checkInNotes}</p>}
+                          {place.info && <p class="place-info">{place.info}</p>}
+
+                          {(place.costStructure || place.practicalInfo || place.travelNote || place.bookingLogistics) && (
+                            <div class="detail-list">
+                              {formatCost(place.costStructure) && (
+                                <p><strong>Price:</strong> {formatCost(place.costStructure)}</p>
+                              )}
+                              {place.practicalInfo && <p><strong>Good to know:</strong> {place.practicalInfo}</p>}
+                              {place.travelNote && <p><strong>Getting there:</strong> {place.travelNote}</p>}
+
+                              {place.bookingLogistics?.bookingStatus === "to-book" && (
+                                <p><strong>Booking:</strong> Required {place.bookingLogistics.bookOnDate ? `- Window opens ${formatInlineDate(place.bookingLogistics.bookOnDate)}` : ""}</p>
+                              )}
+                              {place.bookingLogistics?.bookingStatus === "booked" && (
+                                <p><strong>Booking:</strong> Confirmed</p>
+                              )}
+                            </div>
+                          )}
+
+                          <div class="place-links">
+                            {place.bookingUrl && <a href={place.bookingUrl} target="_blank" rel="noreferrer">Book</a>}
+                            {place.websiteUrl && <a href={place.websiteUrl} target="_blank" rel="noreferrer">Website</a>}
+
+                            {place.coordinates && (
+                              <button
+                                class="copy-coords-btn"
+                                data-lat={place.coordinates.lat}
+                                data-lng={place.coordinates.lng}
+                                onclick={`
+                                  navigator.clipboard.writeText('${place.coordinates.lat},${place.coordinates.lng}');
+                                  this.innerText = 'Copied!';
+                                  setTimeout(() => this.innerText = '📋 Copy Coords', 1500);
+                                `}
+                              >
+                                📋 Copy Coords
+                              </button>
+                            )}
                           </div>
                         </div>
-                      )}
-
-                      {place.info && <p class="place-info">{place.info}</p>}
-
-                      {(place.costStructure || place.practicalInfo || place.travelNote || place.bookingLogistics) && (
-                        <div class="detail-list">
-                          {formatCost(place.costStructure) && (
-                            <p><strong>Price:</strong> {formatCost(place.costStructure)}</p>
-                          )}
-                          {place.practicalInfo && <p><strong>Good to know:</strong> {place.practicalInfo}</p>}
-                          {place.travelNote && <p><strong>Getting there:</strong> {place.travelNote}</p>}
-                          
-                          {place.bookingLogistics?.bookingStatus === "to-book" && (
-                            <p><strong>Booking:</strong> Required {place.bookingLogistics.bookOnDate ? `- Window opens ${formatInlineDate(place.bookingLogistics.bookOnDate)}` : ""}</p>
-                          )}
-                          {place.bookingLogistics?.bookingStatus === "booked" && (
-                            <p><strong>Booking:</strong> Confirmed</p>
-                          )}
-                        </div>
-                      )}
-
-                      <div class="place-links">
-                        {place.bookingUrl && <a href={place.bookingUrl} target="_blank" rel="noreferrer">Book</a>}
-                        {place.websiteUrl && <a href={place.websiteUrl} target="_blank" rel="noreferrer">Website</a>}
-                        
-                        {place.coordinates && (
-                          <button 
-                            class="copy-coords-btn" 
-                            data-lat={place.coordinates.lat} 
-                            data-lng={place.coordinates.lng}
-                            onclick={`
-                              navigator.clipboard.writeText('${place.coordinates.lat},${place.coordinates.lng}');
-                              this.innerText = 'Copied!';
-                              setTimeout(() => this.innerText = '📋 Copy Coords', 1500);
-                            `}
-                          >
-                            📋 Copy Coords
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                ))}
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p class="empty-section-note">Itinerary details for this section are not mapped yet.</p>
+                )}
               </div>
-            )}
-          </section>
-        ))}
+            </details>
+          );
+        })}
       </article>
     </main>
   </body>
