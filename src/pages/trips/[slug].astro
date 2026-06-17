@@ -14,11 +14,6 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
   title,
   startDate,
   heroIntro,
-  heroWeatherForecast {
-    enabled,
-    locationName,
-    coordinates
-  },
   "heroImageUrl": heroImage.asset->url,
   sections[] {
     sectionTitle,
@@ -132,10 +127,6 @@ const getCategoryClass = (category: string | undefined) => {
 
 const isTransitCategory = (category: string | undefined) => {
   return category === "Transport" || category === "Transit";
-};
-
-const hasWeatherForecast = (forecast: any) => {
-  return Boolean(forecast?.enabled && (forecast.locationName || forecast.coordinates?.lat !== undefined));
 };
 ---
 
@@ -475,7 +466,7 @@ const hasWeatherForecast = (forecast: any) => {
 
       .layout-timeline .place-card h3 { margin-top: 0; }
 
-      @media (max-width: 768px) {
+      @media (max-width: 720px) {
         body { padding: 1rem 0.75rem 3rem; }
         .section-container { padding: 1rem; }
         .section-drawer-summary { padding: 0.8rem 1rem; }
@@ -486,168 +477,14 @@ const hasWeatherForecast = (forecast: any) => {
         .layout-grid .places-container { grid-template-columns: 1fr; }
       }
     </style>
-
-    <!-- Global scoping maps un-hashed element structures straight to injected JS blocks -->
-    <style is:global>
-      .weather-forecast-card {
-        margin-top: 2rem;
-        margin-bottom: 2rem;
-        padding: 1.25rem;
-        border-radius: 16px;
-        background: #1e293b;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        display: block !important;
-      }
-
-      .weather-forecast-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-
-      .weather-eyebrow {
-        color: #38bdf8;
-        font-size: 0.75rem;
-        font-weight: 900;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-      }
-
-      .weather-location {
-        color: #ffffff;
-        font-size: 1.25rem;
-        font-weight: 800;
-      }
-
-      .weather-source-note {
-        color: #94a3b8;
-        font-size: 0.8rem;
-        font-weight: 600;
-      }
-
-      .weather-status {
-        color: #ffffff;
-        font-weight: 600;
-        padding: 0.5rem 0;
-      }
-
-      .weather-days {
-        display: grid !important;
-        grid-template-columns: repeat(7, 1fr) !important;
-        gap: 6px !important;
-        background: #0f172a !important;
-        padding: 6px !important;
-        border-radius: 8px !important;
-      }
-
-      .weather-day {
-        background: #0284c7 !important;
-        color: #ffffff !important;
-        padding: 0.85rem 0.15rem 0 0.15rem !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        text-align: center !important;
-        min-height: auto !important;
-        box-shadow: none !important;
-        border: none !important;
-        border-radius: 4px !important;
-        overflow: hidden !important;
-      }
-
-      .weather-day-name {
-        display: block !important;
-        color: #ffffff !important;
-        font-size: 0.85rem !important;
-        font-weight: 800 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
-        margin-bottom: 0.4rem !important;
-      }
-
-      .weather-icon-frame {
-        display: block !important;
-        width: auto !important;
-        height: auto !important;
-        margin: 0.25rem 0 !important;
-      }
-
-      .weather-icon {
-        font-size: 2.25rem !important;
-        line-height: 1 !important;
-      }
-
-      .weather-condition {
-        display: block !important;
-        color: #ffffff !important;
-        font-size: 0.65rem !important;
-        font-weight: 800 !important;
-        text-transform: uppercase !important;
-        line-height: 1.2 !important;
-        min-height: 2.5rem !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 0 0.2rem !important;
-        letter-spacing: -0.01em !important;
-      }
-
-      .weather-temp {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        width: 100% !important;
-        margin-top: auto !important;
-      }
-
-      .weather-temp-high {
-        color: #ffffff !important;
-        font-size: 1.95rem !important;
-        font-weight: 800 !important;
-        letter-spacing: -0.02em !important;
-        margin-bottom: 0.5rem !important;
-        line-height: 1 !important;
-      }
-
-      .weather-temp-low {
-        display: block !important;
-        width: 100% !important;
-        background: #ffffff !important;
-        color: #1e293b !important;
-        font-size: 1.1rem !important;
-        font-weight: 800 !important;
-        padding: 0.4rem 0 !important;
-        margin-top: 0.25rem !important;
-      }
-
-      @media (max-width: 768px) {
-        .weather-days {
-          display: flex !important;
-          overflow-x: auto !important;
-          scroll-snap-type: x mandatory !important;
-          gap: 4px !important;
-          padding: 4px !important;
-        }
-        .weather-day {
-          flex: 0 0 92px !important;
-          scroll-snap-align: start !important;
-        }
-        .weather-temp-high {
-          font-size: 1.6rem !important;
-        }
-      }
-    </style>
   </head>
   <body>
     <nav class="back-nav">
       <a href="/" class="back-button">← Back to All Itineraries</a>
     </nav>
 
-    <main class="trip-wrapper">
-      <article>
+    <main>
+      <article class="trip-wrapper">
         <header class="trip-header">
           {trip.heroImageUrl && (
             <img src={trip.heroImageUrl} alt={`${trip.title} hero image`} class="trip-hero-image" />
@@ -658,27 +495,6 @@ const hasWeatherForecast = (forecast: any) => {
               <p class="trip-date"><strong>Departure:</strong> {formatDate(trip.startDate)}</p>
             )}
             {trip.heroIntro && <p class="hero-intro">{trip.heroIntro}</p>}
-
-            {/* Guard condition restored: Ensures zero markup footprint on unconfigured trips */}
-            {hasWeatherForecast(trip.heroWeatherForecast) && (
-              <section
-                class="weather-forecast-card"
-                data-weather-forecast
-                data-weather-location={trip.heroWeatherForecast.locationName || ""}
-                data-weather-lat={trip.heroWeatherForecast.coordinates?.lat ?? ""}
-                data-weather-lng={trip.heroWeatherForecast.coordinates?.lng ?? ""}
-              >
-                <div class="weather-forecast-header">
-                  <div class="weather-forecast-title">
-                    <span class="weather-eyebrow">Weather outlook</span>
-                    <span class="weather-location">{trip.heroWeatherForecast.locationName || "Local Destination"}</span>
-                  </div>
-                  <span class="weather-source-note">7-day live forecast</span>
-                </div>
-                <p class="weather-status" aria-live="polite">Preparing the outlook…</p>
-                <div class="weather-days" aria-live="polite"></div>
-              </section>
-            )}
           </div>
         </header>
 
@@ -865,132 +681,5 @@ const hasWeatherForecast = (forecast: any) => {
         })}
       </article>
     </main>
-
-    <script is:inline>
-      const WEATHER_CODE_LOOKUP = {
-        0: ["☀️", "CLEAR"],
-        1: ["🌤️", "MOSTLY CLEAR"],
-        2: ["⛅", "PARTLY CLOUDY"],
-        3: ["☁️", "CLOUDY"],
-        45: ["🌫️", "FOGGY"],
-        48: ["🌫️", "FOGGY"],
-        51: ["🌦️", "LIGHT RAIN"],
-        53: ["🌦️", "DRIZZLE"],
-        55: ["🌧️", "HEAVY DRIZZLE"],
-        61: ["🌦️", "LIGHT RAIN"],
-        63: ["🌧️", "RAIN"],
-        65: ["🌧️", "HEAVY RAIN"],
-        71: ["🌨️", "LIGHT SNOW"],
-        73: ["🌨️", "SNOW"],
-        75: ["❄️", "HEAVY SNOW"],
-        80: ["🌦️", "RAIN SHOWERS"],
-        81: ["🌧️", "SHOWERS"],
-        82: ["⛈️", "HEAVY SHOWERS"],
-        95: ["⛈️", "ISOLATED STORMS"],
-        96: ["⛈️", "STORMS"],
-        99: ["⛈️", "SEVERE STORMS"],
-      };
-
-      const weatherPanels = document.querySelectorAll("[data-weather-forecast]");
-      const getWeatherLabel = (code) => WEATHER_CODE_LOOKUP[code] || ["🌡️", "FORECAST"];
-
-      const getCoordinates = async (panel) => {
-        const lat = Number(panel.dataset.weatherLat);
-        const lng = Number(panel.dataset.weatherLng);
-        if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
-
-        const location = panel.dataset.weatherLocation?.trim();
-        if (!location || location === "") throw new Error("No geographical definitions supplied");
-
-        const geocodeUrl = new URL("https://geocoding-api.open-meteo.com/v1/search");
-        geocodeUrl.searchParams.set("name", location);
-        geocodeUrl.searchParams.set("count", "1");
-        geocodeUrl.searchParams.set("language", "en");
-        geocodeUrl.searchParams.set("format", "json");
-
-        const response = await fetch(geocodeUrl);
-        if (!response.ok) throw new Error("Network resolution failed");
-
-        const data = await response.json();
-        const result = data.results?.[0];
-        if (!result) throw new Error("Location not resolved");
-
-        return { lat: result.latitude, lng: result.longitude };
-      };
-
-      const renderForecast = (panel, daily) => {
-        const daysContainer = panel.querySelector(".weather-days");
-        const status = panel.querySelector(".weather-status");
-        if (!daysContainer) return;
-
-        daysContainer.innerHTML = "";
-        if (status) status.hidden = true;
-
-        daily.time.forEach((dateString, index) => {
-          const [icon, label] = getWeatherLabel(daily.weather_code[index]);
-          const date = new Date(`${dateString}T12:00:00`);
-          const day = document.createElement("div");
-          day.className = "weather-day";
-
-          const name = document.createElement("span");
-          name.className = "weather-day-name";
-          name.textContent = date.toLocaleDateString("en-GB", { weekday: "short" });
-
-          const iconFrame = document.createElement("span");
-          iconFrame.className = "weather-icon-frame";
-
-          const iconEl = document.createElement("span");
-          iconEl.className = "weather-icon";
-          iconEl.textContent = icon;
-          iconFrame.appendChild(iconEl);
-
-          const condition = document.createElement("span");
-          condition.className = "weather-condition";
-          condition.textContent = label;
-
-          const temp = document.createElement("span");
-          temp.className = "weather-temp";
-
-          const high = document.createElement("span");
-          high.className = "weather-temp-high";
-          high.textContent = `${Math.round(daily.temperature_2m_max[index])}`;
-
-          const low = document.createElement("span");
-          low.className = "weather-temp-low";
-          low.textContent = `${Math.round(daily.temperature_2m_min[index])}`;
-
-          temp.append(high, low);
-          day.append(name, iconFrame, condition, temp);
-          daysContainer.appendChild(day);
-        });
-      };
-
-      const loadForecast = async (panel) => {
-        const status = panel.querySelector(".weather-status");
-        try {
-          const { lat, lng } = await getCoordinates(panel);
-          
-          const forecastUrl = new URL("https://api.open-meteo.com/v1/forecast");
-          forecastUrl.searchParams.set("latitude", lat);
-          forecastUrl.searchParams.set("longitude", lng);
-          forecastUrl.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min");
-          forecastUrl.searchParams.set("forecast_days", "7");
-          forecastUrl.searchParams.set("timezone", "auto");
-
-          const response = await fetch(forecastUrl);
-          if (!response.ok) throw new Error("API network failure");
-
-          const data = await response.json();
-          if (!data.daily) throw new Error("Metrics layout block parsing error");
-          
-          renderForecast(panel, data.daily);
-        } catch (error) {
-          if (status) status.textContent = "Forecast unavailable right now.";
-          console.error("Critical execution fail:", error);
-        }
-      };
-
-      weatherPanels.forEach(loadForecast);
-    </script>
   </body>
 </html>
