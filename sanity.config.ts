@@ -37,12 +37,6 @@ export default defineConfig({
             validation: (Rule) => Rule.required(),
           },
           {
-            name: 'coordinates',
-            title: 'Primary Destination Coordinates (Weather Fetch Anchor)',
-            type: 'geopoint',
-            description: 'Provide coordinates for the primary trip location to drive the live weather engine.',
-          },
-          {
             name: 'displayStatus',
             title: 'Visibility',
             type: 'string',
@@ -72,34 +66,20 @@ export default defineConfig({
           },
           {
             name: 'sections',
-            title: 'Page Sections (Drag & Drop to Re-order Site Layout)',
+            title: 'Page Sections',
             type: 'array',
-            description: 'Add and arrange sections here. The visual layout order on the website directly mirrors this sequence.',
             of: [
               {
                 name: 'section',
-                title: 'Section Workspace',
+                title: 'Section',
                 type: 'object',
                 fields: [
                   {
                     name: 'sectionTitle',
                     title: 'Section Header',
                     type: 'string',
-                    description: 'Example: "Day 1: Arrival", "Places to Eat", "Must See Sights"',
+                    description: 'Example: "Day 1: Old Town", "Places to Eat", "Big Hitters"',
                     validation: (Rule) => Rule.required(),
-                  },
-                  {
-                    name: 'cityRegion',
-                    title: 'City / Macro Location',
-                    type: 'string',
-                    description: 'Example: "Beijing", "Chongqing", "Shanghai", "Istanbul"',
-                  },
-                  {
-                    name: 'sectionImage',
-                    title: 'Section Banner Image',
-                    type: 'image',
-                    description: 'Optional banner image shown at the start of this city/section block.',
-                    options: { hotspot: true },
                   },
                   {
                     name: 'sectionIntro',
@@ -175,9 +155,9 @@ export default defineConfig({
                             fields: [
                               { name: 'origin', type: 'string', title: 'Origin Station/Airport' },
                               { name: 'destination', type: 'string', title: 'Destination Station/Airport' },
-                              { name: 'carrier', type: 'string', title: 'Carrier / Line' },
+                              { name: 'carrier', type: 'string', title: 'Carrier / Line Name' },
                               { name: 'reference', type: 'string', title: 'Booking Reference' },
-                              { name: 'seatAssignment', type: 'string', title: 'Seat / Class' },
+                              { name: 'seatAssignment', type: 'string', title: 'Seat / Class Assignment' },
                               { name: 'bookingDetailsText', type: 'string', title: 'Booking Details (Additional Notes String)' },
                               {
                                 name: 'airportParkingLogistics',
@@ -220,9 +200,8 @@ export default defineConfig({
                           },
                           {
                             name: 'area',
-                            title: 'Neighborhood / Local District',
+                            title: 'Area / District',
                             type: 'string',
-                            description: 'Example: Chaoyang, Jiefangbei, Bund, Shinjuku.',
                           },
                           {
                             name: 'shortDescription',
@@ -246,7 +225,7 @@ export default defineConfig({
                             title: 'Pricing Logistics Metrics',
                             type: 'object',
                             fields: [
-                              { name: 'localAmount', type: 'number', title: 'Local Currency Cost (Numeric)' },
+                              { name: 'localAmount', title: 'Local Currency Cost (Numeric)', type: 'number' },
                               {
                                 name: 'currencyType',
                                 title: 'Local Currency Type',
@@ -306,7 +285,6 @@ export default defineConfig({
                                 name: 'bookOnDate',
                                 title: 'Booking Opening Target Date',
                                 type: 'date',
-                                description: 'Specify when the booking window officially opens.',
                                 hidden: ({ parent }) => parent?.bookingStatus !== 'to-book'
                               }
                             ]
@@ -368,7 +346,7 @@ export default defineConfig({
                 preview: {
                   select: {
                     title: 'sectionTitle',
-                    subtitle: 'cityRegion',
+                    subtitle: 'layoutStyle',
                   },
                 },
               },
