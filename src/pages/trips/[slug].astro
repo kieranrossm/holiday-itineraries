@@ -111,11 +111,13 @@ const getSectionSummary = (section: any) => {
   const placeCount = section.places?.length || 0;
   const bookingActions = getBookingActionCount(section);
 
-  if (placeCount === 0) return "City notes added • itinerary details coming soon";
+  if (placeCount === 0) return "Plans still taking shape";
 
-  const itemLabel = placeCount === 1 ? "item" : "items";
-  const actionLabel = bookingActions === 1 ? "booking action" : "booking actions";
-  return `${placeCount} ${itemLabel} mapped • ${bookingActions} ${actionLabel} required`;
+  const itemLabel = placeCount === 1 ? "stop" : "stops";
+  const bookingSummary = bookingActions === 0
+    ? "No booking actions"
+    : `${bookingActions} ${bookingActions === 1 ? "booking action" : "booking actions"}`;
+  return `${placeCount} ${itemLabel} mapped • ${bookingSummary}`;
 };
 
 const getCategoryClass = (category: string | undefined) => {
@@ -264,6 +266,10 @@ const isTransitCategory = (category: string | undefined) => {
       .section-drawer-label {
         font-size: 0.9rem;
       }
+
+      .label-open { display: none; }
+      .section-drawer[open] .label-closed { display: none; }
+      .section-drawer[open] .label-open { display: inline; }
 
       .section-chevron {
         width: 1.85rem;
@@ -514,7 +520,10 @@ const isTransitCategory = (category: string | undefined) => {
 
               <details class="section-drawer" open={shouldOpen}>
                 <summary class="section-drawer-summary">
-                  <span class="section-drawer-label">Section details</span>
+                  <span class="section-drawer-label">
+                    <span class="label-closed">View plans</span>
+                    <span class="label-open">Hide plans</span>
+                  </span>
                   <span class="section-chevron" aria-hidden="true">›</span>
                 </summary>
 
@@ -582,7 +591,7 @@ const isTransitCategory = (category: string | undefined) => {
 
                           {isTransitCategory(place.category) && place.transitDetails && (
                             <div class="logistics-block">
-                              <div class="logistics-title">Connection Parameters</div>
+                              <div class="logistics-title">Journey Details</div>
                               <div class="logistics-grid">
                                 {place.transitDetails.origin && <p><strong>From:</strong> {place.transitDetails.origin}</p>}
                                 {place.transitDetails.destination && <p><strong>To:</strong> {place.transitDetails.destination}</p>}
@@ -603,7 +612,7 @@ const isTransitCategory = (category: string | undefined) => {
 
                               {place.transitDetails.bookingDetailsText && (
                                 <div style="margin-top: 0.5rem; font-style: italic; color: var(--muted); font-size: 0.85rem;">
-                                  <strong>Booking Dets:</strong> {place.transitDetails.bookingDetailsText}
+                                  <strong>Booking notes:</strong> {place.transitDetails.bookingDetailsText}
                                 </div>
                               )}
                             </div>
@@ -611,7 +620,7 @@ const isTransitCategory = (category: string | undefined) => {
 
                           {place.category === "Hotel" && place.hotelDetails && (
                             <div class="logistics-block">
-                              <div class="logistics-title">Accommodation Logistics</div>
+                              <div class="logistics-title">Stay Details</div>
                               <div class="logistics-grid">
                                 {place.hotelDetails.bookingRef && <p><strong>Booking Ref:</strong> {place.hotelDetails.bookingRef}</p>}
                                 {place.hotelDetails.roomType && <p><strong>Room:</strong> {place.hotelDetails.roomType}</p>}
@@ -663,7 +672,7 @@ const isTransitCategory = (category: string | undefined) => {
                     ))}
                   </div>
                 ) : (
-                  <p class="empty-section-note">Itinerary details for this section are not mapped yet.</p>
+                  <p class="empty-section-note">Plans still taking shape for this section.</p>
                 )}
                 </div>
               </details>
