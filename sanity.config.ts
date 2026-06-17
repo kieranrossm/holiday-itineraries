@@ -1,6 +1,119 @@
 import { defineConfig } from 'sanity';
 import { deskTool } from 'sanity/desk';
 
+const weatherIconSetFields = [
+  {
+    name: 'sunny',
+    title: 'Sunny Icon',
+    type: 'image',
+    description: 'Used for clear sunny forecast conditions.',
+    options: { hotspot: true },
+  },
+  {
+    name: 'partlyCloudy',
+    title: 'Partly Cloudy / Partly Sunny Icon',
+    type: 'image',
+    description: 'Used for mainly clear, partly cloudy, or partly sunny forecast conditions.',
+    options: { hotspot: true },
+  },
+  {
+    name: 'cloudy',
+    title: 'Cloudy Icon',
+    type: 'image',
+    description: 'Used for overcast forecast conditions.',
+    options: { hotspot: true },
+  },
+  {
+    name: 'fog',
+    title: 'Fog Icon',
+    type: 'image',
+    description: 'Used for foggy forecast conditions.',
+    options: { hotspot: true },
+  },
+  {
+    name: 'drizzle',
+    title: 'Drizzle Icon',
+    type: 'image',
+    description: 'Used for drizzle or light showery forecast conditions.',
+    options: { hotspot: true },
+  },
+  {
+    name: 'rain',
+    title: 'Rain Icon',
+    type: 'image',
+    description: 'Used for rain or showers.',
+    options: { hotspot: true },
+  },
+  {
+    name: 'heavyRain',
+    title: 'Heavy Rain Icon',
+    type: 'image',
+    description: 'Used for heavier rain or heavier shower forecast conditions.',
+    options: { hotspot: true },
+  },
+  {
+    name: 'snow',
+    title: 'Snow Icon',
+    type: 'image',
+    description: 'Used for snow forecast conditions.',
+    options: { hotspot: true },
+  },
+  {
+    name: 'thunderstorm',
+    title: 'Thunderstorm Icon',
+    type: 'image',
+    description: 'Used for thunderstorm forecast conditions.',
+    options: { hotspot: true },
+  },
+];
+
+const weatherConfigField = {
+  name: 'weatherConfig',
+  title: 'Weather Forecast Configuration',
+  type: 'object',
+  description: 'Optional. When enabled and latitude/longitude are populated, the public page will show a live 7-day forecast starting from today.',
+  fields: [
+    {
+      name: 'enabled',
+      title: 'Show Weather Forecast',
+      type: 'boolean',
+      description: 'Turn this on to display a 7-day weather forecast for this trip or section.',
+      initialValue: false,
+    },
+    {
+      name: 'locationLabel',
+      title: 'Weather Location Label',
+      type: 'string',
+      description: 'Label shown above the weather bar, for example "Tenerife", "Beijing", or "Xi’an".',
+      hidden: ({ parent }) => !parent?.enabled,
+    },
+    {
+      name: 'latitude',
+      title: 'Latitude',
+      type: 'number',
+      description: 'Latitude used by the weather provider.',
+      hidden: ({ parent }) => !parent?.enabled,
+      validation: (Rule) => Rule.min(-90).max(90),
+    },
+    {
+      name: 'longitude',
+      title: 'Longitude',
+      type: 'number',
+      description: 'Longitude used by the weather provider.',
+      hidden: ({ parent }) => !parent?.enabled,
+      validation: (Rule) => Rule.min(-180).max(180),
+    },
+    {
+      name: 'iconSet',
+      title: 'Weather Icons',
+      type: 'object',
+      description: 'Optional image icons used by the public weather bar. If an icon is not populated, the page falls back to a simple emoji icon.',
+      hidden: ({ parent }) => !parent?.enabled,
+      fields: weatherIconSetFields,
+    },
+  ],
+};
+
 export default defineConfig({
   name: 'holiday-planner',
   title: 'Holiday Planner',
@@ -64,6 +177,7 @@ export default defineConfig({
             type: 'text',
             description: 'Optional short intro shown over or near the hero image.',
           },
+          weatherConfigField,
           {
             name: 'sections',
             title: 'Trip Sections',
@@ -123,6 +237,7 @@ export default defineConfig({
                     initialValue: 'closed',
                     validation: (Rule) => Rule.required(),
                   },
+                  weatherConfigField,
                   {
                     name: 'places',
                     title: 'Stops / Plans',
