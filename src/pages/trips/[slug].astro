@@ -20,7 +20,7 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
     sectionIntro,
     "sectionImageUrl": sectionImage.asset->url,
     layoutStyle,
-    defaultExpanded,
+    initialLoadState,
     places[] {
       placeName,
       time,
@@ -201,30 +201,20 @@ const isTransitCategory = (category: string | undefined) => {
       .hero-intro { max-width: 820px; margin: 1.25rem 0 0; color: #475569; line-height: 1.7; white-space: pre-line; }
 
       .section-container {
-        margin-bottom: 1.25rem;
+        margin-bottom: 3rem;
         border: 1px solid var(--soft);
         border-radius: 24px;
         background: rgba(255, 255, 255, 0.7);
         box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
         overflow: hidden;
+        padding: 1.25rem;
       }
 
-      .section-container[open] { margin-bottom: 3rem; }
-
-      .section-summary {
-        list-style: none;
-        cursor: pointer;
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 1rem;
-        align-items: center;
-        padding: 1.35rem 1.5rem;
-        background: #ffffff;
+      .section-static-header {
+        padding: 0.25rem 0.25rem 0.75rem;
       }
 
-      .section-summary::-webkit-details-marker { display: none; }
-
-      .section-summary h2 {
+      .section-static-header h2 {
         margin: 0;
         font-size: clamp(1.45rem, 4vw, 2.1rem);
         letter-spacing: -0.04em;
@@ -238,27 +228,6 @@ const isTransitCategory = (category: string | undefined) => {
         font-weight: 650;
       }
 
-      .section-chevron {
-        width: 2.35rem;
-        height: 2.35rem;
-        border-radius: 999px;
-        display: inline-grid;
-        place-items: center;
-        color: var(--ink);
-        background: var(--soft-2);
-        border: 1px solid var(--soft);
-        transition: transform 180ms ease, background 180ms ease;
-      }
-
-      .section-container[open] .section-chevron {
-        transform: rotate(90deg);
-        background: #ffffff;
-      }
-
-      .section-body {
-        padding: 0 1.5rem 1.5rem;
-      }
-
       .section-banner-image {
         width: 100%;
         aspect-ratio: 21 / 7;
@@ -269,6 +238,52 @@ const isTransitCategory = (category: string | undefined) => {
         border: 1px solid var(--soft);
         background: var(--soft-2);
         display: block;
+      }
+
+      .section-drawer {
+        margin-top: 0.75rem;
+      }
+
+      .section-drawer-summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.85rem 1rem;
+        border: 1px solid var(--soft);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      .section-drawer-summary::-webkit-details-marker { display: none; }
+
+      .section-drawer-label {
+        font-size: 0.9rem;
+      }
+
+      .section-chevron {
+        width: 1.85rem;
+        height: 1.85rem;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        color: var(--ink);
+        background: var(--soft-2);
+        border: 1px solid var(--soft);
+        transition: transform 180ms ease, background 180ms ease;
+      }
+
+      .section-drawer[open] .section-chevron {
+        transform: rotate(90deg);
+        background: #ffffff;
+      }
+
+      .section-body {
+        padding: 1.25rem 0 0;
       }
 
       .section-intro-panel {
@@ -444,7 +459,8 @@ const isTransitCategory = (category: string | undefined) => {
 
       @media (max-width: 720px) {
         body { padding: 1rem 0.75rem 3rem; }
-        .section-summary { padding: 1.1rem 1rem; }
+        .section-container { padding: 1rem; }
+        .section-drawer-summary { padding: 0.8rem 1rem; }
         .section-body { padding: 0 1rem 1rem; }
         .section-banner-image { aspect-ratio: 16 / 7; border-radius: 16px; }
         .layout-timeline .places-container { margin-left: 0.25rem; padding-left: 1.25rem; }
@@ -475,27 +491,31 @@ const isTransitCategory = (category: string | undefined) => {
 
         {trip.sections && trip.sections.map((section: any, index: number) => {
           const placeCount = section.places?.length || 0;
-          const shouldOpen = section.defaultExpanded ?? index < 2;
+          const shouldOpen = section.initialLoadState === 'open';
 
           return (
-            <details class={`section-container layout-${section.layoutStyle || "timeline"}`} open={shouldOpen}>
-              <summary class="section-summary">
-                <span>
-                  <h2>{section.sectionTitle}</h2>
-                  <span class={`section-kicker ${placeCount === 0 ? "is-empty" : ""}`}>{getSectionSummary(section)}</span>
-                </span>
-                <span class="section-chevron" aria-hidden="true">›</span>
-              </summary>
+            <section class={`section-container layout-${section.layoutStyle || "timeline"}`}>
+              <header class="section-static-header">
+                <h2>{section.sectionTitle}</h2>
+                <span class={`section-kicker ${placeCount === 0 ? "is-empty" : ""}`}>{getSectionSummary(section)}</span>
+              </header>
 
-              <div class="section-body">
-                {section.sectionImageUrl && (
-                  <img
-                    src={section.sectionImageUrl}
-                    alt={`${section.sectionTitle} location view`}
-                    class="section-banner-image"
-                    loading="lazy"
-                  />
-                )}
+              {section.sectionImageUrl && (
+                <img
+                  src={section.sectionImageUrl}
+                  alt={`${section.sectionTitle} location view`}
+                  class="section-banner-image"
+                  loading="lazy"
+                />
+              )}
+
+              <details class="section-drawer" open={shouldOpen}>
+                <summary class="section-drawer-summary">
+                  <span class="section-drawer-label">Section details</span>
+                  <span class="section-chevron" aria-hidden="true">›</span>
+                </summary>
+
+                <div class="section-body">
 
                 {section.sectionIntro && (
                   <div class="section-intro-panel">
@@ -642,8 +662,9 @@ const isTransitCategory = (category: string | undefined) => {
                 ) : (
                   <p class="empty-section-note">Itinerary details for this section are not mapped yet.</p>
                 )}
-              </div>
-            </details>
+                </div>
+              </details>
+            </section>
           );
         })}
       </article>
