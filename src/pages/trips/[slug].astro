@@ -279,13 +279,14 @@ const hasWeatherForecast = (forecast: any) => {
 
       .weather-days {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 0.85rem;
       }
 
       .weather-day {
         min-width: 0;
-        padding: 0.9rem;
+        min-height: 190px;
+        padding: 1rem;
         border: 1px solid rgba(148, 163, 184, 0.35);
         border-radius: 18px;
         background: rgba(255, 255, 255, 0.92);
@@ -331,12 +332,30 @@ const hasWeatherForecast = (forecast: any) => {
       }
 
       .weather-temp {
-        display: block;
+        display: grid;
+        gap: 0.12rem;
         margin-top: 0.55rem;
+        color: #475569;
+        font-weight: 800;
+        font-size: 0.82rem;
+        letter-spacing: -0.01em;
+      }
+
+      .weather-temp-high {
         color: var(--ink);
+        font-size: 1.18rem;
         font-weight: 950;
-        font-size: 1.05rem;
-        letter-spacing: -0.03em;
+        letter-spacing: -0.04em;
+      }
+
+      .weather-temp-low {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .weather-status[hidden] {
+        display: none !important;
       }
 
       .weather-rain {
@@ -965,7 +984,16 @@ const hasWeatherForecast = (forecast: any) => {
 
           const temp = document.createElement("span");
           temp.className = "weather-temp";
-          temp.textContent = `${Math.round(daily.temperature_2m_max[index])}° high · ${Math.round(daily.temperature_2m_min[index])}° low`;
+
+          const high = document.createElement("span");
+          high.className = "weather-temp-high";
+          high.textContent = `${Math.round(daily.temperature_2m_max[index])}° high`;
+
+          const low = document.createElement("span");
+          low.className = "weather-temp-low";
+          low.textContent = `${Math.round(daily.temperature_2m_min[index])}° low`;
+
+          temp.append(high, low);
 
           const rain = document.createElement("span");
           rain.className = "weather-rain";
