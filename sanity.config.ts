@@ -24,9 +24,9 @@ export default defineConfig({
             name: 'slug',
             type: 'slug',
             title: 'Slug',
-            options: { 
+            options: {
               source: 'title',
-              maxLength: 96
+              maxLength: 96,
             },
             validation: (Rule) => Rule.required(),
           },
@@ -85,31 +85,35 @@ export default defineConfig({
                     name: 'sectionIntro',
                     title: 'Section Intro',
                     type: 'text',
-                    description: 'Optional intro text shown underneath the section heading.',
+                    description: 'Optional intro text shown inside a panel underneath the section image.',
                   },
-                  
-                  // --- RESTORED LOGISTICS: ASSIGNED FIELD TO RESOLVE UNKNOWN WARNINGS ---
                   {
                     name: 'sectionImage',
                     title: 'Section Header Image / Banner',
                     type: 'image',
-                    description: 'Optional visual asset mapped to this structural itinerary group.',
-                    options: { hotspot: true }
+                    description: 'Optional panoramic asset mapped to this structural itinerary group.',
+                    options: { hotspot: true },
                   },
-
                   {
                     name: 'layoutStyle',
                     title: 'Layout Style',
                     type: 'string',
                     options: {
                       list: [
-                        { title: 'Timeline (Chronological)', value: 'timeline' },
-                        { title: 'Grid (Categorical)', value: 'grid' },
+                        { title: 'Timeline (Chronological / Logistics)', value: 'timeline' },
+                        { title: 'Grid (Attractions / Browseable)', value: 'grid' },
                       ],
                       layout: 'radio',
                     },
                     initialValue: 'timeline',
                     validation: (Rule) => Rule.required(),
+                  },
+                  {
+                    name: 'defaultExpanded',
+                    title: 'Open Section by Default',
+                    type: 'boolean',
+                    description: 'Turn this off when the section should initially appear collapsed to just its header.',
+                    initialValue: true,
                   },
                   {
                     name: 'places',
@@ -127,7 +131,8 @@ export default defineConfig({
                             type: 'string',
                             options: {
                               list: [
-                                { title: '✈️ Transport (Flight/Rail/Transfer)', value: 'Transport' },
+                                { title: '✈️ Transit (Flight/Rail/Transfer)', value: 'Transit' },
+                                { title: '✈️ Transport (Legacy)', value: 'Transport' },
                                 { title: '🏨 Hotel / Accommodation', value: 'Hotel' },
                                 { title: '🎟️ Attraction', value: 'Attraction' },
                                 { title: '🏛️ Museum', value: 'Museum' },
@@ -161,7 +166,7 @@ export default defineConfig({
                             name: 'transitDetails',
                             title: 'Transit Connection Details',
                             type: 'object',
-                            hidden: ({ parent }) => parent?.category !== 'Transport',
+                            hidden: ({ parent }) => parent?.category !== 'Transit' && parent?.category !== 'Transport',
                             fields: [
                               { name: 'origin', type: 'string', title: 'Origin Station/Airport' },
                               { name: 'destination', type: 'string', title: 'Destination Station/Airport' },
@@ -182,20 +187,20 @@ export default defineConfig({
                                       list: [
                                         { title: '⚪ Not Needed', value: 'not-needed' },
                                         { title: '⏳ Required / To Book', value: 'required' },
-                                        { title: '✅ Booked', value: 'booked' }
-                                      ]
+                                        { title: '✅ Booked', value: 'booked' },
+                                      ],
                                     },
-                                    initialValue: 'not-needed'
+                                    initialValue: 'not-needed',
                                   },
                                   {
                                     name: 'locationInfo',
                                     title: 'Car Park Location / Terminal Area',
                                     type: 'string',
-                                    hidden: ({ parent }) => parent?.status === 'not-needed'
-                                  }
-                                ]
-                              }
-                            ]
+                                    hidden: ({ parent }) => parent?.status === 'not-needed',
+                                  },
+                                ],
+                              },
+                            ],
                           },
                           {
                             name: 'hotelDetails',
@@ -206,7 +211,7 @@ export default defineConfig({
                               { name: 'bookingRef', type: 'string', title: 'Booking Reference' },
                               { name: 'roomType', type: 'string', title: 'Room Type' },
                               { name: 'checkInNotes', type: 'string', title: 'Check-in Notes' },
-                            ]
+                            ],
                           },
                           {
                             name: 'area',
@@ -247,9 +252,9 @@ export default defineConfig({
                                     { title: 'JPY (¥)', value: 'JPY' },
                                     { title: 'CHF (CHF)', value: 'CHF' },
                                     { title: 'GBP (£)', value: 'GBP' },
-                                  ]
+                                  ],
                                 },
-                                initialValue: 'EUR'
+                                initialValue: 'EUR',
                               },
                               { name: 'textFallback', title: 'Price Override String', type: 'string' },
                               {
@@ -259,17 +264,17 @@ export default defineConfig({
                                 options: {
                                   list: [
                                     { title: '❌ Non-refundable', value: 'non-refundable' },
-                                    { title: '🟢 Free Cancellation', value: 'free' }
-                                  ]
-                                }
+                                    { title: '🟢 Free Cancellation', value: 'free' },
+                                  ],
+                                },
                               },
                               {
                                 name: 'cancellationDeadline',
                                 title: 'Free Cancellation Deadline Date',
                                 type: 'date',
-                                hidden: ({ parent }) => parent?.cancellationPolicy !== 'free'
-                              }
-                            ]
+                                hidden: ({ parent }) => parent?.cancellationPolicy !== 'free',
+                              },
+                            ],
                           },
                           {
                             name: 'bookingLogistics',
@@ -284,9 +289,9 @@ export default defineConfig({
                                   list: [
                                     { title: '⚪ Not Needed', value: 'not-needed' },
                                     { title: '⏳ To Book (Action Required)', value: 'to-book' },
-                                    { title: '✅ Booked / Confirmed', value: 'booked' }
+                                    { title: '✅ Booked / Confirmed', value: 'booked' },
                                   ],
-                                  layout: 'dropdown'
+                                  layout: 'dropdown',
                                 },
                                 initialValue: 'not-needed',
                                 validation: (Rule) => Rule.required(),
@@ -295,9 +300,9 @@ export default defineConfig({
                                 name: 'bookOnDate',
                                 title: 'Booking Opening Target Date',
                                 type: 'date',
-                                hidden: ({ parent }) => parent?.bookingStatus !== 'to-book'
-                              }
-                            ]
+                                hidden: ({ parent }) => parent?.bookingStatus !== 'to-book',
+                              },
+                            ],
                           },
                           {
                             name: 'paymentStatus',
@@ -308,9 +313,9 @@ export default defineConfig({
                               list: [
                                 { title: '✅ Paid / Settled', value: 'paid' },
                                 { title: '⚠️ Not Paid / Balance Outstanding', value: 'unpaid' },
-                                { title: '❌ N/A (No payment required)', value: 'na' }
+                                { title: '❌ N/A (No payment required)', value: 'na' },
                               ],
-                              layout: 'radio'
+                              layout: 'radio',
                             },
                             initialValue: 'na',
                             validation: (Rule) => Rule.required(),
