@@ -14,6 +14,11 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
   title,
   startDate,
   heroIntro,
+  heroWeatherForecast {
+    enabled,
+    locationName,
+    coordinates
+  },
   "heroImageUrl": heroImage.asset->url,
   sections[] {
     sectionTitle,
@@ -21,6 +26,11 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
     "sectionImageUrl": sectionImage.asset->url,
     layoutStyle,
     initialLoadState,
+    weatherForecast {
+      enabled,
+      locationName,
+      coordinates
+    },
     places[] {
       placeName,
       time,
@@ -128,6 +138,10 @@ const getCategoryClass = (category: string | undefined) => {
 const isTransitCategory = (category: string | undefined) => {
   return category === "Transport" || category === "Transit";
 };
+
+const hasWeatherForecast = (forecast: any) => {
+  return Boolean(forecast?.enabled && (forecast.locationName || forecast.coordinates?.lat !== undefined));
+};
 ---
 
 <html lang="en-GB">
@@ -201,6 +215,108 @@ const isTransitCategory = (category: string | undefined) => {
       .trip-header h1 { margin: 0 0 0.75rem; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1; letter-spacing: -0.05em; }
       .trip-date { margin: 0; color: var(--muted); font-weight: 650; }
       .hero-intro { max-width: 820px; margin: 1.25rem 0 0; color: #475569; line-height: 1.7; white-space: pre-line; }
+
+      .weather-forecast-card {
+        margin: 1rem;
+        padding: 1rem;
+        border: 1px solid var(--soft);
+        border-radius: 20px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+      }
+
+      .trip-header .weather-forecast-card {
+        margin: 1rem clamp(1rem, 3vw, 1.5rem) 0;
+      }
+
+      .section-weather {
+        margin: 0.75rem 0 1rem;
+      }
+
+      .weather-forecast-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem 1rem;
+        margin-bottom: 0.8rem;
+      }
+
+      .weather-forecast-title {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+
+      .weather-eyebrow {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .weather-location {
+        color: var(--ink);
+        font-size: 1rem;
+        font-weight: 850;
+      }
+
+      .weather-source-note {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 650;
+      }
+
+      .weather-status {
+        margin: 0;
+        color: var(--muted);
+        font-weight: 650;
+      }
+
+      .weather-days {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 0.55rem;
+      }
+
+      .weather-day {
+        min-width: 0;
+        padding: 0.7rem 0.55rem;
+        border: 1px solid var(--soft);
+        border-radius: 14px;
+        background: #ffffff;
+        text-align: center;
+      }
+
+      .weather-day-name {
+        display: block;
+        color: var(--muted);
+        font-size: 0.74rem;
+        font-weight: 850;
+        text-transform: uppercase;
+      }
+
+      .weather-icon {
+        display: block;
+        margin: 0.3rem 0;
+        font-size: 1.35rem;
+      }
+
+      .weather-temp {
+        display: block;
+        color: var(--ink);
+        font-weight: 850;
+        font-size: 0.92rem;
+      }
+
+      .weather-rain {
+        display: block;
+        margin-top: 0.2rem;
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+      }
 
       .section-container {
         margin-bottom: 3rem;
@@ -475,6 +591,8 @@ const isTransitCategory = (category: string | undefined) => {
         .layout-timeline .places-container { margin-left: 0.25rem; padding-left: 1.25rem; }
         .layout-timeline .place-card::before { left: -1.9rem; }
         .layout-grid .places-container { grid-template-columns: 1fr; }
+        .weather-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .weather-day:last-child:nth-child(odd) { grid-column: 1 / -1; }
       }
     </style>
   </head>
@@ -489,6 +607,27 @@ const isTransitCategory = (category: string | undefined) => {
           {trip.heroImageUrl && (
             <img src={trip.heroImageUrl} alt={`${trip.title} hero image`} class="trip-hero-image" />
           )}
+
+          {hasWeatherForecast(trip.heroWeatherForecast) && (
+            <section
+              class="weather-forecast-card"
+              data-weather-forecast
+              data-weather-location={trip.heroWeatherForecast.locationName || ""}
+              data-weather-lat={trip.heroWeatherForecast.coordinates?.lat ?? ""}
+              data-weather-lng={trip.heroWeatherForecast.coordinates?.lng ?? ""}
+            >
+              <div class="weather-forecast-header">
+                <div class="weather-forecast-title">
+                  <span class="weather-eyebrow">7-day forecast</span>
+                  <span class="weather-location">{trip.heroWeatherForecast.locationName || "Trip weather"}</span>
+                </div>
+                <span class="weather-source-note">Live weather</span>
+              </div>
+              <p class="weather-status">Loading forecast...</p>
+              <div class="weather-days" aria-live="polite"></div>
+            </section>
+          )}
+
           <div class="trip-header-content">
             <h1>{trip.title}</h1>
             {trip.startDate && (
@@ -516,6 +655,26 @@ const isTransitCategory = (category: string | undefined) => {
                   class="section-banner-image"
                   loading="lazy"
                 />
+              )}
+
+              {hasWeatherForecast(section.weatherForecast) && (
+                <section
+                  class="weather-forecast-card section-weather"
+                  data-weather-forecast
+                  data-weather-location={section.weatherForecast.locationName || ""}
+                  data-weather-lat={section.weatherForecast.coordinates?.lat ?? ""}
+                  data-weather-lng={section.weatherForecast.coordinates?.lng ?? ""}
+                >
+                  <div class="weather-forecast-header">
+                    <div class="weather-forecast-title">
+                      <span class="weather-eyebrow">7-day forecast</span>
+                      <span class="weather-location">{section.weatherForecast.locationName || `${section.sectionTitle} weather`}</span>
+                    </div>
+                    <span class="weather-source-note">Live weather</span>
+                  </div>
+                  <p class="weather-status">Loading forecast...</p>
+                  <div class="weather-days" aria-live="polite"></div>
+                </section>
               )}
 
               <details class="section-drawer" open={shouldOpen}>
@@ -681,5 +840,125 @@ const isTransitCategory = (category: string | undefined) => {
         })}
       </article>
     </main>
+
+    <script is:inline>
+      const WEATHER_CODE_LOOKUP = {
+        0: ["☀️", "Clear"],
+        1: ["🌤️", "Mainly clear"],
+        2: ["⛅", "Partly cloudy"],
+        3: ["☁️", "Cloudy"],
+        45: ["🌫️", "Fog"],
+        48: ["🌫️", "Rime fog"],
+        51: ["🌦️", "Light drizzle"],
+        53: ["🌦️", "Drizzle"],
+        55: ["🌧️", "Heavy drizzle"],
+        61: ["🌦️", "Light rain"],
+        63: ["🌧️", "Rain"],
+        65: ["🌧️", "Heavy rain"],
+        71: ["🌨️", "Light snow"],
+        73: ["🌨️", "Snow"],
+        75: ["❄️", "Heavy snow"],
+        80: ["🌦️", "Rain showers"],
+        81: ["🌧️", "Showers"],
+        82: ["⛈️", "Heavy showers"],
+        95: ["⛈️", "Thunderstorm"],
+        96: ["⛈️", "Thunderstorm"],
+        99: ["⛈️", "Thunderstorm"],
+      };
+
+      const weatherPanels = document.querySelectorAll("[data-weather-forecast]");
+
+      const getWeatherLabel = (code) => WEATHER_CODE_LOOKUP[code] || ["🌡️", "Forecast"];
+
+      const getCoordinates = async (panel) => {
+        const lat = Number(panel.dataset.weatherLat);
+        const lng = Number(panel.dataset.weatherLng);
+
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          return { lat, lng };
+        }
+
+        const location = panel.dataset.weatherLocation?.trim();
+        if (!location) throw new Error("Missing forecast location");
+
+        const geocodeUrl = new URL("https://geocoding-api.open-meteo.com/v1/search");
+        geocodeUrl.searchParams.set("name", location);
+        geocodeUrl.searchParams.set("count", "1");
+        geocodeUrl.searchParams.set("language", "en");
+        geocodeUrl.searchParams.set("format", "json");
+
+        const response = await fetch(geocodeUrl);
+        if (!response.ok) throw new Error("Could not resolve forecast location");
+
+        const data = await response.json();
+        const result = data.results?.[0];
+        if (!result) throw new Error("Forecast location not found");
+
+        return { lat: result.latitude, lng: result.longitude };
+      };
+
+      const renderForecast = (panel, daily) => {
+        const daysContainer = panel.querySelector(".weather-days");
+        const status = panel.querySelector(".weather-status");
+        if (!daysContainer || !status) return;
+
+        daysContainer.innerHTML = "";
+        status.hidden = true;
+
+        daily.time.forEach((dateString, index) => {
+          const [icon, label] = getWeatherLabel(daily.weather_code[index]);
+          const date = new Date(`${dateString}T12:00:00`);
+          const day = document.createElement("article");
+          day.className = "weather-day";
+          day.title = label;
+
+          const name = document.createElement("span");
+          name.className = "weather-day-name";
+          name.textContent = date.toLocaleDateString("en-GB", { weekday: "short" });
+
+          const iconEl = document.createElement("span");
+          iconEl.className = "weather-icon";
+          iconEl.setAttribute("aria-label", label);
+          iconEl.textContent = icon;
+
+          const temp = document.createElement("span");
+          temp.className = "weather-temp";
+          temp.textContent = `${Math.round(daily.temperature_2m_min[index])}° / ${Math.round(daily.temperature_2m_max[index])}°`;
+
+          const rain = document.createElement("span");
+          rain.className = "weather-rain";
+          const rainChance = daily.precipitation_probability_max?.[index];
+          rain.textContent = Number.isFinite(rainChance) ? `${rainChance}% rain` : "Rain n/a";
+
+          day.append(name, iconEl, temp, rain);
+          daysContainer.appendChild(day);
+        });
+      };
+
+      const loadForecast = async (panel) => {
+        const status = panel.querySelector(".weather-status");
+
+        try {
+          const { lat, lng } = await getCoordinates(panel);
+          const forecastUrl = new URL("https://api.open-meteo.com/v1/forecast");
+          forecastUrl.searchParams.set("latitude", lat);
+          forecastUrl.searchParams.set("longitude", lng);
+          forecastUrl.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+          forecastUrl.searchParams.set("forecast_days", "7");
+          forecastUrl.searchParams.set("timezone", "auto");
+
+          const response = await fetch(forecastUrl);
+          if (!response.ok) throw new Error("Forecast request failed");
+
+          const data = await response.json();
+          renderForecast(panel, data.daily);
+        } catch (error) {
+          if (status) status.textContent = "Forecast unavailable right now.";
+          console.warn(error);
+        }
+      };
+
+      weatherPanels.forEach(loadForecast);
+    </script>
   </body>
 </html>
