@@ -66,7 +66,7 @@ export default defineConfig({
           },
           {
             name: 'sections',
-            title: 'Page Sections',
+            title: 'Trip Sections',
             type: 'array',
             of: [
               {
@@ -76,9 +76,9 @@ export default defineConfig({
                 fields: [
                   {
                     name: 'sectionTitle',
-                    title: 'Section Header',
+                    title: 'Section Name',
                     type: 'string',
-                    description: 'Example: "Day 1: Old Town", "Places to Eat", "Big Hitters"',
+                    description: 'Example: "Travel Out", "Beijing", "Places to Eat", "Big Hitters"',
                     validation: (Rule) => Rule.required(),
                   },
                   {
@@ -89,7 +89,7 @@ export default defineConfig({
                   },
                   {
                     name: 'sectionImage',
-                    title: 'Section Header Image / Banner',
+                    title: 'Section Hero Image',
                     type: 'image',
                     description: 'Optional panoramic asset mapped to this structural itinerary group.',
                     options: { hotspot: true },
@@ -125,12 +125,12 @@ export default defineConfig({
                   },
                   {
                     name: 'places',
-                    title: 'Places / Logistics Elements',
+                    title: 'Stops / Plans',
                     type: 'array',
                     of: [
                       {
                         name: 'place',
-                        title: 'Item Entry',
+                        title: 'Stop / Plan',
                         type: 'object',
                         fields: [
                           {
@@ -172,7 +172,7 @@ export default defineConfig({
                           },
                           {
                             name: 'transitDetails',
-                            title: 'Transit Connection Details',
+                            title: 'Journey Details',
                             type: 'object',
                             hidden: ({ parent }) => parent?.category !== 'Transit' && parent?.category !== 'Transport',
                             fields: [
@@ -212,7 +212,7 @@ export default defineConfig({
                           },
                           {
                             name: 'hotelDetails',
-                            title: 'Hotel Check-in Details',
+                            title: 'Stay Details',
                             type: 'object',
                             hidden: ({ parent }) => parent?.category !== 'Hotel',
                             fields: [
@@ -234,7 +234,7 @@ export default defineConfig({
                           },
                           {
                             name: 'info',
-                            title: 'Information & Strategic Notes',
+                            title: 'Trip Notes',
                             type: 'text',
                           },
                           {
@@ -245,7 +245,7 @@ export default defineConfig({
                           },
                           {
                             name: 'costStructure',
-                            title: 'Pricing Logistics Metrics',
+                            title: 'Price & Cancellation',
                             type: 'object',
                             fields: [
                               { name: 'localAmount', title: 'Local Currency Cost (Numeric)', type: 'number' },
@@ -286,7 +286,7 @@ export default defineConfig({
                           },
                           {
                             name: 'bookingLogistics',
-                            title: 'Booking & Ticket Lifecycle Logistics',
+                            title: 'Booking Status',
                             type: 'object',
                             fields: [
                               {
@@ -314,7 +314,7 @@ export default defineConfig({
                           },
                           {
                             name: 'paymentStatus',
-                            title: 'Operational Payment Status',
+                            title: 'Payment Status',
                             type: 'string',
                             description: 'Track internal financial settlement state.',
                             options: {
@@ -340,12 +340,12 @@ export default defineConfig({
                           },
                           {
                             name: 'travelNote',
-                            title: 'Micro Transit Connection Instruction',
+                            title: 'Getting There Note',
                             type: 'string',
                           },
                           {
                             name: 'photo',
-                            title: 'Visual Verification Asset',
+                            title: 'Place Photo',
                             type: 'image',
                             options: { hotspot: true },
                           },
