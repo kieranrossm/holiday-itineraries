@@ -87,6 +87,16 @@ export default defineConfig({
                     type: 'text',
                     description: 'Optional intro text shown underneath the section heading.',
                   },
+                  
+                  // --- RESTORED LOGISTICS: ASSIGNED FIELD TO RESOLVE UNKNOWN WARNINGS ---
+                  {
+                    name: 'sectionImage',
+                    title: 'Section Header Image / Banner',
+                    type: 'image',
+                    description: 'Optional visual asset mapped to this structural itinerary group.',
+                    options: { hotspot: true }
+                  },
+
                   {
                     name: 'layoutStyle',
                     title: 'Layout Style',
