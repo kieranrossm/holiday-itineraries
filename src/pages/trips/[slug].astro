@@ -14,11 +14,6 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
   title,
   startDate,
   heroIntro,
-  heroWeatherForecast {
-    enabled,
-    locationName,
-    coordinates
-  },
   "heroImageUrl": heroImage.asset->url,
   sections[] {
     sectionTitle,
@@ -26,11 +21,6 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
     "sectionImageUrl": sectionImage.asset->url,
     layoutStyle,
     initialLoadState,
-    weatherForecast {
-      enabled,
-      locationName,
-      coordinates
-    },
     places[] {
       placeName,
       time,
@@ -219,6 +209,7 @@ const isTransitCategory = (category: string | undefined) => {
         border-radius: 16px;
         background: #1e293b;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        display: block !important;
       }
 
       .weather-forecast-header {
@@ -490,3 +481,477 @@ const isTransitCategory = (category: string | undefined) => {
       .place-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
 
       .time-badge,
+      .category-badge,
+      .area-badge,
+      .payment-badge,
+      .booking-badge,
+      .cancellation-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .time-badge { background: var(--blue-bg); color: var(--blue-ink); }
+      .category-badge { background: var(--amber-bg); color: var(--amber-ink); }
+      .category-badge.transport,
+      .category-badge.transit { background: var(--purple-bg); color: var(--purple-ink); }
+      .area-badge { background: var(--green-bg); color: var(--green-ink); }
+      .payment-badge.paid { background: var(--green-bg); color: var(--green-ink); }
+      .payment-badge.unpaid { background: var(--rose-bg); color: var(--rose-ink); }
+      .booking-badge.to-book { background: var(--amber-bg); color: var(--amber-ink); border: 1px dashed var(--amber-ink); }
+      .booking-badge.booked { background: var(--blue-bg); color: var(--blue-ink); }
+      .cancellation-badge.free { background: var(--green-bg); color: var(--green-ink); }
+      .cancellation-badge.non-refundable { background: var(--slate-bg); color: var(--slate-ink); }
+
+      .place-card h3 { margin: 0.5rem 0; font-size: 1.35rem; line-height: 1.2; letter-spacing: -0.02em; }
+      .short-description { margin: 0.5rem 0; font-weight: 600; color: var(--ink); line-height: 1.5; }
+      .place-info { margin: 1rem 0 0; color: #475569; line-height: 1.65; white-space: pre-line; }
+
+      .logistics-block { background: var(--soft-2); padding: 1rem; border-radius: 12px; margin: 1rem 0; font-size: 0.9rem; border: 1px solid var(--soft); }
+      .logistics-title { font-weight: 800; text-transform: uppercase; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+      .logistics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; }
+      .logistics-grid p { margin: 0.35rem 0; }
+
+      .detail-list { margin-top: auto; padding-top: 1.25rem; border-top: 1px solid var(--soft); font-size: 0.95rem; }
+      .detail-list p { margin: 0.5rem 0; color: #475569; }
+
+      .place-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
+      .place-links a,
+      .copy-coords-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.55rem 1rem;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.85rem;
+        border: none;
+        cursor: pointer;
+      }
+
+      .place-links a:hover,
+      .copy-coords-btn:hover { background: #334155; }
+      .copy-coords-btn { background: transparent; color: var(--ink); border: 1px solid var(--soft); }
+      .copy-coords-btn:hover { background: var(--soft-2); }
+
+      .layout-grid .places-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+      }
+
+      .layout-grid .place-card {
+        border-radius: 22px;
+        overflow: hidden;
+        background: #ffffff;
+        border: 1px solid var(--soft);
+      }
+
+      .layout-grid .place-image { height: auto; }
+
+      .layout-timeline .places-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        border-left: 3px solid #cbd5e1;
+        padding-left: 2rem;
+        margin-left: 0.5rem;
+      }
+
+      .layout-timeline .place-card {
+        display: block;
+        box-shadow: none;
+      }
+
+      .layout-timeline .place-card::before {
+        content: "";
+        position: absolute;
+        left: -2.65rem;
+        top: 1.45rem;
+        width: 1rem;
+        height: 1rem;
+        background: #3b82f6;
+        border-radius: 50%;
+        border: 4px solid var(--page-bg);
+        z-index: 2;
+      }
+
+      .layout-timeline .category-transport,
+      .layout-timeline .category-transit {
+        border-left: 4px solid var(--blue-ink);
+      }
+
+      .layout-timeline .category-transport .place-image-wrap,
+      .layout-timeline .category-transit .place-image-wrap {
+        display: none;
+      }
+
+      .layout-timeline .category-transport .place-content,
+      .layout-timeline .category-transit .place-content {
+        padding: 1.25rem;
+      }
+
+      .layout-timeline .place-card h3 { margin-top: 0; }
+
+      @media (max-width: 768px) {
+        body { padding: 1rem 0.75rem 3rem; }
+        .section-container { padding: 1rem; }
+        .section-drawer-summary { padding: 0.8rem 1rem; }
+        .section-body { padding: 0 1rem 1rem; }
+        .section-banner-image { aspect-ratio: 16 / 7; border-radius: 16px; }
+        .layout-timeline .places-container { margin-left: 0.25rem; padding-left: 1.25rem; }
+        .layout-timeline .place-card::before { left: -1.9rem; }
+        .layout-grid .places-container { grid-template-columns: 1fr; }
+        
+        .weather-days {
+          display: flex;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          gap: 4px;
+          padding: 4px;
+        }
+        .weather-day {
+          flex: 0 0 92px;
+          scroll-snap-align: start;
+        }
+        .weather-temp-high {
+          font-size: 1.6rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="back-nav">
+      <a href="/" class="back-button">← Back to All Itineraries</a>
+    </nav>
+
+    <main>
+      <article class="trip-wrapper">
+        <header class="trip-header">
+          {trip.heroImageUrl && (
+            <img src={trip.heroImageUrl} alt={`${trip.title} hero image`} class="trip-hero-image" />
+          )}
+          <div class="trip-header-content">
+            <h1>{trip.title}</h1>
+            {trip.startDate && (
+              <p class="trip-date"><strong>Departure:</strong> {formatDate(trip.startDate)}</p>
+            )}
+            {trip.heroIntro && <p class="hero-intro">{trip.heroIntro}</p>}
+
+            {/* Hardcoded data attributes bypass query loops entirely to force compilation output */}
+            <section
+              class="weather-forecast-card hero-weather"
+              data-weather-forecast
+              data-weather-location="Tenerife"
+              data-weather-lat="28.4636"
+              data-weather-lng="-16.2518"
+            >
+              <div class="weather-forecast-header">
+                <div class="weather-forecast-title">
+                  <span class="weather-eyebrow">Weather outlook</span>
+                  <span class="weather-location">Tenerife</span>
+                </div>
+                <span class="weather-source-note">7-day live forecast</span>
+              </div>
+              <p class="weather-status" aria-live="polite">Preparing the outlook…</p>
+              <div class="weather-days" aria-live="polite"></div>
+            </section>
+          </div>
+        </header>
+
+        {trip.sections && trip.sections.map((section: any, index: number) => {
+          const placeCount = section.places?.length || 0;
+          const shouldOpen = section.initialLoadState === 'open';
+
+          return (
+            <section class={`section-container layout-${section.layoutStyle || "timeline"}`}>
+              <header class="section-static-header">
+                <h2>{section.sectionTitle}</h2>
+                <span class={`section-kicker ${placeCount === 0 ? "is-empty" : ""}`}>{getSectionSummary(section)}</span>
+              </header>
+
+              {section.sectionImageUrl && (
+                <img
+                  src={section.sectionImageUrl}
+                  alt={`${section.sectionTitle} location view`}
+                  class="section-banner-image"
+                  loading="lazy"
+                />
+              )}
+
+              <details class="section-drawer" open={shouldOpen}>
+                <summary class="section-drawer-summary">
+                  <span class="section-drawer-label">
+                    <span class="label-closed">View plans</span>
+                    <span class="label-open">Hide plans</span>
+                  </span>
+                  <span class="section-chevron" aria-hidden="true">›</span>
+                </summary>
+
+                <div class="section-body">
+
+                {section.sectionIntro && (
+                  <div class="section-intro-panel">
+                    <p>{section.sectionIntro}</p>
+                  </div>
+                )}
+
+                {placeCount > 0 ? (
+                  <div class="places-container">
+                    {section.places.map((place: any) => (
+                      <article class={`place-card category-${getCategoryClass(place.category)}`}>
+                        {place.photoUrl && !isTransitCategory(place.category) && (
+                          <div class="place-image-wrap">
+                            <img
+                              src={place.photoUrl}
+                              alt={place.placeName || ""}
+                              class="place-image"
+                              loading="lazy"
+                            />
+                          </div>
+                        )}
+
+                        <div class="place-content">
+                          <div class="place-meta">
+                            {place.time && (
+                              <span class="time-badge">
+                                {place.time}{place.endTime ? ` - ${place.endTime}` : ""}
+                              </span>
+                            )}
+                            {place.category && (
+                              <span class={`category-badge ${getCategoryClass(place.category)}`}>
+                                {place.category}
+                              </span>
+                            )}
+                            {place.area && <span class="area-badge">{place.area}</span>}
+
+                            {place.paymentStatus === "paid" && <span class="payment-badge paid">✓ Paid</span>}
+                            {place.paymentStatus === "unpaid" && <span class="payment-badge unpaid">⚠️ Unpaid</span>}
+
+                            {place.bookingLogistics?.bookingStatus === "to-book" && (
+                              <span class="booking-badge to-book">
+                                ⏳ To Book {place.bookingLogistics.bookOnDate ? `(On ${formatInlineDate(place.bookingLogistics.bookOnDate)})` : ""}
+                              </span>
+                            )}
+                            {place.bookingLogistics?.bookingStatus === "booked" && (
+                              <span class="booking-badge booked">✓ Booked</span>
+                            )}
+
+                            {place.costStructure?.cancellationPolicy === "free" && (
+                              <span class="cancellation-badge free">
+                                🟢 Free Cancellation {place.costStructure.cancellationDeadline ? `until ${formatInlineDate(place.costStructure.cancellationDeadline)}` : ""}
+                              </span>
+                            )}
+                            {place.costStructure?.cancellationPolicy === "non-refundable" && (
+                              <span class="cancellation-badge non-refundable">❌ Non-refundable</span>
+                            )}
+                          </div>
+
+                          <h3>{place.placeName}</h3>
+                          {place.shortDescription && <p class="short-description">{place.shortDescription}</p>}
+
+                          {isTransitCategory(place.category) && place.transitDetails && (
+                            <div class="logistics-block">
+                              <div class="logistics-title">Journey Details</div>
+                              <div class="logistics-grid">
+                                {place.transitDetails.origin && <p><strong>From:</strong> {place.transitDetails.origin}</p>}
+                                {place.transitDetails.destination && <p><strong>To:</strong> {place.transitDetails.destination}</p>}
+                                {place.transitDetails.carrier && <p><strong>Carrier:</strong> {place.transitDetails.carrier}</p>}
+                                {place.transitDetails.reference && <p><strong>Ref:</strong> {place.transitDetails.reference}</p>}
+                                {place.transitDetails.seatAssignment && <p><strong>Seat/Class:</strong> {place.transitDetails.seatAssignment}</p>}
+                              </div>
+
+                              {place.transitDetails.airportParkingLogistics && place.transitDetails.airportParkingLogistics.status !== "not-needed" && (
+                                <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--soft);">
+                                  <p>
+                                    <strong>Airport Parking:</strong>
+                                    {place.transitDetails.airportParkingLogistics.status === "booked" ? " ✅ Booked" : " ⏳ Required / To Book"}
+                                    {place.transitDetails.airportParkingLogistics.locationInfo ? ` — ${place.transitDetails.airportParkingLogistics.locationInfo}` : ""}
+                                  </p>
+                                </div>
+                              )}
+
+                              {place.transitDetails.bookingDetailsText && (
+                                <div style="margin-top: 0.5rem; font-style: italic; color: var(--muted); font-size: 0.85rem;">
+                                  <strong>Booking notes:</strong> {place.transitDetails.bookingDetailsText}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {place.category === "Hotel" && place.hotelDetails && (
+                            <div class="logistics-block">
+                              <div class="logistics-title">Stay Details</div>
+                              <div class="logistics-grid">
+                                {place.hotelDetails.bookingRef && <p><strong>Booking Ref:</strong> {place.hotelDetails.bookingRef}</p>}
+                                {place.hotelDetails.roomType && <p><strong>Room:</strong> {place.hotelDetails.roomType}</p>}
+                                {place.hotelDetails.checkInNotes && <p><strong>Notes:</strong> {place.hotelDetails.checkInNotes}</p>}
+                              </div>
+                            </div>
+                          )}
+
+                          {place.info && <p class="place-info">{place.info}</p>}
+
+                          {(place.costStructure || place.practicalInfo || place.travelNote || place.bookingLogistics) && (
+                            <div class="detail-list">
+                              {formatCost(place.costStructure) && (
+                                <p><strong>Price:</strong> {formatCost(place.costStructure)}</p>
+                              )}
+                              {place.practicalInfo && <p><strong>Good to know:</strong> {place.practicalInfo}</p>}
+                              {place.travelNote && <p><strong>Getting there:</strong> {place.travelNote}</p>}
+
+                              {place.bookingLogistics?.bookingStatus === "to-book" && (
+                                <p><strong>Booking:</strong> Required {place.bookingLogistics.bookOnDate ? `- Window opens ${formatInlineDate(place.bookingLogistics.bookOnDate)}` : ""}</p>
+                              )}
+                              {place.bookingLogistics?.bookingStatus === "booked" && (
+                                <p><strong>Booking:</strong> Confirmed</p>
+                              )}
+                            </div>
+                          )}
+
+                          <div class="place-links">
+                            {place.bookingUrl && <a href={place.bookingUrl} target="_blank" rel="noreferrer">Book</a>}
+                            {place.websiteUrl && <a href={place.websiteUrl} target="_blank" rel="noreferrer">Website</a>}
+
+                            {place.coordinates && (
+                              <button
+                                class="copy-coords-btn"
+                                data-lat={place.coordinates.lat}
+                                data-lng={place.coordinates.lng}
+                                onclick={`
+                                  navigator.clipboard.writeText('${place.coordinates.lat},${place.coordinates.lng}');
+                                  this.innerText = 'Copied!';
+                                  setTimeout(() => this.innerText = '📋 Copy Coords', 1500);
+                                `}
+                              >
+                                📋 Copy Coords
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p class="empty-section-note">Plans still taking shape for this section.</p>
+                )}
+                </div>
+              </details>
+            </section>
+          );
+        })}
+      </article>
+    </main>
+
+    <script is:inline>
+      const WEATHER_CODE_LOOKUP = {
+        0: ["☀️", "CLEAR"],
+        1: ["🌤️", "MOSTLY CLEAR"],
+        2: ["⛅", "PARTLY CLOUDY"],
+        3: ["☁️", "CLOUDY"],
+        45: ["🌫️", "FOGGY"],
+        48: ["🌫️", "FOGGY"],
+        51: ["🌦️", "LIGHT RAIN"],
+        53: ["🌦️", "DRIZZLE"],
+        55: ["🌧️", "HEAVY DRIZZLE"],
+        61: ["🌦️", "LIGHT RAIN"],
+        63: ["🌧️", "RAIN"],
+        65: ["🌧️", "HEAVY RAIN"],
+        71: ["🌨️", "LIGHT SNOW"],
+        73: ["🌨️", "SNOW"],
+        75: ["❄️", "HEAVY SNOW"],
+        80: ["🌦️", "RAIN SHOWERS"],
+        81: ["🌧️", "SHOWERS"],
+        82: ["⛈️", "HEAVY SHOWERS"],
+        95: ["⛈️", "ISOLATED STORMS"],
+        96: ["⛈️", "STORMS"],
+        99: ["⛈️", "SEVERE STORMS"],
+      };
+
+      const weatherPanels = document.querySelectorAll("[data-weather-forecast]");
+      const getWeatherLabel = (code) => WEATHER_CODE_LOOKUP[code] || ["🌡️", "FORECAST"];
+
+      const renderForecast = (panel, daily) => {
+        const daysContainer = panel.querySelector(".weather-days");
+        const status = panel.querySelector(".weather-status");
+        if (!daysContainer) return;
+
+        daysContainer.innerHTML = "";
+        if (status) status.hidden = true;
+
+        daily.time.forEach((dateString, index) => {
+          const [icon, label] = getWeatherLabel(daily.weather_code[index]);
+          const date = new Date(`${dateString}T12:00:00`);
+          const day = document.createElement("div");
+          day.className = "weather-day";
+
+          const name = document.createElement("span");
+          name.className = "weather-day-name";
+          name.textContent = date.toLocaleDateString("en-GB", { weekday: "short" });
+
+          const iconFrame = document.createElement("span");
+          iconFrame.className = "weather-icon-frame";
+
+          const iconEl = document.createElement("span");
+          iconEl.className = "weather-icon";
+          iconEl.textContent = icon;
+          iconFrame.appendChild(iconEl);
+
+          const condition = document.createElement("span");
+          condition.className = "weather-condition";
+          condition.textContent = label;
+
+          const temp = document.createElement("span");
+          temp.className = "weather-temp";
+
+          const high = document.createElement("span");
+          high.className = "weather-temp-high";
+          high.textContent = `${Math.round(daily.temperature_2m_max[index])}`;
+
+          const low = document.createElement("span");
+          low.className = "weather-temp-low";
+          low.textContent = `${Math.round(daily.temperature_2m_min[index])}`;
+
+          temp.append(high, low);
+          day.append(name, iconFrame, condition, temp);
+          daysContainer.appendChild(day);
+        });
+      };
+
+      const loadForecast = async (panel) => {
+        const status = panel.querySelector(".weather-status");
+        try {
+          const lat = panel.dataset.weatherLat;
+          const lng = panel.dataset.weatherLng;
+          
+          const forecastUrl = new URL("https://api.open-meteo.com/v1/forecast");
+          forecastUrl.searchParams.set("latitude", lat);
+          forecastUrl.searchParams.set("longitude", lng);
+          forecastUrl.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min");
+          forecastUrl.searchParams.set("forecast_days", "7");
+          forecastUrl.searchParams.set("timezone", "auto");
+
+          const response = await fetch(forecastUrl);
+          if (!response.ok) throw new Error("API network failure");
+
+          const data = await response.json();
+          if (!data.daily) throw new Error("Metrics layout block parsing error");
+          
+          renderForecast(panel, data.daily);
+        } catch (error) {
+          if (status) status.textContent = "Forecast unavailable right now.";
+          console.error("Critical execution fail:", error);
+        }
+      };
+
+      weatherPanels.forEach(loadForecast);
+    </script>
+  </body>
+</html>
