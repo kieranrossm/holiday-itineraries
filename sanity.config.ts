@@ -110,9 +110,9 @@ export default defineConfig({
                   },
                   {
                     name: 'initialLoadState',
-                    title: 'Initial Page Load State',
+                    title: 'Initial Drawer State',
                     type: 'string',
-                    description: 'Choose whether this section loads open or closed on the public itinerary page.',
+                    description: 'Controls whether the collapsible content beneath this section image loads open or closed on the public itinerary page.',
                     options: {
                       list: [
                         { title: 'Load open', value: 'open' },
@@ -369,7 +369,18 @@ export default defineConfig({
                 preview: {
                   select: {
                     title: 'sectionTitle',
-                    subtitle: 'layoutStyle',
+                    layoutStyle: 'layoutStyle',
+                    initialLoadState: 'initialLoadState',
+                    media: 'sectionImage',
+                  },
+                  prepare({ title, layoutStyle, initialLoadState }) {
+                    const drawerState = initialLoadState === 'open' ? 'Loads open' : 'Loads closed';
+                    const layoutLabel = layoutStyle === 'grid' ? 'Grid' : 'Timeline';
+
+                    return {
+                      title,
+                      subtitle: `${layoutLabel} • ${drawerState}`,
+                    };
                   },
                 },
               },
