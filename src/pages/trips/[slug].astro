@@ -138,10 +138,6 @@ const getCategoryClass = (category: string | undefined) => {
 const isTransitCategory = (category: string | undefined) => {
   return category === "Transport" || category === "Transit";
 };
-
-const hasWeatherForecast = (forecast: any) => {
-  return Boolean(forecast?.enabled && (forecast.locationName || forecast.coordinates?.lat !== undefined));
-};
 ---
 
 <html lang="en-GB">
@@ -216,7 +212,7 @@ const hasWeatherForecast = (forecast: any) => {
       .trip-date { margin: 0; color: var(--muted); font-weight: 650; }
       .hero-intro { max-width: 820px; margin: 1.25rem 0 0; color: #475569; line-height: 1.7; white-space: pre-line; }
 
-      /* Visual Layout Grid Configuration */
+      /* Visual Broadcast Forecast Layout */
       .weather-forecast-card {
         margin-top: 1.5rem;
         padding: 1.25rem;
@@ -257,6 +253,7 @@ const hasWeatherForecast = (forecast: any) => {
       .weather-status {
         color: #ffffff;
         font-weight: 600;
+        padding: 0.5rem 0;
       }
 
       .weather-days {
@@ -283,13 +280,6 @@ const hasWeatherForecast = (forecast: any) => {
         overflow: hidden;
       }
 
-      .hero-weather .weather-days .weather-day.is-primary {
-        grid-row: auto;
-        background: #0284c7; 
-        padding: 0.85rem 0.15rem 0 0.15rem;
-        border-radius: 4px;
-      }
-
       .weather-day-name {
         display: block;
         color: #ffffff;
@@ -300,20 +290,8 @@ const hasWeatherForecast = (forecast: any) => {
         margin-bottom: 0.4rem;
       }
 
-      .weather-date {
-        display: none;
-      }
-
       .weather-icon-frame {
         display: block;
-        width: auto;
-        height: auto;
-        background: transparent !important;
-        box-shadow: none !important;
-        margin: 0.25rem 0;
-      }
-
-      .hero-weather .weather-day.is-primary .weather-icon-frame {
         width: auto;
         height: auto;
         margin: 0.25rem 0;
@@ -365,10 +343,6 @@ const hasWeatherForecast = (forecast: any) => {
         font-weight: 800;
         padding: 0.4rem 0;
         margin-top: 0.25rem;
-      }
-
-      .weather-rain {
-        display: none;
       }
 
       .section-container {
@@ -516,31 +490,3 @@ const hasWeatherForecast = (forecast: any) => {
       .place-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; }
 
       .time-badge,
-      .category-badge,
-      .area-badge,
-      .payment-badge,
-      .booking-badge,
-      .cancellation-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.3rem 0.7rem;
-        border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 800;
-        line-height: 1;
-      }
-
-      .time-badge { background: var(--blue-bg); color: var(--blue-ink); }
-      .category-badge { background: var(--amber-bg); color: var(--amber-ink); }
-      .category-badge.transport,
-      .category-badge.transit { background: var(--purple-bg); color: var(--purple-ink); }
-      .area-badge { background: var(--green-bg); color: var(--green-ink); }
-      .payment-badge.paid { background: var(--green-bg); color: var(--green-ink); }
-      .payment-badge.unpaid { background: var(--rose-bg); color: var(--rose-ink); }
-      .booking-badge.to-book { background: var(--amber-bg); color: var(--amber-ink); border: 1px dashed var(--amber-ink); }
-      .booking-badge.booked { background: var(--blue-bg); color: var(--blue-ink); }
-      .cancellation-badge.free { background: var(--green-bg); color: var(--green-ink); }
-      .cancellation-badge.non-refundable { background: var(--slate-bg); color: var(--slate-ink); }
-
-      .place-card h3 { margin: 0.5rem 0; font-size: 1.35rem; line-height: 1.2; letter-spacing: -0.02em; }
-      .short-description { margin: 0.5rem 0; font-weight: 600; color: var(--
