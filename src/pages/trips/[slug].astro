@@ -443,11 +443,14 @@ const isTransitCategory = (category: string | undefined) => {
         z-index: 2;
       }
 
-      .layout-timeline .place-image-wrap { display: none; }
-
       .layout-timeline .category-transport,
       .layout-timeline .category-transit {
         border-left: 4px solid var(--blue-ink);
+      }
+
+      .layout-timeline .category-transport .place-image-wrap,
+      .layout-timeline .category-transit .place-image-wrap {
+        display: none;
       }
 
       .layout-timeline .category-transport .place-content,
