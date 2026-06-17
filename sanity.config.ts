@@ -109,11 +109,19 @@ export default defineConfig({
                     validation: (Rule) => Rule.required(),
                   },
                   {
-                    name: 'defaultExpanded',
-                    title: 'Open Section by Default',
-                    type: 'boolean',
-                    description: 'Turn this off when the section should initially appear collapsed to just its header.',
-                    initialValue: true,
+                    name: 'initialLoadState',
+                    title: 'Initial Page Load State',
+                    type: 'string',
+                    description: 'Choose whether this section loads open or closed on the public itinerary page.',
+                    options: {
+                      list: [
+                        { title: 'Load open', value: 'open' },
+                        { title: 'Load closed', value: 'closed' },
+                      ],
+                      layout: 'radio',
+                    },
+                    initialValue: 'closed',
+                    validation: (Rule) => Rule.required(),
                   },
                   {
                     name: 'places',
