@@ -71,7 +71,8 @@ const weatherConfigField = {
   name: 'weatherConfig',
   title: 'Weather Forecast Configuration',
   type: 'object',
-  description: 'Optional. When enabled and latitude/longitude are populated, the public page will show a live 7-day forecast starting from today.',
+  description:
+    'Optional. When enabled and latitude/longitude are populated, the public page will show a live 7-day forecast.',
   fields: [
     {
       name: 'enabled',
@@ -107,7 +108,8 @@ const weatherConfigField = {
       name: 'iconSet',
       title: 'Weather Icons',
       type: 'object',
-      description: 'Optional image icons used by the public weather bar. If an icon is not populated, the page falls back to a simple emoji icon.',
+      description:
+        'Optional image icons used by the public weather bar. If an icon is not populated, the page falls back to a simple emoji icon.',
       hidden: ({ parent }) => !parent?.enabled,
       fields: weatherIconSetFields,
     },
@@ -175,7 +177,7 @@ export default defineConfig({
             name: 'heroIntro',
             title: 'Hero Intro',
             type: 'text',
-            description: 'Optional short intro shown over or near the hero image.',
+            description: 'Optional short intro shown under the hero image.',
           },
           weatherConfigField,
           {
@@ -196,17 +198,17 @@ export default defineConfig({
                     validation: (Rule) => Rule.required(),
                   },
                   {
-                    name: 'sectionIntro',
-                    title: 'Section Intro',
-                    type: 'text',
-                    description: 'Optional intro text shown inside a panel underneath the section image.',
-                  },
-                  {
                     name: 'sectionImage',
                     title: 'Section Hero Image',
                     type: 'image',
-                    description: 'Optional panoramic asset mapped to this structural itinerary group.',
+                    description: 'Optional panoramic asset shown directly under the section title.',
                     options: { hotspot: true },
+                  },
+                  {
+                    name: 'sectionIntro',
+                    title: 'Section Intro',
+                    type: 'text',
+                    description: 'Optional intro text shown underneath the section image.',
                   },
                   {
                     name: 'layoutStyle',
@@ -226,7 +228,8 @@ export default defineConfig({
                     name: 'initialLoadState',
                     title: 'Initial Drawer State',
                     type: 'string',
-                    description: 'Controls whether the collapsible content beneath this section image loads open or closed on the public itinerary page.',
+                    description:
+                      'Controls whether the collapsible content beneath this section loads open or closed on the public itinerary page.',
                     options: {
                       list: [
                         { title: 'Load open', value: 'open' },
@@ -296,7 +299,11 @@ export default defineConfig({
                               { name: 'carrier', type: 'string', title: 'Carrier / Line Name' },
                               { name: 'reference', type: 'string', title: 'Booking Reference' },
                               { name: 'seatAssignment', type: 'string', title: 'Seat / Class Assignment' },
-                              { name: 'bookingDetailsText', type: 'string', title: 'Booking Details (Additional Notes String)' },
+                              {
+                                name: 'bookingDetailsText',
+                                type: 'string',
+                                title: 'Booking Details (Additional Notes String)',
+                              },
                               {
                                 name: 'airportParkingLogistics',
                                 title: 'Airport Parking Logistics',
