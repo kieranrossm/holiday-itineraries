@@ -742,15 +742,15 @@ const getOpeningHourRows = (openingHours: any) => {
 
       .food-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 0.9rem;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+        gap: 1rem;
         align-items: start;
       }
 
       .food-card {
         position: relative;
         display: grid;
-        grid-template-columns: 156px 1fr;
+        grid-template-columns: 184px 1fr;
         min-height: 0;
         overflow: hidden;
         border: 1px solid var(--soft);
@@ -760,7 +760,7 @@ const getOpeningHourRows = (openingHours: any) => {
       }
 
       .food-image-wrap {
-        height: 156px;
+        height: 184px;
         background: linear-gradient(135deg, #e2e8f0, #f8fafc);
       }
 
@@ -825,15 +825,51 @@ const getOpeningHourRows = (openingHours: any) => {
         font-size: 0.9rem;
         line-height: 1.45;
         display: -webkit-box;
-        -webkit-line-clamp: 4;
+        -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
         overflow: hidden;
+      }
+
+      .food-hours-details {
+        margin: 0.65rem 0 0;
+      }
+
+      .food-hours-details summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        min-height: 1.75rem;
+        padding: 0.28rem 0.65rem;
+        border: 1px solid var(--soft);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--ink);
+        cursor: pointer;
+        font-size: 0.76rem;
+        font-weight: 850;
+        list-style: none;
+      }
+
+      .food-hours-details summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .food-hours-details summary::after {
+        content: "›";
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1;
+        transform: rotate(90deg);
+      }
+
+      .food-hours-details[open] summary::after {
+        transform: rotate(-90deg);
       }
 
       .food-hours {
         display: grid;
         gap: 0.18rem;
-        margin: 0.65rem 0 0;
+        margin: 0.45rem 0 0;
         padding: 0.6rem 0.7rem;
         border: 1px solid var(--soft);
         border-radius: 12px;
@@ -966,8 +1002,10 @@ const getOpeningHourRows = (openingHours: any) => {
         .layout-grid .places-container { grid-template-columns: 1fr; }
         .food-shortlist-header { align-items: flex-start; flex-direction: column; gap: 0.35rem; }
         .food-grid { grid-template-columns: 1fr; }
-        .food-card { grid-template-columns: 138px 1fr; }
-        .food-image-wrap { height: 138px; }
+        .food-card { grid-template-columns: 1fr; }
+        .food-image-wrap { height: 178px; }
+        .food-card-content { padding: 1rem; }
+        .food-note { -webkit-line-clamp: 3; }
 
         .weather-card-header {
           flex-direction: column;
@@ -1108,6 +1146,7 @@ const getOpeningHourRows = (openingHours: any) => {
                 </section>
               )}
 
+              {(placeCount > 0 || foodShortlistCount === 0) && (
               <details class="section-drawer" open={shouldOpen}>
                 <summary class="section-drawer-summary">
                   <span class="section-drawer-label">
@@ -1266,6 +1305,7 @@ const getOpeningHourRows = (openingHours: any) => {
                   )}
                 </div>
               </details>
+              )}
 
               {foodShortlistCount > 0 && (
                 <aside class="food-shortlist" aria-label={`${section.sectionTitle} food and drink shortlist`}>
@@ -1304,14 +1344,17 @@ const getOpeningHourRows = (openingHours: any) => {
                           {food.shortNote && <p class="food-note">{food.shortNote}</p>}
 
                           {openingHourRows.length > 0 && (
-                            <div class="food-hours" aria-label={`${food.name} opening hours`}>
-                              {openingHourRows.map(([day, hours]) => (
-                                <div class="food-hours-row">
-                                  <span class="food-hours-day">{day}</span>
-                                  <span>{hours}</span>
-                                </div>
-                              ))}
-                            </div>
+                            <details class="food-hours-details">
+                              <summary>Hours</summary>
+                              <div class="food-hours" aria-label={`${food.name} opening hours`}>
+                                {openingHourRows.map(([day, hours]) => (
+                                  <div class="food-hours-row">
+                                    <span class="food-hours-day">{day}</span>
+                                    <span>{hours}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
                           )}
 
                           <div class="food-links">
