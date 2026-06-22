@@ -45,6 +45,27 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
     weatherConfig {
       ${weatherConfigQuery}
     },
+    foodShortlist[] {
+      name,
+      "imageUrl": image.asset->url,
+      foodType,
+      area,
+      shortNote,
+      openingHours {
+        monday,
+        tuesday,
+        wednesday,
+        thursday,
+        friday,
+        saturday,
+        sunday
+      },
+      priceVibe,
+      bookingStatus,
+      websiteUrl,
+      mapUrl,
+      coordinates
+    },
     places[] {
       placeName,
       time,
@@ -173,6 +194,32 @@ const getWeatherIconSet = (weatherConfig: any) => {
     snowUrl: weatherConfig?.iconSet?.snowUrl || "",
     thunderstormUrl: weatherConfig?.iconSet?.thunderstormUrl || "",
   };
+};
+
+const getPriceLabel = (priceVibe: string | undefined) => {
+  const labels: Record<string, string> = {
+    budget: "£",
+    "mid-range": "££",
+    splurge: "£££",
+  };
+
+  return priceVibe ? labels[priceVibe] || "" : "";
+};
+
+const getOpeningHourRows = (openingHours: any) => {
+  if (!openingHours) return [];
+
+  const rows = [
+    ["Mon", openingHours.monday],
+    ["Tue", openingHours.tuesday],
+    ["Wed", openingHours.wednesday],
+    ["Thu", openingHours.thursday],
+    ["Fri", openingHours.friday],
+    ["Sat", openingHours.saturday],
+    ["Sun", openingHours.sunday],
+  ];
+
+  return rows.filter(([, hours]) => Boolean(hours));
 };
 ---
 
@@ -662,6 +709,192 @@ const getWeatherIconSet = (weatherConfig: any) => {
       .copy-coords-btn { background: transparent; color: var(--ink); border: 1px solid var(--soft); }
       .copy-coords-btn:hover { background: var(--soft-2); }
 
+      .food-shortlist {
+        margin-top: 1.25rem;
+        padding: 1.2rem;
+        border: 1px solid var(--soft);
+        border-radius: 20px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+      }
+
+      .food-shortlist-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-end;
+        margin-bottom: 1rem;
+      }
+
+      .food-shortlist-title {
+        margin: 0;
+        font-size: 1.25rem;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+
+      .food-shortlist-count {
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .food-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 0.9rem;
+        align-items: start;
+      }
+
+      .food-card {
+        position: relative;
+        display: grid;
+        grid-template-columns: 156px 1fr;
+        min-height: 0;
+        overflow: hidden;
+        border: 1px solid var(--soft);
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+      }
+
+      .food-image-wrap {
+        height: 156px;
+        background: linear-gradient(135deg, #e2e8f0, #f8fafc);
+      }
+
+      .food-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        display: block;
+      }
+
+      .food-image-placeholder {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 900;
+      }
+
+      .food-card-content {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        padding: 1rem;
+      }
+
+      .food-card h3 {
+        margin: 0.65rem 0 0.35rem;
+        font-size: 1.12rem;
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+      }
+
+      .food-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+
+      .food-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.55rem;
+        padding: 0.24rem 0.55rem;
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--slate-ink);
+        border: 1px solid var(--soft);
+        font-size: 0.72rem;
+        font-weight: 850;
+      }
+
+      .food-badge.booking-needed { background: var(--amber-bg); color: var(--amber-ink); border-color: #fcd34d; }
+      .food-badge.booked { background: var(--green-bg); color: var(--green-ink); border-color: #86efac; }
+      .food-badge.price { background: #0f172a; color: #ffffff; border-color: #0f172a; letter-spacing: 0.04em; }
+
+      .food-note {
+        margin: 0.4rem 0 0;
+        color: #475569;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .food-hours {
+        display: grid;
+        gap: 0.18rem;
+        margin: 0.65rem 0 0;
+        padding: 0.6rem 0.7rem;
+        border: 1px solid var(--soft);
+        border-radius: 12px;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 0.78rem;
+        line-height: 1.25;
+      }
+
+      .food-hours-row {
+        display: grid;
+        grid-template-columns: 2.2rem 1fr;
+        gap: 0.45rem;
+      }
+
+      .food-hours-day {
+        color: var(--ink);
+        font-weight: 850;
+      }
+
+      .food-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: auto;
+        padding-top: 0.95rem;
+      }
+
+      .food-links a,
+      .food-links .copy-coords-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2rem;
+        padding: 0.42rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid var(--soft);
+        background: #ffffff;
+        color: var(--ink);
+        text-decoration: none;
+        font-weight: 800;
+        font-size: 0.78rem;
+      }
+
+      .food-links a:hover,
+      .food-links .copy-coords-btn:hover {
+        background: var(--soft-2);
+      }
+
+      .food-links a[href*="maps"],
+      .food-links a[href*="goo.gl"] {
+        background: var(--ink);
+        color: #ffffff;
+        border-color: var(--ink);
+      }
+
+      .food-links a[href*="maps"]:hover,
+      .food-links a[href*="goo.gl"]:hover {
+        background: #334155;
+      }
+
       .layout-grid .places-container {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -731,6 +964,10 @@ const getWeatherIconSet = (weatherConfig: any) => {
         .layout-timeline .places-container { margin-left: 0.25rem; padding-left: 1.25rem; }
         .layout-timeline .place-card::before { left: -1.9rem; }
         .layout-grid .places-container { grid-template-columns: 1fr; }
+        .food-shortlist-header { align-items: flex-start; flex-direction: column; gap: 0.35rem; }
+        .food-grid { grid-template-columns: 1fr; }
+        .food-card { grid-template-columns: 138px 1fr; }
+        .food-image-wrap { height: 138px; }
 
         .weather-card-header {
           flex-direction: column;
@@ -818,6 +1055,8 @@ const getWeatherIconSet = (weatherConfig: any) => {
 
         {trip.sections && trip.sections.map((section: any) => {
           const placeCount = section.places?.length || 0;
+          const foodShortlist = section.foodShortlist || [];
+          const foodShortlistCount = foodShortlist.length;
           const shouldOpen = section.initialLoadState === "open";
 
           return (
@@ -1027,6 +1266,82 @@ const getWeatherIconSet = (weatherConfig: any) => {
                   )}
                 </div>
               </details>
+
+              {foodShortlistCount > 0 && (
+                <aside class="food-shortlist" aria-label={`${section.sectionTitle} food and drink shortlist`}>
+                  <header class="food-shortlist-header">
+                    <h3 class="food-shortlist-title">Food & drink shortlist</h3>
+                    <span class="food-shortlist-count">{foodShortlistCount} {foodShortlistCount === 1 ? "option" : "options"}</span>
+                  </header>
+
+                  <div class="food-grid">
+                    {foodShortlist.map((food: any) => (
+                      <article class="food-card">
+                        {(() => {
+                          const openingHourRows = getOpeningHourRows(food.openingHours);
+
+                          return (
+                            <>
+                        <div class="food-image-wrap">
+                          {food.imageUrl ? (
+                            <img src={food.imageUrl} alt={food.name || ""} class="food-image" loading="lazy" />
+                          ) : (
+                            <div class="food-image-placeholder" aria-hidden="true">Food</div>
+                          )}
+                        </div>
+
+                        <div class="food-card-content">
+                          <div class="food-meta">
+                            {getPriceLabel(food.priceVibe) && <span class="food-badge price">{getPriceLabel(food.priceVibe)}</span>}
+                            {food.foodType && <span class="food-badge">{food.foodType}</span>}
+                            {food.area && <span class="food-badge">{food.area}</span>}
+                            {food.bookingStatus === "consider-booking" && <span class="food-badge booking-needed">Consider booking</span>}
+                            {food.bookingStatus === "booked" && <span class="food-badge booked">Booked</span>}
+                          </div>
+
+                          <h3>{food.name}</h3>
+
+                          {food.shortNote && <p class="food-note">{food.shortNote}</p>}
+
+                          {openingHourRows.length > 0 && (
+                            <div class="food-hours" aria-label={`${food.name} opening hours`}>
+                              {openingHourRows.map(([day, hours]) => (
+                                <div class="food-hours-row">
+                                  <span class="food-hours-day">{day}</span>
+                                  <span>{hours}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div class="food-links">
+                            {food.websiteUrl && <a href={food.websiteUrl} target="_blank" rel="noreferrer">Website</a>}
+                            {food.mapUrl && <a href={food.mapUrl} target="_blank" rel="noreferrer">Map</a>}
+
+                            {food.coordinates && (
+                              <button
+                                class="copy-coords-btn"
+                                data-lat={food.coordinates.lat}
+                                data-lng={food.coordinates.lng}
+                                onclick={`
+                                  navigator.clipboard.writeText('${food.coordinates.lat},${food.coordinates.lng}');
+                                  this.innerText = 'Copied!';
+                                  setTimeout(() => this.innerText = 'Copy coords', 1500);
+                                `}
+                              >
+                                Copy coords
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                            </>
+                          );
+                        })()}
+                      </article>
+                    ))}
+                  </div>
+                </aside>
+              )}
             </section>
           );
         })}
