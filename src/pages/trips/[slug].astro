@@ -64,7 +64,8 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
       bookingStatus,
       websiteUrl,
       mapUrl,
-      coordinates
+      coordinates,
+      showOnDashboardMap
     },
     places[] {
       placeName,
@@ -83,6 +84,8 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
       travelNote,
       "photoUrl": photo.asset->url,
       coordinates,
+      countAsStop,
+      showOnDashboardMap,
       transitDetails,
       hotelDetails
     }
@@ -181,6 +184,25 @@ const isTransitCategory = (category: string | undefined) => {
   return category === "Transport" || category === "Transit";
 };
 
+const isTravelSection = (sectionTitle: string | undefined) => {
+  return /travel|transit|transport/i.test(sectionTitle || "");
+};
+
+const countsAsDashboardStop = (place: any, sectionTitle?: string) => {
+  if (place?.countAsStop === true) return true;
+  if (place?.countAsStop === false) return false;
+  if (isTravelSection(sectionTitle)) return false;
+
+  return !isTransitCategory(place?.category);
+};
+
+const showsOnDashboardMap = (place: any, sectionTitle?: string) => {
+  if (place?.showOnDashboardMap === true) return true;
+  if (place?.showOnDashboardMap === false) return false;
+
+  return countsAsDashboardStop(place, sectionTitle);
+};
+
 const hasWeatherConfig = (weatherConfig: any) => {
   return Boolean(
     weatherConfig?.enabled &&
@@ -239,7 +261,48 @@ const getFoodMapPoints = (foods: any[]) => {
       lat: food.coordinates.lat,
       lng: food.coordinates.lng,
       mapUrl: food.mapUrl || "",
+      showOnDashboardMap: food.showOnDashboardMap,
+      markerColor: "red",
+      type: "Food",
     }));
+};
+
+const getTripMapPoints = (sections: any[]) => {
+  return (sections || []).flatMap((section: any) => {
+    const placePoints = (section.places || [])
+      .filter((place: any) => (
+        showsOnDashboardMap(place, section.sectionTitle) &&
+        typeof place.coordinates?.lat === "number" &&
+        typeof place.coordinates?.lng === "number"
+      ))
+      .map((place: any) => {
+        const category = place.category || "Place";
+        const markerColor = category === "Hotel"
+          ? "purple"
+          : isTransitCategory(category)
+            ? "orange"
+            : "blue";
+
+        return {
+          name: place.placeName || "Stop",
+          sectionTitle: section.sectionTitle || "",
+          category,
+          lat: place.coordinates.lat,
+          lng: place.coordinates.lng,
+          markerColor,
+          type: category,
+        };
+      });
+
+    const foodPoints = getFoodMapPoints(section.foodShortlist || [])
+      .filter((foodPoint: any) => foodPoint.showOnDashboardMap !== false)
+      .map((foodPoint: any) => ({
+        ...foodPoint,
+        sectionTitle: section.sectionTitle || "",
+      }));
+
+    return [...placePoints, ...foodPoints];
+  });
 };
 
 const getSectionMapId = (sectionTitle: string | undefined, index: number) => {
@@ -251,7 +314,7 @@ const getSectionMapId = (sectionTitle: string | undefined, index: number) => {
   return `food-map-${titleSlug || "section"}-${index}`;
 };
 
-const getFoodStaticMapUrl = (points: any[]) => {
+const getStaticMapUrl = (points: any[]) => {
   if (!googleMapsStaticApiKey || points.length === 0) return "";
 
   const labels = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -263,7 +326,7 @@ const getFoodStaticMapUrl = (points: any[]) => {
 
   points.forEach((point, index) => {
     const label = labels[index] || "";
-    const markerParts = ["color:red"];
+    const markerParts = [`color:${point.markerColor || "red"}`];
 
     if (label) {
       markerParts.push(`label:${label}`);
@@ -274,6 +337,27 @@ const getFoodStaticMapUrl = (points: any[]) => {
   });
 
   return url.toString();
+};
+
+const getFoodStaticMapUrl = (points: any[]) => getStaticMapUrl(points);
+
+const tripSections = trip.sections || [];
+const tripPlaces = tripSections.flatMap((section: any) => section.places || []);
+const tripFoods = tripSections.flatMap((section: any) => section.foodShortlist || []);
+const tripStops = tripSections.flatMap((section: any) => (
+  (section.places || []).filter((place: any) => countsAsDashboardStop(place, section.sectionTitle))
+));
+const tripBookingActions = tripPlaces.filter((place: any) => place.bookingLogistics?.bookingStatus === "to-book");
+const tripUnpaidItems = tripPlaces.filter((place: any) => place.paymentStatus === "unpaid");
+const tripBookedItems = [
+  ...tripPlaces.filter((place: any) => place.bookingLogistics?.bookingStatus === "booked"),
+  ...tripFoods.filter((food: any) => food.bookingStatus === "booked"),
+];
+const tripMapPoints = getTripMapPoints(tripSections);
+const tripStaticMapUrl = getStaticMapUrl(tripMapPoints);
+
+const getPluralLabel = (count: number, singular: string, plural: string) => {
+  return count === 1 ? singular : plural;
 };
 ---
 
@@ -370,6 +454,155 @@ const getFoodStaticMapUrl = (points: any[]) => {
 
       .section-weather-card {
         margin-top: 1rem;
+      }
+
+      .trip-dashboard {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+        gap: 1rem;
+        margin: -1.5rem 0 3rem;
+      }
+
+      .trip-dashboard.no-dashboard-map {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard-panel {
+        border: 1px solid var(--soft);
+        border-radius: 24px;
+        background: #ffffff;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
+        overflow: hidden;
+      }
+
+      .dashboard-summary {
+        padding: 1.25rem;
+      }
+
+      .dashboard-eyebrow {
+        margin: 0 0 0.45rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 850;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      .dashboard-title {
+        margin: 0;
+        color: var(--ink);
+        font-size: clamp(1.35rem, 3vw, 1.9rem);
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+      }
+
+      .dashboard-intro {
+        margin: 0.65rem 0 0;
+        color: #475569;
+        line-height: 1.55;
+        font-size: 0.95rem;
+      }
+
+      .dashboard-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+
+      .dashboard-metric {
+        min-width: 0;
+        padding: 0.85rem;
+        border: 1px solid var(--soft);
+        border-radius: 16px;
+        background: var(--soft-2);
+      }
+
+      .dashboard-metric strong {
+        display: block;
+        color: var(--ink);
+        font-size: 1.35rem;
+        line-height: 1;
+        letter-spacing: -0.03em;
+      }
+
+      .dashboard-metric span {
+        display: block;
+        margin-top: 0.35rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .dashboard-actions {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--soft);
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .dashboard-action-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 1rem;
+        color: #334155;
+        font-size: 0.9rem;
+        font-weight: 750;
+      }
+
+      .dashboard-action-row span:last-child {
+        color: var(--muted);
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .dashboard-map-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.15rem;
+        border-bottom: 1px solid var(--soft);
+      }
+
+      .dashboard-map-header h2 {
+        margin: 0;
+        color: var(--ink);
+        font-size: 1.05rem;
+        letter-spacing: -0.02em;
+      }
+
+      .dashboard-map-count {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .dashboard-map-empty {
+        margin: 0;
+        padding: 1.25rem;
+        color: var(--muted);
+        font-weight: 750;
+      }
+
+      .dashboard-note {
+        margin: 1rem 0 0;
+        padding: 0.85rem 1rem;
+        border: 1px dashed var(--soft);
+        border-radius: 14px;
+        background: var(--soft-2);
+        color: var(--muted);
+        font-size: 0.86rem;
+        font-weight: 750;
+      }
+
+      .dashboard-map-panel {
+        margin: 0;
+        border: 0;
+        border-radius: 0;
       }
 
       .weather-card-header {
@@ -509,6 +742,21 @@ const getFoodStaticMapUrl = (points: any[]) => {
       }
 
       @media (max-width: 720px) {
+        .trip-dashboard {
+          grid-template-columns: 1fr;
+          margin-top: -1.25rem;
+        }
+
+        .dashboard-metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .dashboard-map-header {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+
         .weather-card-header {
           flex-direction: column;
           align-items: flex-start;
@@ -898,6 +1146,20 @@ const getFoodStaticMapUrl = (points: any[]) => {
       }
 
       @media (max-width: 560px) {
+        .dashboard-metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .dashboard-action-row {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .dashboard-action-row span:last-child {
+          text-align: left;
+        }
+
         .food-map-tools {
           flex-direction: column;
           align-items: stretch;
@@ -1260,6 +1522,88 @@ const getFoodStaticMapUrl = (points: any[]) => {
           )}
         </header>
 
+        <section class={`trip-dashboard ${tripStaticMapUrl ? "" : "no-dashboard-map"}`} aria-label="Trip dashboard">
+          <div class="dashboard-panel dashboard-summary">
+            <p class="dashboard-eyebrow">Trip dashboard</p>
+            <h2 class="dashboard-title">Plan status at a glance</h2>
+            <p class="dashboard-intro">
+              Quick view of visitable stops, food options, mapped locations, booking actions, and confirmed items in this trip.
+            </p>
+
+            <div class="dashboard-metrics">
+              <div class="dashboard-metric">
+                <strong>{tripSections.length}</strong>
+                <span>{getPluralLabel(tripSections.length, "section", "sections")}</span>
+              </div>
+              <div class="dashboard-metric">
+                <strong>{tripStops.length}</strong>
+                <span>{getPluralLabel(tripStops.length, "planned stop", "planned stops")}</span>
+              </div>
+              <div class="dashboard-metric">
+                <strong>{tripFoods.length}</strong>
+                <span>{getPluralLabel(tripFoods.length, "food option", "food options")}</span>
+              </div>
+              <div class="dashboard-metric">
+                <strong>{tripMapPoints.length}</strong>
+                <span>{getPluralLabel(tripMapPoints.length, "mapped location", "mapped locations")}</span>
+              </div>
+            </div>
+
+            {!tripStaticMapUrl && (
+              <p class="dashboard-note">Add coordinates to stops or restaurants to show the trip map here.</p>
+            )}
+
+            <div class="dashboard-actions" aria-label="Trip actions">
+              <div class="dashboard-action-row">
+                <span>Booking actions</span>
+                <span>{tripBookingActions.length}</span>
+              </div>
+              <div class="dashboard-action-row">
+                <span>Outstanding payments</span>
+                <span>{tripUnpaidItems.length}</span>
+              </div>
+              <div class="dashboard-action-row">
+                <span>Confirmed bookings</span>
+                <span>{tripBookedItems.length}</span>
+              </div>
+            </div>
+          </div>
+
+          {tripStaticMapUrl && (
+          <section class="dashboard-panel" aria-label="Trip map">
+            <header class="dashboard-map-header">
+              <h2>Trip map</h2>
+              <span class="dashboard-map-count">{tripMapPoints.length} {getPluralLabel(tripMapPoints.length, "point", "points")}</span>
+            </header>
+
+            <div
+              class="food-map-panel dashboard-map-panel"
+              data-nearby-map-panel
+              data-nearby-map-points={JSON.stringify(tripMapPoints)}
+            >
+              <div class="food-map">
+                <img
+                  src={tripStaticMapUrl}
+                  data-nearby-map-image
+                  data-base-map-url={tripStaticMapUrl}
+                  alt={`${trip.title} trip map`}
+                  class="food-map-image"
+                  loading="lazy"
+                />
+              </div>
+              <div class="food-map-tools">
+                <button class="food-location-btn" type="button" data-nearby-location-button>
+                  Show my location
+                </button>
+                <p class="food-map-status" data-nearby-location-status>
+                  Adds you if you are within 6km of these mapped places.
+                </p>
+              </div>
+            </div>
+          </section>
+          )}
+        </section>
+
         {trip.sections && trip.sections.map((section: any, sectionIndex: number) => {
           const placeCount = section.places?.length || 0;
           const foodShortlist = section.foodShortlist || [];
@@ -1493,14 +1837,14 @@ const getFoodStaticMapUrl = (points: any[]) => {
                     <div
                       class="food-map-panel"
                       id={foodMapId}
-                      data-food-map-panel
-                      data-food-map-points={JSON.stringify(foodMapPoints)}
+                      data-nearby-map-panel
+                      data-nearby-map-points={JSON.stringify(foodMapPoints)}
                       hidden
                     >
                       <div class="food-map">
                         <img
                           src={foodStaticMapUrl}
-                          data-food-map-image
+                          data-nearby-map-image
                           data-base-map-url={foodStaticMapUrl}
                           alt={`${section.sectionTitle} restaurant map`}
                           class="food-map-image"
@@ -1508,11 +1852,11 @@ const getFoodStaticMapUrl = (points: any[]) => {
                         />
                       </div>
                       <div class="food-map-tools">
-                        <button class="food-location-btn" type="button" data-food-location-button>
+                        <button class="food-location-btn" type="button" data-nearby-location-button>
                           Show my location
                         </button>
-                        <p class="food-map-status" data-food-location-status>
-                          Adds you if you are within 2km of these places.
+                        <p class="food-map-status" data-nearby-location-status>
+                          Adds you if you are within 6km of these places.
                         </p>
                       </div>
                     </div>
@@ -1634,7 +1978,7 @@ const getFoodStaticMapUrl = (points: any[]) => {
           .replaceAll("'", "&#039;");
       }
 
-      const foodMapLocationLimitKm = 2;
+      const nearbyMapLocationLimitKm = 6;
 
       function getDistanceKm(first, second) {
         const earthRadiusKm = 6371;
@@ -1678,10 +2022,10 @@ const getFoodStaticMapUrl = (points: any[]) => {
         return url.toString();
       }
 
-      document.querySelectorAll("[data-food-map-panel]").forEach((panel) => {
-        const locationButton = panel.querySelector("[data-food-location-button]");
-        const status = panel.querySelector("[data-food-location-status]");
-        const mapImage = panel.querySelector("[data-food-map-image]");
+      document.querySelectorAll("[data-nearby-map-panel]").forEach((panel) => {
+        const locationButton = panel.querySelector("[data-nearby-location-button]");
+        const status = panel.querySelector("[data-nearby-location-status]");
+        const mapImage = panel.querySelector("[data-nearby-map-image]");
 
         if (!locationButton || !status || !mapImage) return;
 
@@ -1689,13 +2033,13 @@ const getFoodStaticMapUrl = (points: any[]) => {
           let points = [];
 
           try {
-            points = JSON.parse(panel.getAttribute("data-food-map-points") || "[]");
+            points = JSON.parse(panel.getAttribute("data-nearby-map-points") || "[]");
           } catch {
             points = [];
           }
 
           if (!points.length) {
-            status.textContent = "No restaurant coordinates are available for this map.";
+            status.textContent = "No coordinates are available for this map.";
             return;
           }
 
@@ -1710,7 +2054,7 @@ const getFoodStaticMapUrl = (points: any[]) => {
             };
             const nearestDistanceKm = getNearestFoodDistanceKm(location, points);
 
-            if (nearestDistanceKm > foodMapLocationLimitKm) {
+            if (nearestDistanceKm > nearbyMapLocationLimitKm) {
               const distanceLabel = nearestDistanceKm < 10
                 ? `${nearestDistanceKm.toFixed(1)}km`
                 : `${Math.round(nearestDistanceKm)}km`;
