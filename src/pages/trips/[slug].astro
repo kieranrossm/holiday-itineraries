@@ -51,6 +51,7 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
       foodType,
       area,
       shortNote,
+      decisionStatus,
       openingHours {
         monday,
         tuesday,
@@ -74,6 +75,7 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
       category,
       area,
       shortDescription,
+      decisionStatus,
       info,
       practicalInfo,
       costStructure,
@@ -153,8 +155,73 @@ const formatInlineDate = (dateString: string) => {
   });
 };
 
+const DECISION_STATE_LABELS: Record<string, string> = {
+  booked: "Booked",
+  "to-book": "To book",
+  maybe: "Maybe",
+  backup: "Backup",
+  "avoid-if-tired": "Avoid if tired",
+  "weather-dependent": "Weather dependent",
+  "must-do": "Must do",
+};
+
+const getDecisionStateLabel = (decisionStatus: string | undefined) => {
+  return decisionStatus ? DECISION_STATE_LABELS[decisionStatus] || "" : "";
+};
+
+const getDecisionStateClass = (decisionStatus: string | undefined) => {
+  return decisionStatus ? decisionStatus.replace(/[^a-z0-9]+/g, "-") : "";
+};
+
 const getBookingActionCount = (section: any) => {
   return (section.places || []).filter((place: any) => place.bookingLogistics?.bookingStatus === "to-book").length;
+};
+
+const getSectionAreaLabel = (section: any) => {
+  const areas = [
+    ...(section.places || []).map((place: any) => place.area),
+    ...(section.foodShortlist || []).map((food: any) => food.area),
+  ].filter(Boolean);
+  const uniqueAreas = [...new Set(areas)];
+
+  if (uniqueAreas.length === 0) return "";
+  if (uniqueAreas.length <= 2) return uniqueAreas.join(" / ");
+
+  return `${uniqueAreas[0]} + ${uniqueAreas.length - 1} areas`;
+};
+
+const getSectionScanItems = (section: any) => {
+  const places = section.places || [];
+  const foods = section.foodShortlist || [];
+  const bookingActions = getBookingActionCount(section);
+  const transitCount = places.filter((place: any) => isTransitCategory(place.category)).length;
+  const unpaidItems = places.filter((place: any) => (
+    place.paymentStatus === "unpaid" &&
+    place.bookingLogistics?.bookingStatus === "booked"
+  )).length;
+  const mappedCount = [
+    ...places.filter((place: any) => typeof place.coordinates?.lat === "number" && typeof place.coordinates?.lng === "number"),
+    ...foods.filter((food: any) => typeof food.coordinates?.lat === "number" && typeof food.coordinates?.lng === "number"),
+  ].length;
+  const decisionActions = [...places, ...foods].filter((item: any) => (
+    item.decisionStatus === "maybe" ||
+    item.decisionStatus === "backup" ||
+    item.decisionStatus === "to-book" ||
+    item.decisionStatus === "weather-dependent"
+  )).length;
+  const areaLabel = getSectionAreaLabel(section);
+
+  return [
+    places.length ? `${places.length} ${places.length === 1 ? "stop" : "stops"}` : "",
+    foods.length ? `${foods.length} ${foods.length === 1 ? "food option" : "food options"}` : "",
+    transitCount ? `${transitCount} ${transitCount === 1 ? "transit item" : "transit items"}` : "",
+    bookingActions ? `${bookingActions} to book` : "",
+    unpaidItems ? `${unpaidItems} unpaid` : "",
+    mappedCount ? `${mappedCount} mapped` : "",
+    areaLabel ? `Area: ${areaLabel}` : "",
+    hasWeatherConfig(section.weatherConfig) ? "Weather on" : "",
+    decisionActions ? `${decisionActions} decision ${decisionActions === 1 ? "flag" : "flags"}` : "",
+  ].filter(Boolean);
 };
 
 const getSectionSummary = (section: any) => {
@@ -348,7 +415,10 @@ const tripStops = tripSections.flatMap((section: any) => (
   (section.places || []).filter((place: any) => countsAsDashboardStop(place, section.sectionTitle))
 ));
 const tripBookingActions = tripPlaces.filter((place: any) => place.bookingLogistics?.bookingStatus === "to-book");
-const tripUnpaidItems = tripPlaces.filter((place: any) => place.paymentStatus === "unpaid");
+const tripUnpaidItems = tripPlaces.filter((place: any) => (
+  place.paymentStatus === "unpaid" &&
+  place.bookingLogistics?.bookingStatus === "booked"
+));
 const tripBookedItems = [
   ...tripPlaces.filter((place: any) => place.bookingLogistics?.bookingStatus === "booked"),
   ...tripFoods.filter((food: any) => food.bookingStatus === "booked"),
@@ -673,7 +743,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
 
       .weather-days {
         display: grid;
-        grid-template-columns: repeat(7, minmax(130px, 1fr));
+        grid-template-columns: repeat(7, minmax(132px, 1fr));
         gap: 0.75rem;
         padding: 1rem;
         overflow-x: auto;
@@ -681,7 +751,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
       }
 
       .weather-day {
-        min-width: 130px;
+        min-width: 132px;
         padding: 1rem 0.8rem;
         text-align: center;
         border: 1px solid #e2e8f0;
@@ -698,22 +768,23 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
       }
 
       .weather-icon-wrap {
-        width: 78px;
-        height: 78px;
+        width: 92px;
+        height: 92px;
         margin: 0 auto 0.6rem;
         display: grid;
         place-items: center;
       }
 
       .weather-icon {
-        width: 78px;
-        height: 78px;
+        width: 92px;
+        height: 92px;
         display: block;
-        object-fit: contain;
+        object-fit: cover;
+        border-radius: 18px;
       }
 
       .weather-icon-fallback {
-        font-size: 3.35rem;
+        font-size: 4.15rem;
         line-height: 1;
       }
 
@@ -739,6 +810,58 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
         font-weight: 800;
         border-top: 1px solid #e2e8f0;
         background: #ffffff;
+      }
+
+      .weather-days :global(.weather-day) {
+        min-width: 132px;
+        padding: 1rem 0.8rem;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        background: #ffffff;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+      }
+
+      .weather-days :global(.weather-day-name) {
+        margin: 0 0 0.65rem;
+        color: #0f172a;
+        font-size: 0.9rem;
+        font-weight: 900;
+      }
+
+      .weather-days :global(.weather-icon-wrap) {
+        width: 92px;
+        height: 92px;
+        margin: 0 auto 0.6rem;
+        display: grid;
+        place-items: center;
+      }
+
+      .weather-days :global(.weather-icon) {
+        width: 92px;
+        height: 92px;
+        display: block;
+        object-fit: cover;
+        border-radius: 18px;
+      }
+
+      .weather-days :global(.weather-icon-fallback) {
+        font-size: 4.15rem;
+        line-height: 1;
+      }
+
+      .weather-days :global(.weather-precip) {
+        margin: 0.2rem 0 0.45rem;
+        color: #1d4ed8;
+        font-size: 0.9rem;
+        font-weight: 900;
+      }
+
+      .weather-days :global(.weather-temp) {
+        margin: 0;
+        color: #0f172a;
+        font-size: 0.98rem;
+        font-weight: 900;
       }
 
       @media (max-width: 720px) {
@@ -770,24 +893,39 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
         }
 
         .weather-days {
-          grid-template-columns: repeat(7, minmax(112px, 1fr));
+          grid-template-columns: repeat(7, minmax(118px, 1fr));
           gap: 0.65rem;
           padding: 0.8rem;
         }
 
         .weather-day {
-          min-width: 112px;
+          min-width: 118px;
           padding: 0.9rem 0.65rem;
         }
 
         .weather-icon-wrap,
         .weather-icon {
-          width: 64px;
-          height: 64px;
+          width: 80px;
+          height: 80px;
         }
 
         .weather-icon-fallback {
-          font-size: 2.8rem;
+          font-size: 3.55rem;
+        }
+
+        .weather-days :global(.weather-day) {
+          min-width: 118px;
+          padding: 0.9rem 0.65rem;
+        }
+
+        .weather-days :global(.weather-icon-wrap),
+        .weather-days :global(.weather-icon) {
+          width: 80px;
+          height: 80px;
+        }
+
+        .weather-days :global(.weather-icon-fallback) {
+          font-size: 3.55rem;
         }
       }
 
@@ -817,6 +955,27 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
         color: var(--muted);
         font-size: 0.92rem;
         font-weight: 650;
+      }
+
+      .section-scan {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.8rem;
+      }
+
+      .section-scan-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.8rem;
+        padding: 0.35rem 0.65rem;
+        border: 1px solid var(--soft);
+        border-radius: 999px;
+        background: #ffffff;
+        color: #334155;
+        font-size: 0.78rem;
+        font-weight: 800;
+        white-space: nowrap;
       }
 
       .section-banner-image {
@@ -954,6 +1113,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
       .time-badge,
       .category-badge,
       .area-badge,
+      .decision-badge,
       .payment-badge,
       .booking-badge,
       .cancellation-badge {
@@ -971,6 +1131,14 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
       .category-badge.transport,
       .category-badge.transit { background: var(--purple-bg); color: var(--purple-ink); }
       .area-badge { background: var(--green-bg); color: var(--green-ink); }
+      .decision-badge { background: var(--slate-bg); color: var(--slate-ink); }
+      .decision-badge.must-do { background: #dcfce7; color: #166534; }
+      .decision-badge.to-book,
+      .decision-badge.weather-dependent { background: #fef3c7; color: #92400e; }
+      .decision-badge.maybe,
+      .decision-badge.backup { background: #dbeafe; color: #1d4ed8; }
+      .decision-badge.avoid-if-tired { background: #ffe4e6; color: #9f1239; }
+      .decision-badge.booked { background: #ede9fe; color: #5b21b6; }
       .payment-badge.paid { background: var(--green-bg); color: var(--green-ink); }
       .payment-badge.unpaid { background: var(--rose-bg); color: var(--rose-ink); }
       .booking-badge.to-book { background: var(--amber-bg); color: var(--amber-ink); border: 1px dashed var(--amber-ink); }
@@ -1449,22 +1617,37 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
         }
 
         .weather-days {
-          grid-template-columns: repeat(7, minmax(92px, 1fr));
+          grid-template-columns: repeat(7, minmax(104px, 1fr));
         }
 
         .weather-day {
-          min-width: 92px;
+          min-width: 104px;
           padding: 0.85rem 0.6rem 0.95rem;
         }
 
         .weather-icon-wrap,
         .weather-icon {
-          width: 54px;
-          height: 54px;
+          width: 72px;
+          height: 72px;
         }
 
         .weather-icon-fallback {
-          font-size: 2.35rem;
+          font-size: 3.05rem;
+        }
+
+        .weather-days :global(.weather-day) {
+          min-width: 104px;
+          padding: 0.85rem 0.6rem 0.95rem;
+        }
+
+        .weather-days :global(.weather-icon-wrap),
+        .weather-days :global(.weather-icon) {
+          width: 72px;
+          height: 72px;
+        }
+
+        .weather-days :global(.weather-icon-fallback) {
+          font-size: 3.05rem;
         }
       }
     </style>
@@ -1612,12 +1795,20 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
           const foodStaticMapUrl = getFoodStaticMapUrl(foodMapPoints);
           const foodMapId = getSectionMapId(section.sectionTitle, sectionIndex);
           const shouldOpen = section.initialLoadState === "open";
+          const sectionScanItems = getSectionScanItems(section);
 
           return (
             <section class={`section-container layout-${section.layoutStyle || "timeline"}`}>
               <header class="section-static-header">
                 <h2>{section.sectionTitle}</h2>
                 <span class={`section-kicker ${placeCount === 0 && foodShortlistCount === 0 ? "is-empty" : ""}`}>{getSectionSummary(section)}</span>
+                {sectionScanItems.length > 0 && (
+                  <div class="section-scan" aria-label={`${section.sectionTitle} quick scan`}>
+                    {sectionScanItems.map((item: string) => (
+                      <span class="section-scan-chip">{item}</span>
+                    ))}
+                  </div>
+                )}
               </header>
 
               {section.sectionImageUrl && (
@@ -1691,9 +1882,14 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
                               )}
 
                               {place.area && <span class="area-badge">{place.area}</span>}
+                              {getDecisionStateLabel(place.decisionStatus) && (
+                                <span class={`decision-badge ${getDecisionStateClass(place.decisionStatus)}`}>
+                                  {getDecisionStateLabel(place.decisionStatus)}
+                                </span>
+                              )}
 
                               {place.paymentStatus === "paid" && <span class="payment-badge paid">✓ Paid</span>}
-                              {place.paymentStatus === "unpaid" && <span class="payment-badge unpaid">⚠️ Unpaid</span>}
+                              {place.paymentStatus === "unpaid" && place.bookingLogistics?.bookingStatus === "booked" && <span class="payment-badge unpaid">⚠️ Unpaid</span>}
 
                               {place.bookingLogistics?.bookingStatus === "to-book" && (
                                 <span class="booking-badge to-book">
@@ -1883,6 +2079,11 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
                             {getPriceLabel(food.priceVibe) && <span class="food-badge price">{getPriceLabel(food.priceVibe)}</span>}
                             {food.foodType && <span class="food-badge">{food.foodType}</span>}
                             {food.area && <span class="food-badge">{food.area}</span>}
+                            {getDecisionStateLabel(food.decisionStatus) && (
+                              <span class={`food-badge decision-badge ${getDecisionStateClass(food.decisionStatus)}`}>
+                                {getDecisionStateLabel(food.decisionStatus)}
+                              </span>
+                            )}
                             {food.bookingStatus === "consider-booking" && <span class="food-badge booking-needed">Consider booking</span>}
                             {food.bookingStatus === "booked" && <span class="food-badge booked">Booked</span>}
                           </div>
@@ -2127,10 +2328,25 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
         const iconUrl = iconSet?.[`${weatherKey}Url`];
 
         if (iconUrl) {
-          return `<img src="${escapeHtml(iconUrl)}" alt="${escapeHtml(description)}" class="weather-icon" loading="lazy" />`;
+          return `<img src="${escapeHtml(getWeatherIconImageUrl(iconUrl))}" alt="${escapeHtml(description)}" class="weather-icon" loading="lazy" />`;
         }
 
         return `<span class="weather-icon-fallback" aria-label="${escapeHtml(description)}" role="img">${fallbackIcons[weatherKey] || "🌤️"}</span>`;
+      }
+
+      function getWeatherIconImageUrl(iconUrl) {
+        try {
+          const url = new URL(iconUrl);
+          if (url.hostname === "cdn.sanity.io") {
+            url.searchParams.set("w", "184");
+            url.searchParams.set("h", "184");
+            url.searchParams.set("fit", "crop");
+            url.searchParams.set("auto", "format");
+          }
+          return url.toString();
+        } catch {
+          return iconUrl;
+        }
       }
 
       function readIconSet(card) {
