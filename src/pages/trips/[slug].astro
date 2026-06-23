@@ -95,6 +95,8 @@ if (!trip) {
   return Astro.redirect("/404");
 }
 
+const googleMapsStaticApiKey = import.meta.env.PUBLIC_GOOGLE_MAPS_STATIC_API_KEY || "";
+
 const EXCHANGE_RATES: Record<string, number> = {
   EUR: 0.85,
   CNY: 0.11,
@@ -154,7 +156,12 @@ const getBookingActionCount = (section: any) => {
 
 const getSectionSummary = (section: any) => {
   const placeCount = section.places?.length || 0;
+  const foodCount = section.foodShortlist?.length || 0;
   const bookingActions = getBookingActionCount(section);
+
+  if (placeCount === 0 && foodCount > 0) {
+    return `${foodCount} ${foodCount === 1 ? "restaurant option" : "restaurant options"}`;
+  }
 
   if (placeCount === 0) return "Plans still taking shape";
 
@@ -220,6 +227,53 @@ const getOpeningHourRows = (openingHours: any) => {
   ];
 
   return rows.filter(([, hours]) => Boolean(hours));
+};
+
+const getFoodMapPoints = (foods: any[]) => {
+  return (foods || [])
+    .filter((food: any) => typeof food.coordinates?.lat === "number" && typeof food.coordinates?.lng === "number")
+    .map((food: any) => ({
+      name: food.name || "Restaurant",
+      foodType: food.foodType || "",
+      area: food.area || "",
+      lat: food.coordinates.lat,
+      lng: food.coordinates.lng,
+      mapUrl: food.mapUrl || "",
+    }));
+};
+
+const getSectionMapId = (sectionTitle: string | undefined, index: number) => {
+  const titleSlug = (sectionTitle || "restaurants")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return `food-map-${titleSlug || "section"}-${index}`;
+};
+
+const getFoodStaticMapUrl = (points: any[]) => {
+  if (!googleMapsStaticApiKey || points.length === 0) return "";
+
+  const labels = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const url = new URL("https://maps.googleapis.com/maps/api/staticmap");
+  url.searchParams.set("size", "640x360");
+  url.searchParams.set("scale", "2");
+  url.searchParams.set("maptype", "roadmap");
+  url.searchParams.set("key", googleMapsStaticApiKey);
+
+  points.forEach((point, index) => {
+    const label = labels[index] || "";
+    const markerParts = ["color:red"];
+
+    if (label) {
+      markerParts.push(`label:${label}`);
+    }
+
+    markerParts.push(`${point.lat},${point.lng}`);
+    url.searchParams.append("markers", markerParts.join("|"));
+  });
+
+  return url.toString();
 };
 ---
 
@@ -740,6 +794,63 @@ const getOpeningHourRows = (openingHours: any) => {
         white-space: nowrap;
       }
 
+      .food-shortlist-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .food-map-view {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2rem;
+        padding: 0.42rem 0.8rem;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #ffffff;
+        border: 0;
+        font-family: inherit;
+        font-size: 0.78rem;
+        font-weight: 850;
+        line-height: 1;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .food-map-view:hover {
+        background: #334155;
+      }
+
+      .food-map-panel {
+        margin-bottom: 1rem;
+        overflow: hidden;
+        border: 1px solid var(--soft);
+        border-radius: 16px;
+        background: #ffffff;
+      }
+
+      .food-map-panel[hidden] {
+        display: none;
+      }
+
+      .food-map {
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        background: #e2e8f0;
+        aspect-ratio: 16 / 9;
+      }
+
+      .food-map-image {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
       .food-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
@@ -1001,6 +1112,7 @@ const getOpeningHourRows = (openingHours: any) => {
         .layout-timeline .place-card::before { left: -1.9rem; }
         .layout-grid .places-container { grid-template-columns: 1fr; }
         .food-shortlist-header { align-items: flex-start; flex-direction: column; gap: 0.35rem; }
+        .food-shortlist-actions { justify-content: flex-start; }
         .food-grid { grid-template-columns: 1fr; }
         .food-card { grid-template-columns: 1fr; }
         .food-image-wrap { height: 178px; }
@@ -1091,17 +1203,20 @@ const getOpeningHourRows = (openingHours: any) => {
           )}
         </header>
 
-        {trip.sections && trip.sections.map((section: any) => {
+        {trip.sections && trip.sections.map((section: any, sectionIndex: number) => {
           const placeCount = section.places?.length || 0;
           const foodShortlist = section.foodShortlist || [];
           const foodShortlistCount = foodShortlist.length;
+          const foodMapPoints = getFoodMapPoints(foodShortlist);
+          const foodStaticMapUrl = getFoodStaticMapUrl(foodMapPoints);
+          const foodMapId = getSectionMapId(section.sectionTitle, sectionIndex);
           const shouldOpen = section.initialLoadState === "open";
 
           return (
             <section class={`section-container layout-${section.layoutStyle || "timeline"}`}>
               <header class="section-static-header">
                 <h2>{section.sectionTitle}</h2>
-                <span class={`section-kicker ${placeCount === 0 ? "is-empty" : ""}`}>{getSectionSummary(section)}</span>
+                <span class={`section-kicker ${placeCount === 0 && foodShortlistCount === 0 ? "is-empty" : ""}`}>{getSectionSummary(section)}</span>
               </header>
 
               {section.sectionImageUrl && (
@@ -1146,7 +1261,6 @@ const getOpeningHourRows = (openingHours: any) => {
                 </section>
               )}
 
-              {(placeCount > 0 || foodShortlistCount === 0) && (
               <details class="section-drawer" open={shouldOpen}>
                 <summary class="section-drawer-summary">
                   <span class="section-drawer-label">
@@ -1300,19 +1414,36 @@ const getOpeningHourRows = (openingHours: any) => {
                         </article>
                       ))}
                     </div>
-                  ) : (
+                  ) : foodShortlistCount === 0 ? (
                     <p class="empty-section-note">Plans still taking shape for this section.</p>
-                  )}
-                </div>
-              </details>
-              )}
+                  ) : null}
 
-              {foodShortlistCount > 0 && (
+                  {foodShortlistCount > 0 && (
                 <aside class="food-shortlist" aria-label={`${section.sectionTitle} food and drink shortlist`}>
                   <header class="food-shortlist-header">
                     <h3 class="food-shortlist-title">Food & drink shortlist</h3>
-                    <span class="food-shortlist-count">{foodShortlistCount} {foodShortlistCount === 1 ? "option" : "options"}</span>
+                    <div class="food-shortlist-actions">
+                      <span class="food-shortlist-count">{foodShortlistCount} {foodShortlistCount === 1 ? "option" : "options"}</span>
+                      {foodStaticMapUrl && (
+                        <button class="food-map-view" type="button" data-food-map-toggle={foodMapId} aria-controls={foodMapId} aria-expanded="false">
+                          Map view
+                        </button>
+                      )}
+                    </div>
                   </header>
+
+                  {foodStaticMapUrl && (
+                    <div class="food-map-panel" id={foodMapId} data-food-map-panel hidden>
+                      <div class="food-map">
+                        <img
+                          src={foodStaticMapUrl}
+                          alt={`${section.sectionTitle} restaurant map`}
+                          class="food-map-image"
+                          loading="lazy"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div class="food-grid">
                     {foodShortlist.map((food: any) => (
@@ -1385,6 +1516,8 @@ const getOpeningHourRows = (openingHours: any) => {
                   </div>
                 </aside>
               )}
+                </div>
+              </details>
             </section>
           );
         })}
@@ -1427,6 +1560,24 @@ const getOpeningHourRows = (openingHours: any) => {
           .replaceAll('"', "&quot;")
           .replaceAll("'", "&#039;");
       }
+
+
+      document.querySelectorAll("[data-food-map-toggle]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const panelId = button.getAttribute("data-food-map-toggle");
+          const panel = panelId ? document.getElementById(panelId) : null;
+
+          if (!panel) return;
+
+          const isOpening = panel.hidden;
+          panel.hidden = !isOpening;
+          button.setAttribute("aria-expanded", String(isOpening));
+
+          if (isOpening) {
+            panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          }
+        });
+      });
 
       function getWeatherKey(code) {
         const numericCode = Number(code);
