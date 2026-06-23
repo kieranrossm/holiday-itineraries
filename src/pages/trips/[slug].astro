@@ -851,6 +851,63 @@ const getFoodStaticMapUrl = (points: any[]) => {
         object-fit: cover;
       }
 
+      .food-map-tools {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 0.85rem;
+        border-top: 1px solid var(--soft);
+        background: #ffffff;
+      }
+
+      .food-location-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2rem;
+        padding: 0.42rem 0.8rem;
+        border: 1px solid var(--soft);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--ink);
+        font-family: inherit;
+        font-size: 0.78rem;
+        font-weight: 850;
+        line-height: 1;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .food-location-btn:hover {
+        background: var(--soft-2);
+      }
+
+      .food-location-btn:disabled {
+        cursor: wait;
+        opacity: 0.7;
+      }
+
+      .food-map-status {
+        min-width: 0;
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 750;
+        text-align: right;
+      }
+
+      @media (max-width: 560px) {
+        .food-map-tools {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .food-map-status {
+          text-align: left;
+        }
+      }
+
       .food-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
@@ -1433,14 +1490,30 @@ const getFoodStaticMapUrl = (points: any[]) => {
                   </header>
 
                   {foodStaticMapUrl && (
-                    <div class="food-map-panel" id={foodMapId} data-food-map-panel hidden>
+                    <div
+                      class="food-map-panel"
+                      id={foodMapId}
+                      data-food-map-panel
+                      data-food-map-points={JSON.stringify(foodMapPoints)}
+                      hidden
+                    >
                       <div class="food-map">
                         <img
                           src={foodStaticMapUrl}
+                          data-food-map-image
+                          data-base-map-url={foodStaticMapUrl}
                           alt={`${section.sectionTitle} restaurant map`}
                           class="food-map-image"
                           loading="lazy"
                         />
+                      </div>
+                      <div class="food-map-tools">
+                        <button class="food-location-btn" type="button" data-food-location-button>
+                          Show my location
+                        </button>
+                        <p class="food-map-status" data-food-location-status>
+                          Adds you if you are within 2km of these places.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1561,6 +1634,100 @@ const getFoodStaticMapUrl = (points: any[]) => {
           .replaceAll("'", "&#039;");
       }
 
+      const foodMapLocationLimitKm = 2;
+
+      function getDistanceKm(first, second) {
+        const earthRadiusKm = 6371;
+        const toRadians = (degrees) => degrees * Math.PI / 180;
+        const latDelta = toRadians(second.lat - first.lat);
+        const lngDelta = toRadians(second.lng - first.lng);
+        const firstLat = toRadians(first.lat);
+        const secondLat = toRadians(second.lat);
+
+        const a = Math.sin(latDelta / 2) ** 2
+          + Math.cos(firstLat) * Math.cos(secondLat) * Math.sin(lngDelta / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return earthRadiusKm * c;
+      }
+
+      function getNearestFoodDistanceKm(location, points) {
+        if (!points.length) return Number.POSITIVE_INFINITY;
+
+        return Math.min(...points.map((point) => getDistanceKm(location, point)));
+      }
+
+      function getCurrentPosition() {
+        return new Promise((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error("Geolocation unavailable"));
+            return;
+          }
+
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000,
+          });
+        });
+      }
+
+      function addCurrentLocationToMap(baseMapUrl, location) {
+        const url = new URL(baseMapUrl);
+        url.searchParams.append("markers", `color:blue|label:Y|${location.lat},${location.lng}`);
+        return url.toString();
+      }
+
+      document.querySelectorAll("[data-food-map-panel]").forEach((panel) => {
+        const locationButton = panel.querySelector("[data-food-location-button]");
+        const status = panel.querySelector("[data-food-location-status]");
+        const mapImage = panel.querySelector("[data-food-map-image]");
+
+        if (!locationButton || !status || !mapImage) return;
+
+        locationButton.addEventListener("click", async () => {
+          let points = [];
+
+          try {
+            points = JSON.parse(panel.getAttribute("data-food-map-points") || "[]");
+          } catch {
+            points = [];
+          }
+
+          if (!points.length) {
+            status.textContent = "No restaurant coordinates are available for this map.";
+            return;
+          }
+
+          locationButton.disabled = true;
+          status.textContent = "Checking your location...";
+
+          try {
+            const position = await getCurrentPosition();
+            const location = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+            const nearestDistanceKm = getNearestFoodDistanceKm(location, points);
+
+            if (nearestDistanceKm > foodMapLocationLimitKm) {
+              const distanceLabel = nearestDistanceKm < 10
+                ? `${nearestDistanceKm.toFixed(1)}km`
+                : `${Math.round(nearestDistanceKm)}km`;
+              status.textContent = `You are ${distanceLabel} from the nearest place, so the map stayed focused here.`;
+              mapImage.src = mapImage.getAttribute("data-base-map-url") || mapImage.src;
+              return;
+            }
+
+            mapImage.src = addCurrentLocationToMap(mapImage.getAttribute("data-base-map-url") || mapImage.src, location);
+            status.textContent = "Blue Y marker added for your location.";
+          } catch {
+            status.textContent = "Location was not available. Check browser permission and try again.";
+          } finally {
+            locationButton.disabled = false;
+          }
+        });
+      });
 
       document.querySelectorAll("[data-food-map-toggle]").forEach((button) => {
         button.addEventListener("click", () => {
