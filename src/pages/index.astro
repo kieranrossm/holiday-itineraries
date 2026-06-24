@@ -1,5 +1,6 @@
 ---
 import { sanityClient } from "sanity:client";
+import { getTripStatusInfo } from "../lib/itineraryLabels";
 import { getTripStats } from "../lib/itineraryStats";
 
 const query = `*[_type == "trip" && (!defined(displayStatus) || displayStatus == "visible")] | order(startDate asc) {
@@ -49,11 +50,7 @@ const getTripStatus = (trip: any) => {
   const stats = getTripStats(trip);
   const daysUntil = getDaysUntil(trip.startDate);
 
-  if (stats.bookingActions > 0) return "Open actions";
-  if (daysUntil !== null && daysUntil < 0) return "In archive";
-  if (daysUntil !== null && daysUntil <= 30) return "Coming soon";
-
-  return "Planning";
+  return getTripStatusInfo({ bookingActions: stats.bookingActions, daysUntil });
 };
 
 const plural = (count: number, singular: string, pluralLabel: string) => {
@@ -338,7 +335,6 @@ const getDateContext = (trip: any) => {
           {trips.map((trip) => {
             const stats = getTripStats(trip);
             const status = getTripStatus(trip);
-            const statusClass = status.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
             return (
               <a href={`/trips/${trip.slug}`} class="directory-card">
@@ -348,7 +344,7 @@ const getDateContext = (trip: any) => {
                 <div class="card-body">
                   <div class="card-topline">
                     {trip.startDate && <div class="card-date">{formatDate(trip.startDate)}</div>}
-                    <span class={`status-pill ${statusClass}`}>{status}</span>
+                    <span class={`status-pill ${status.className}`}>{status.label}</span>
                   </div>
                   <h2 class="card-title">{trip.title}</h2>
                   {getDateContext(trip) && <p class="card-desc">{getDateContext(trip)}</p>}

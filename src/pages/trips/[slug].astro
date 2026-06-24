@@ -1,5 +1,11 @@
 ---
 import { sanityClient } from "sanity:client";
+import {
+  getCategoryClass,
+  getDecisionStateClass,
+  getDecisionStateLabel,
+  getPriceLabel,
+} from "../../lib/itineraryLabels";
 import { countsAsDashboardStop, isTransitCategory, showsOnDashboardMap } from "../../lib/itineraryStats";
 
 export async function getStaticPaths() {
@@ -11,11 +17,14 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params;
 
-const weatherConfigQuery = `
+const weatherForecastQuery = `
   enabled,
   locationLabel,
   latitude,
-  longitude,
+  longitude
+`;
+
+const weatherIconSetQuery = `
   iconSetRef->{
     "sunnyUrl": sunny.asset->url,
     "partlyCloudyUrl": partlyCloudy.asset->url,
@@ -46,7 +55,8 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
   heroIntro,
   "heroImageUrl": heroImage.asset->url,
   weatherConfig {
-    ${weatherConfigQuery}
+    ${weatherForecastQuery},
+    ${weatherIconSetQuery}
   },
   sections[] {
     sectionTitle,
@@ -55,7 +65,7 @@ const query = `*[_type == "trip" && slug.current == $slug][0] {
     layoutStyle,
     initialLoadState,
     weatherConfig {
-      ${weatherConfigQuery}
+      ${weatherForecastQuery}
     },
     foodShortlist[] {
       name,
@@ -167,24 +177,6 @@ const formatInlineDate = (dateString: string) => {
   });
 };
 
-const DECISION_STATE_LABELS: Record<string, string> = {
-  booked: "Booked",
-  "to-book": "To book",
-  maybe: "Maybe",
-  backup: "Backup",
-  "avoid-if-tired": "Avoid if tired",
-  "weather-dependent": "Weather dependent",
-  "must-do": "Must do",
-};
-
-const getDecisionStateLabel = (decisionStatus: string | undefined) => {
-  return decisionStatus ? DECISION_STATE_LABELS[decisionStatus] || "" : "";
-};
-
-const getDecisionStateClass = (decisionStatus: string | undefined) => {
-  return decisionStatus ? decisionStatus.replace(/[^a-z0-9]+/g, "-") : "";
-};
-
 const getBookingActionCount = (section: any) => {
   return (section.places || []).filter((place: any) => place.bookingLogistics?.bookingStatus === "to-book").length;
 };
@@ -254,11 +246,6 @@ const getSectionSummary = (section: any) => {
   return `${placeCount} ${itemLabel} mapped • ${bookingSummary}`;
 };
 
-const getCategoryClass = (category: string | undefined) => {
-  if (!category) return "other";
-  return category.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-};
-
 const hasWeatherConfig = (weatherConfig: any) => {
   return Boolean(
     weatherConfig?.enabled &&
@@ -267,30 +254,33 @@ const hasWeatherConfig = (weatherConfig: any) => {
   );
 };
 
-const getWeatherIconSet = (weatherConfig: any) => {
-  const iconSet = weatherConfig?.iconSetRef || weatherConfig?.iconSet || {};
+const getWeatherIconSet = (iconSet: any) => {
+  const source = iconSet || {};
 
   return {
-    sunnyUrl: iconSet.sunnyUrl || "",
-    partlyCloudyUrl: iconSet.partlyCloudyUrl || "",
-    cloudyUrl: iconSet.cloudyUrl || "",
-    fogUrl: iconSet.fogUrl || "",
-    drizzleUrl: iconSet.drizzleUrl || "",
-    rainUrl: iconSet.rainUrl || "",
-    heavyRainUrl: iconSet.heavyRainUrl || "",
-    snowUrl: iconSet.snowUrl || "",
-    thunderstormUrl: iconSet.thunderstormUrl || "",
+    sunnyUrl: source.sunnyUrl || "",
+    partlyCloudyUrl: source.partlyCloudyUrl || "",
+    cloudyUrl: source.cloudyUrl || "",
+    fogUrl: source.fogUrl || "",
+    drizzleUrl: source.drizzleUrl || "",
+    rainUrl: source.rainUrl || "",
+    heavyRainUrl: source.heavyRainUrl || "",
+    snowUrl: source.snowUrl || "",
+    thunderstormUrl: source.thunderstormUrl || "",
   };
 };
 
-const getPriceLabel = (priceVibe: string | undefined) => {
-  const labels: Record<string, string> = {
-    budget: "£",
-    "mid-range": "££",
-    splurge: "£££",
-  };
+const getSharedWeatherIconSet = (trip: any) => {
+  return getWeatherIconSet(
+    trip.weatherConfig?.iconSetRef ||
+    trip.weatherConfig?.iconSet
+  );
+};
 
-  return priceVibe ? labels[priceVibe] || "" : "";
+const getCoordinateMapUrl = (coordinates: any) => {
+  if (typeof coordinates?.lat !== "number" || typeof coordinates?.lng !== "number") return "";
+
+  return `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`;
 };
 
 const getOpeningHourRows = (openingHours: any) => {
@@ -400,6 +390,7 @@ const getStaticMapUrl = (points: any[]) => {
 const getFoodStaticMapUrl = (points: any[]) => getStaticMapUrl(points);
 
 const tripSections = trip.sections || [];
+const sharedWeatherIconSet = getSharedWeatherIconSet(trip);
 const tripPlaces = tripSections.flatMap((section: any) => section.places || []);
 const tripFoods = tripSections.flatMap((section: any) => section.foodShortlist || []);
 const tripStops = tripSections.flatMap((section: any) => (
@@ -1150,8 +1141,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
       .detail-list p { margin: 0.5rem 0; color: #475569; }
 
       .place-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
-      .place-links a,
-      .copy-coords-btn {
+      .place-links a {
         display: inline-flex;
         align-items: center;
         padding: 0.55rem 1rem;
@@ -1165,10 +1155,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
         cursor: pointer;
       }
 
-      .place-links a:hover,
-      .copy-coords-btn:hover { background: #334155; }
-      .copy-coords-btn { background: transparent; color: var(--ink); border: 1px solid var(--soft); }
-      .copy-coords-btn:hover { background: var(--soft-2); }
+      .place-links a:hover { background: #334155; }
 
       .food-shortlist {
         margin-top: 1.25rem;
@@ -1487,8 +1474,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
         padding-top: 0.95rem;
       }
 
-      .food-links a,
-      .food-links .copy-coords-btn {
+      .food-links a {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -1503,8 +1489,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
         font-size: 0.78rem;
       }
 
-      .food-links a:hover,
-      .food-links .copy-coords-btn:hover {
+      .food-links a:hover {
         background: var(--soft-2);
       }
 
@@ -1689,7 +1674,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
                   <div class="weather-days" data-weather-days hidden></div>
                   <small class="weather-provider">Weather data provided by Open-Meteo</small>
 
-                  <script type="application/json" class="weather-icon-set" set:html={JSON.stringify(getWeatherIconSet(trip.weatherConfig))}></script>
+                  <script type="application/json" class="weather-icon-set" set:html={JSON.stringify(sharedWeatherIconSet)}></script>
                 </section>
               )}
             </div>
@@ -1840,7 +1825,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
                   <div class="weather-days" data-weather-days hidden></div>
                   <small class="weather-provider">Weather data provided by Open-Meteo</small>
 
-                  <script type="application/json" class="weather-icon-set" set:html={JSON.stringify(getWeatherIconSet(section.weatherConfig))}></script>
+                  <script type="application/json" class="weather-icon-set" set:html={JSON.stringify(sharedWeatherIconSet)}></script>
                 </section>
               )}
 
@@ -1983,19 +1968,8 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
                               {place.bookingUrl && <a href={place.bookingUrl} target="_blank" rel="noreferrer">Book</a>}
                               {place.websiteUrl && <a href={place.websiteUrl} target="_blank" rel="noreferrer">Website</a>}
 
-                              {place.coordinates && (
-                                <button
-                                  class="copy-coords-btn"
-                                  data-lat={place.coordinates.lat}
-                                  data-lng={place.coordinates.lng}
-                                  onclick={`
-                                    navigator.clipboard.writeText('${place.coordinates.lat},${place.coordinates.lng}');
-                                    this.innerText = 'Copied!';
-                                    setTimeout(() => this.innerText = '📋 Copy Coords', 1500);
-                                  `}
-                                >
-                                  📋 Copy Coords
-                                </button>
+                              {getCoordinateMapUrl(place.coordinates) && (
+                                <a href={getCoordinateMapUrl(place.coordinates)} target="_blank" rel="noreferrer">Show map</a>
                               )}
                             </div>
                           </div>
@@ -2054,6 +2028,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
                       <article class="food-card">
                         {(() => {
                           const openingHourRows = getOpeningHourRows(food.openingHours);
+                          const mapHref = food.mapUrl || getCoordinateMapUrl(food.coordinates);
 
                           return (
                             <>
@@ -2099,22 +2074,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
 
                           <div class="food-links">
                             {food.websiteUrl && <a href={food.websiteUrl} target="_blank" rel="noreferrer">Website</a>}
-                            {food.mapUrl && <a href={food.mapUrl} target="_blank" rel="noreferrer">Map</a>}
-
-                            {food.coordinates && (
-                              <button
-                                class="copy-coords-btn"
-                                data-lat={food.coordinates.lat}
-                                data-lng={food.coordinates.lng}
-                                onclick={`
-                                  navigator.clipboard.writeText('${food.coordinates.lat},${food.coordinates.lng}');
-                                  this.innerText = 'Copied!';
-                                  setTimeout(() => this.innerText = 'Copy coords', 1500);
-                                `}
-                              >
-                                Copy coords
-                              </button>
-                            )}
+                            {mapHref && <a href={mapHref} target="_blank" rel="noreferrer">Map</a>}
                           </div>
                         </div>
                             </>

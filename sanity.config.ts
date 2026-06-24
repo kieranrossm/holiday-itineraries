@@ -118,7 +118,7 @@ const weatherConfigField = {
   title: 'Weather Forecast Configuration',
   type: 'object',
   description:
-    'Optional. When enabled and latitude/longitude are populated, the public page will show a live 7-day forecast starting from today.',
+    'Optional. When enabled and latitude/longitude are populated, the public page will show a live 7-day forecast starting from today. Weather icons are configured once at trip level.',
   fields: [
     {
       name: 'enabled',
@@ -155,7 +155,7 @@ const weatherConfigField = {
       title: 'Shared Weather Icons',
       type: 'reference',
       description:
-        'Preferred shared icon set for this forecast. Keep one reusable document instead of uploading the same icons on every trip or section.',
+        'One reusable icon set used by every weather forecast on this trip, including section and city forecasts.',
       hidden: ({ parent }: HiddenContext) => !parent?.enabled,
       to: [{ type: 'weatherIconSet' }],
     },
@@ -167,6 +167,46 @@ const weatherConfigField = {
         'Optional fallback kept for existing trips. New weather forecasts should use Shared Weather Icons above.',
       hidden: ({ parent }: HiddenContext) => !parent?.enabled,
       fields: weatherIconSetFields,
+    },
+  ],
+};
+
+const sectionWeatherConfigField = {
+  name: 'weatherConfig',
+  title: 'Weather Forecast Configuration',
+  type: 'object',
+  description:
+    'Optional section-specific weather location. Icons are inherited from the trip-level weather configuration.',
+  fields: [
+    {
+      name: 'enabled',
+      title: 'Show Weather Forecast',
+      type: 'boolean',
+      description: 'Turn this on to display a 7-day weather forecast for this section.',
+      initialValue: false,
+    },
+    {
+      name: 'locationLabel',
+      title: 'Weather Location Label',
+      type: 'string',
+      description: 'Label shown above the weather bar, for example "Beijing", "Xiâ€™an", or "Shanghai".',
+      hidden: ({ parent }: HiddenContext) => !parent?.enabled,
+    },
+    {
+      name: 'latitude',
+      title: 'Latitude',
+      type: 'number',
+      description: 'Latitude used by the weather provider.',
+      hidden: ({ parent }: HiddenContext) => !parent?.enabled,
+      validation: (Rule: ValidationRule) => Rule.min(-90).max(90),
+    },
+    {
+      name: 'longitude',
+      title: 'Longitude',
+      type: 'number',
+      description: 'Longitude used by the weather provider.',
+      hidden: ({ parent }: HiddenContext) => !parent?.enabled,
+      validation: (Rule: ValidationRule) => Rule.min(-180).max(180),
     },
   ],
 };
@@ -664,7 +704,7 @@ const sectionsField = {
           initialValue: 'closed',
           validation: (Rule: ValidationRule) => Rule.required(),
         },
-        weatherConfigField,
+        sectionWeatherConfigField,
         foodShortlistField,
         placesField,
       ],
