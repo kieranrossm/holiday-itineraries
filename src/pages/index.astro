@@ -1,5 +1,6 @@
 ---
 import { sanityClient } from "sanity:client";
+import { getTripStats } from "../lib/itineraryStats";
 
 const query = `*[_type == "trip" && (!defined(displayStatus) || displayStatus == "visible")] | order(startDate asc) {
   title,
@@ -8,6 +9,7 @@ const query = `*[_type == "trip" && (!defined(displayStatus) || displayStatus ==
   heroIntro,
   "heroImageUrl": heroImage.asset->url,
   sections[] {
+    sectionTitle,
     places[] {
       category,
       coordinates,
@@ -24,7 +26,7 @@ const query = `*[_type == "trip" && (!defined(displayStatus) || displayStatus ==
 
 const trips = await sanityClient.fetch(query);
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string) => {
   if (!dateString) return "";
   return new Date(`${dateString}T12:00:00`).toLocaleDateString("en-GB", {
     day: "numeric",
@@ -33,7 +35,7 @@ const formatDate = (dateString) => {
   });
 };
 
-const getDaysUntil = (dateString) => {
+const getDaysUntil = (dateString: string) => {
   if (!dateString) return null;
 
   const today = new Date();
@@ -43,44 +45,7 @@ const getDaysUntil = (dateString) => {
   return Math.round((target.getTime() - today.getTime()) / 86400000);
 };
 
-const isTransitCategory = (category) => {
-  return category === "Transport" || category === "Transit";
-};
-
-const countsAsStop = (place) => {
-  if (place?.countAsStop === true) return true;
-  if (place?.countAsStop === false) return false;
-
-  return !isTransitCategory(place?.category);
-};
-
-const hasCoordinates = (item) => {
-  return typeof item?.coordinates?.lat === "number" && typeof item?.coordinates?.lng === "number";
-};
-
-const getTripStats = (trip) => {
-  const sections = trip.sections || [];
-  const places = sections.flatMap((section) => section.places || []);
-  const foods = sections.flatMap((section) => section.foodShortlist || []);
-  const bookingActions = [
-    ...places.filter((place) => place.bookingLogistics?.bookingStatus === "to-book"),
-    ...foods.filter((food) => food.bookingStatus === "consider-booking"),
-  ];
-  const mappedItems = [
-    ...places.filter(hasCoordinates),
-    ...foods.filter(hasCoordinates),
-  ];
-
-  return {
-    sections: sections.length,
-    stops: places.filter(countsAsStop).length,
-    food: foods.length,
-    bookingActions: bookingActions.length,
-    mapped: mappedItems.length,
-  };
-};
-
-const getTripStatus = (trip) => {
+const getTripStatus = (trip: any) => {
   const stats = getTripStats(trip);
   const daysUntil = getDaysUntil(trip.startDate);
 
@@ -91,11 +56,11 @@ const getTripStatus = (trip) => {
   return "Planning";
 };
 
-const plural = (count, singular, pluralLabel) => {
+const plural = (count: number, singular: string, pluralLabel: string) => {
   return `${count} ${count === 1 ? singular : pluralLabel}`;
 };
 
-const getDateContext = (trip) => {
+const getDateContext = (trip: any) => {
   const daysUntil = getDaysUntil(trip.startDate);
 
   if (daysUntil === null) return "";

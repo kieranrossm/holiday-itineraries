@@ -23,6 +23,10 @@ type SectionPreviewSelection = {
   initialLoadState?: string;
 };
 
+type WeatherIconSetPreviewSelection = {
+  title?: string;
+};
+
 const decisionStateOptions = [
   { title: 'Booked', value: 'booked' },
   { title: 'To book', value: 'to-book' },
@@ -147,15 +151,51 @@ const weatherConfigField = {
       validation: (Rule: ValidationRule) => Rule.min(-180).max(180),
     },
     {
+      name: 'iconSetRef',
+      title: 'Shared Weather Icons',
+      type: 'reference',
+      description:
+        'Preferred shared icon set for this forecast. Keep one reusable document instead of uploading the same icons on every trip or section.',
+      hidden: ({ parent }: HiddenContext) => !parent?.enabled,
+      to: [{ type: 'weatherIconSet' }],
+    },
+    {
       name: 'iconSet',
-      title: 'Weather Icons',
+      title: 'Legacy Embedded Weather Icons',
       type: 'object',
       description:
-        'Optional image icons used by the public weather bar. If an icon is not populated, the page falls back to a simple emoji icon.',
+        'Optional fallback kept for existing trips. New weather forecasts should use Shared Weather Icons above.',
       hidden: ({ parent }: HiddenContext) => !parent?.enabled,
       fields: weatherIconSetFields,
     },
   ],
+};
+
+const weatherIconSetSchema = {
+  name: 'weatherIconSet',
+  type: 'document',
+  title: 'Weather Icon Set',
+  fields: [
+    {
+      name: 'title',
+      title: 'Icon Set Name',
+      type: 'string',
+      description: 'Example: Default travel weather icons.',
+      validation: (Rule: ValidationRule) => Rule.required(),
+    },
+    ...weatherIconSetFields,
+  ],
+  preview: {
+    select: {
+      title: 'title',
+    },
+    prepare({ title }: WeatherIconSetPreviewSelection) {
+      return {
+        title,
+        subtitle: 'Reusable weather icons',
+      };
+    },
+  },
 };
 
 const foodShortlistField = {
@@ -723,6 +763,6 @@ export default defineConfig({
   dataset: 'production',
   plugins: [deskTool()],
   schema: {
-    types: [tripSchema],
+    types: [tripSchema, weatherIconSetSchema],
   },
 });

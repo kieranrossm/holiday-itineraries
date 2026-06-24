@@ -1,5 +1,6 @@
 ---
 import { sanityClient } from "sanity:client";
+import { countsAsDashboardStop, isTransitCategory, showsOnDashboardMap } from "../../lib/itineraryStats";
 
 export async function getStaticPaths() {
   const data = await sanityClient.fetch(`*[_type == "trip" && (!defined(displayStatus) || displayStatus == "visible")] { "slug": slug.current }`);
@@ -15,6 +16,17 @@ const weatherConfigQuery = `
   locationLabel,
   latitude,
   longitude,
+  iconSetRef->{
+    "sunnyUrl": sunny.asset->url,
+    "partlyCloudyUrl": partlyCloudy.asset->url,
+    "cloudyUrl": cloudy.asset->url,
+    "fogUrl": fog.asset->url,
+    "drizzleUrl": drizzle.asset->url,
+    "rainUrl": rain.asset->url,
+    "heavyRainUrl": heavyRain.asset->url,
+    "snowUrl": snow.asset->url,
+    "thunderstormUrl": thunderstorm.asset->url
+  },
   iconSet {
     "sunnyUrl": sunny.asset->url,
     "partlyCloudyUrl": partlyCloudy.asset->url,
@@ -247,29 +259,6 @@ const getCategoryClass = (category: string | undefined) => {
   return category.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 };
 
-const isTransitCategory = (category: string | undefined) => {
-  return category === "Transport" || category === "Transit";
-};
-
-const isTravelSection = (sectionTitle: string | undefined) => {
-  return /travel|transit|transport/i.test(sectionTitle || "");
-};
-
-const countsAsDashboardStop = (place: any, sectionTitle?: string) => {
-  if (place?.countAsStop === true) return true;
-  if (place?.countAsStop === false) return false;
-  if (isTravelSection(sectionTitle)) return false;
-
-  return !isTransitCategory(place?.category);
-};
-
-const showsOnDashboardMap = (place: any, sectionTitle?: string) => {
-  if (place?.showOnDashboardMap === true) return true;
-  if (place?.showOnDashboardMap === false) return false;
-
-  return countsAsDashboardStop(place, sectionTitle);
-};
-
 const hasWeatherConfig = (weatherConfig: any) => {
   return Boolean(
     weatherConfig?.enabled &&
@@ -279,16 +268,18 @@ const hasWeatherConfig = (weatherConfig: any) => {
 };
 
 const getWeatherIconSet = (weatherConfig: any) => {
+  const iconSet = weatherConfig?.iconSetRef || weatherConfig?.iconSet || {};
+
   return {
-    sunnyUrl: weatherConfig?.iconSet?.sunnyUrl || "",
-    partlyCloudyUrl: weatherConfig?.iconSet?.partlyCloudyUrl || "",
-    cloudyUrl: weatherConfig?.iconSet?.cloudyUrl || "",
-    fogUrl: weatherConfig?.iconSet?.fogUrl || "",
-    drizzleUrl: weatherConfig?.iconSet?.drizzleUrl || "",
-    rainUrl: weatherConfig?.iconSet?.rainUrl || "",
-    heavyRainUrl: weatherConfig?.iconSet?.heavyRainUrl || "",
-    snowUrl: weatherConfig?.iconSet?.snowUrl || "",
-    thunderstormUrl: weatherConfig?.iconSet?.thunderstormUrl || "",
+    sunnyUrl: iconSet.sunnyUrl || "",
+    partlyCloudyUrl: iconSet.partlyCloudyUrl || "",
+    cloudyUrl: iconSet.cloudyUrl || "",
+    fogUrl: iconSet.fogUrl || "",
+    drizzleUrl: iconSet.drizzleUrl || "",
+    rainUrl: iconSet.rainUrl || "",
+    heavyRainUrl: iconSet.heavyRainUrl || "",
+    snowUrl: iconSet.snowUrl || "",
+    thunderstormUrl: iconSet.thunderstormUrl || "",
   };
 };
 
