@@ -6,7 +6,24 @@ import {
   getDecisionStateLabel,
   getPriceLabel,
 } from "../../lib/itineraryLabels";
-import { countsAsDashboardStop, isTransitCategory, showsOnDashboardMap } from "../../lib/itineraryStats";
+import {
+  formatCost,
+  formatDate,
+  formatInlineDate,
+  getOpeningHourRows,
+  getPluralLabel,
+} from "../../lib/formatters";
+import {
+  getCoordinateMapUrl,
+  getFoodMapPoints,
+  getFoodStaticMapUrl,
+  getSectionMapId,
+  getStaticMapUrl,
+  getTripMapPoints,
+} from "../../lib/maps";
+import { countsAsDashboardStop, isTransitCategory } from "../../lib/itineraryStats";
+import { getSectionScanItems, getSectionSummary } from "../../lib/sectionSummaries";
+import { getSharedWeatherIconSet, hasWeatherConfig } from "../../lib/weather";
 
 export async function getStaticPaths() {
   const data = await sanityClient.fetch(`*[_type == "trip" && (!defined(displayStatus) || displayStatus == "visible")] { "slug": slug.current }`);
@@ -124,271 +141,6 @@ if (!trip) {
 
 const googleMapsStaticApiKey = import.meta.env.PUBLIC_GOOGLE_MAPS_STATIC_API_KEY || "";
 
-const EXCHANGE_RATES: Record<string, number> = {
-  EUR: 0.85,
-  CNY: 0.11,
-  JPY: 0.0052,
-  CHF: 0.88,
-  GBP: 1.0,
-};
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  EUR: "€",
-  CNY: "¥",
-  JPY: "¥",
-  CHF: "CHF ",
-  GBP: "£",
-};
-
-const formatCost = (costObj: any) => {
-  if (!costObj) return "";
-  const { localAmount, currencyType, textFallback } = costObj;
-
-  if (localAmount !== undefined && localAmount !== null) {
-    const symbol = CURRENCY_SYMBOLS[currencyType] || "£";
-    const localFormatted = `${symbol}${localAmount.toLocaleString("en-GB")}`;
-
-    if (currencyType === "GBP") return localFormatted;
-
-    const rate = EXCHANGE_RATES[currencyType] || 1;
-    const gbpEquivalent = Math.round(localAmount * rate);
-    return `${localFormatted} (£${gbpEquivalent.toLocaleString("en-GB")})`;
-  }
-
-  return textFallback || "";
-};
-
-const formatDate = (dateString: string) => {
-  if (!dateString) return "";
-  return new Date(dateString).toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-};
-
-const formatInlineDate = (dateString: string) => {
-  if (!dateString) return "";
-  return new Date(dateString).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
-
-const getBookingActionCount = (section: any) => {
-  return (section.places || []).filter((place: any) => place.bookingLogistics?.bookingStatus === "to-book").length;
-};
-
-const getSectionAreaLabel = (section: any) => {
-  const areas = [
-    ...(section.places || []).map((place: any) => place.area),
-    ...(section.foodShortlist || []).map((food: any) => food.area),
-  ].filter(Boolean);
-  const uniqueAreas = [...new Set(areas)];
-
-  if (uniqueAreas.length === 0) return "";
-  if (uniqueAreas.length <= 2) return uniqueAreas.join(" / ");
-
-  return `${uniqueAreas[0]} + ${uniqueAreas.length - 1} areas`;
-};
-
-const getSectionScanItems = (section: any) => {
-  const places = section.places || [];
-  const foods = section.foodShortlist || [];
-  const bookingActions = getBookingActionCount(section);
-  const transitCount = places.filter((place: any) => isTransitCategory(place.category)).length;
-  const unpaidItems = places.filter((place: any) => (
-    place.paymentStatus === "unpaid" &&
-    place.bookingLogistics?.bookingStatus === "booked"
-  )).length;
-  const mappedCount = [
-    ...places.filter((place: any) => typeof place.coordinates?.lat === "number" && typeof place.coordinates?.lng === "number"),
-    ...foods.filter((food: any) => typeof food.coordinates?.lat === "number" && typeof food.coordinates?.lng === "number"),
-  ].length;
-  const decisionActions = [...places, ...foods].filter((item: any) => (
-    item.decisionStatus === "maybe" ||
-    item.decisionStatus === "backup" ||
-    item.decisionStatus === "to-book" ||
-    item.decisionStatus === "weather-dependent"
-  )).length;
-  const areaLabel = getSectionAreaLabel(section);
-
-  return [
-    places.length ? `${places.length} ${places.length === 1 ? "stop" : "stops"}` : "",
-    foods.length ? `${foods.length} ${foods.length === 1 ? "food option" : "food options"}` : "",
-    transitCount ? `${transitCount} ${transitCount === 1 ? "transit item" : "transit items"}` : "",
-    bookingActions ? `${bookingActions} to book` : "",
-    unpaidItems ? `${unpaidItems} unpaid` : "",
-    mappedCount ? `${mappedCount} mapped` : "",
-    areaLabel ? `Area: ${areaLabel}` : "",
-    hasWeatherConfig(section.weatherConfig) ? "Weather on" : "",
-    decisionActions ? `${decisionActions} decision ${decisionActions === 1 ? "flag" : "flags"}` : "",
-  ].filter(Boolean);
-};
-
-const getSectionSummary = (section: any) => {
-  const placeCount = section.places?.length || 0;
-  const foodCount = section.foodShortlist?.length || 0;
-  const bookingActions = getBookingActionCount(section);
-
-  if (placeCount === 0 && foodCount > 0) {
-    return `${foodCount} ${foodCount === 1 ? "restaurant option" : "restaurant options"}`;
-  }
-
-  if (placeCount === 0) return "Plans still taking shape";
-
-  const itemLabel = placeCount === 1 ? "stop" : "stops";
-  const bookingSummary = bookingActions === 0
-    ? "No booking actions"
-    : `${bookingActions} ${bookingActions === 1 ? "booking action" : "booking actions"}`;
-  return `${placeCount} ${itemLabel} mapped • ${bookingSummary}`;
-};
-
-const hasWeatherConfig = (weatherConfig: any) => {
-  return Boolean(
-    weatherConfig?.enabled &&
-    typeof weatherConfig.latitude === "number" &&
-    typeof weatherConfig.longitude === "number"
-  );
-};
-
-const getWeatherIconSet = (iconSet: any) => {
-  const source = iconSet || {};
-
-  return {
-    sunnyUrl: source.sunnyUrl || "",
-    partlyCloudyUrl: source.partlyCloudyUrl || "",
-    cloudyUrl: source.cloudyUrl || "",
-    fogUrl: source.fogUrl || "",
-    drizzleUrl: source.drizzleUrl || "",
-    rainUrl: source.rainUrl || "",
-    heavyRainUrl: source.heavyRainUrl || "",
-    snowUrl: source.snowUrl || "",
-    thunderstormUrl: source.thunderstormUrl || "",
-  };
-};
-
-const getSharedWeatherIconSet = (trip: any) => {
-  return getWeatherIconSet(
-    trip.weatherConfig?.iconSetRef ||
-    trip.weatherConfig?.iconSet
-  );
-};
-
-const getCoordinateMapUrl = (coordinates: any) => {
-  if (typeof coordinates?.lat !== "number" || typeof coordinates?.lng !== "number") return "";
-
-  return `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`;
-};
-
-const getOpeningHourRows = (openingHours: any) => {
-  if (!openingHours) return [];
-
-  const rows = [
-    ["Mon", openingHours.monday],
-    ["Tue", openingHours.tuesday],
-    ["Wed", openingHours.wednesday],
-    ["Thu", openingHours.thursday],
-    ["Fri", openingHours.friday],
-    ["Sat", openingHours.saturday],
-    ["Sun", openingHours.sunday],
-  ];
-
-  return rows.filter(([, hours]) => Boolean(hours));
-};
-
-const getFoodMapPoints = (foods: any[]) => {
-  return (foods || [])
-    .filter((food: any) => typeof food.coordinates?.lat === "number" && typeof food.coordinates?.lng === "number")
-    .map((food: any) => ({
-      name: food.name || "Restaurant",
-      foodType: food.foodType || "",
-      area: food.area || "",
-      lat: food.coordinates.lat,
-      lng: food.coordinates.lng,
-      mapUrl: food.mapUrl || "",
-      showOnDashboardMap: food.showOnDashboardMap,
-      markerColor: "red",
-      type: "Food",
-    }));
-};
-
-const getTripMapPoints = (sections: any[]) => {
-  return (sections || []).flatMap((section: any) => {
-    const placePoints = (section.places || [])
-      .filter((place: any) => (
-        showsOnDashboardMap(place, section.sectionTitle) &&
-        typeof place.coordinates?.lat === "number" &&
-        typeof place.coordinates?.lng === "number"
-      ))
-      .map((place: any) => {
-        const category = place.category || "Place";
-        const markerColor = category === "Hotel"
-          ? "purple"
-          : isTransitCategory(category)
-            ? "orange"
-            : "blue";
-
-        return {
-          name: place.placeName || "Stop",
-          sectionTitle: section.sectionTitle || "",
-          category,
-          lat: place.coordinates.lat,
-          lng: place.coordinates.lng,
-          markerColor,
-          type: category,
-        };
-      });
-
-    const foodPoints = getFoodMapPoints(section.foodShortlist || [])
-      .filter((foodPoint: any) => foodPoint.showOnDashboardMap !== false)
-      .map((foodPoint: any) => ({
-        ...foodPoint,
-        sectionTitle: section.sectionTitle || "",
-      }));
-
-    return [...placePoints, ...foodPoints];
-  });
-};
-
-const getSectionMapId = (sectionTitle: string | undefined, index: number) => {
-  const titleSlug = (sectionTitle || "restaurants")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  return `food-map-${titleSlug || "section"}-${index}`;
-};
-
-const getStaticMapUrl = (points: any[]) => {
-  if (!googleMapsStaticApiKey || points.length === 0) return "";
-
-  const labels = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const url = new URL("https://maps.googleapis.com/maps/api/staticmap");
-  url.searchParams.set("size", "640x360");
-  url.searchParams.set("scale", "2");
-  url.searchParams.set("maptype", "roadmap");
-  url.searchParams.set("key", googleMapsStaticApiKey);
-
-  points.forEach((point, index) => {
-    const label = labels[index] || "";
-    const markerParts = [`color:${point.markerColor || "red"}`];
-
-    if (label) {
-      markerParts.push(`label:${label}`);
-    }
-
-    markerParts.push(`${point.lat},${point.lng}`);
-    url.searchParams.append("markers", markerParts.join("|"));
-  });
-
-  return url.toString();
-};
-
-const getFoodStaticMapUrl = (points: any[]) => getStaticMapUrl(points);
-
 const tripSections = trip.sections || [];
 const sharedWeatherIconSet = getSharedWeatherIconSet(trip);
 const tripPlaces = tripSections.flatMap((section: any) => section.places || []);
@@ -406,11 +158,8 @@ const tripBookedItems = [
   ...tripFoods.filter((food: any) => food.bookingStatus === "booked"),
 ];
 const tripMapPoints = getTripMapPoints(tripSections);
-const tripStaticMapUrl = getStaticMapUrl(tripMapPoints);
+const tripStaticMapUrl = getStaticMapUrl(tripMapPoints, googleMapsStaticApiKey);
 
-const getPluralLabel = (count: number, singular: string, plural: string) => {
-  return count === 1 ? singular : plural;
-};
 ---
 
 <html lang="en-GB">
@@ -1768,7 +1517,7 @@ const getPluralLabel = (count: number, singular: string, plural: string) => {
           const foodShortlist = section.foodShortlist || [];
           const foodShortlistCount = foodShortlist.length;
           const foodMapPoints = getFoodMapPoints(foodShortlist);
-          const foodStaticMapUrl = getFoodStaticMapUrl(foodMapPoints);
+          const foodStaticMapUrl = getFoodStaticMapUrl(foodMapPoints, googleMapsStaticApiKey);
           const foodMapId = getSectionMapId(section.sectionTitle, sectionIndex);
           const shouldOpen = section.initialLoadState === "open";
           const sectionScanItems = getSectionScanItems(section);
