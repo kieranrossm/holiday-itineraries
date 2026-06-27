@@ -25,7 +25,7 @@ const query = `*[_type == "trip" && (!defined(displayStatus) || displayStatus ==
   }
 }`;
 
-const trips = await sanityClient.fetch(query);
+const trips = await sanityClient.fetch(query) as any[];
 
 const formatDate = (dateString: string) => {
   if (!dateString) return "";

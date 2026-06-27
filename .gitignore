@@ -12,6 +12,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# package manager decision: npm/package-lock.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
 
 # environment variables
 .env

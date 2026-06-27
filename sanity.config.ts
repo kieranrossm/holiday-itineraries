@@ -1,5 +1,5 @@
 import { defineConfig } from 'sanity';
-import { deskTool } from 'sanity/desk';
+import { structureTool } from 'sanity/structure';
 
 type ValidationRule = {
   required: () => ValidationRule;
@@ -189,7 +189,7 @@ const sectionWeatherConfigField = {
       name: 'locationLabel',
       title: 'Weather Location Label',
       type: 'string',
-      description: 'Label shown above the weather bar, for example "Beijing", "Xiâ€™an", or "Shanghai".',
+      description: 'Label shown above the weather bar, for example "Beijing", "Xi\'an", or "Shanghai".',
       hidden: ({ parent }: HiddenContext) => !parent?.enabled,
     },
     {
@@ -801,7 +801,7 @@ export default defineConfig({
   title: 'Holiday Planner',
   projectId: '943oi1hw',
   dataset: 'production',
-  plugins: [deskTool()],
+  plugins: [structureTool()],
   schema: {
     types: [tripSchema, weatherIconSetSchema],
   },
