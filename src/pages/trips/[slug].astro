@@ -23,10 +23,11 @@ import {
 } from "../../lib/maps";
 import { countsAsDashboardStop, isTransitCategory } from "../../lib/itineraryStats";
 import { getSectionScanItems, getSectionSummary } from "../../lib/sectionSummaries";
+import { tripDetailQuery, visibleTripSlugsQuery } from "../../lib/tripQueries";
 import { getSharedWeatherIconSet, hasWeatherConfig } from "../../lib/weather";
 
 export async function getStaticPaths() {
-  const data = await sanityClient.fetch(`*[_type == "trip" && (!defined(displayStatus) || displayStatus == "visible")] { "slug": slug.current }`);
+  const data = await sanityClient.fetch(visibleTripSlugsQuery);
   return data.map((item: any) => ({
     params: { slug: item.slug },
   }));
@@ -34,106 +35,7 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params;
 
-const weatherForecastQuery = `
-  enabled,
-  locationLabel,
-  latitude,
-  longitude
-`;
-
-const weatherIconSetQuery = `
-  iconSetRef->{
-    "sunnyUrl": sunny.asset->url,
-    "partlyCloudyUrl": partlyCloudy.asset->url,
-    "cloudyUrl": cloudy.asset->url,
-    "fogUrl": fog.asset->url,
-    "drizzleUrl": drizzle.asset->url,
-    "rainUrl": rain.asset->url,
-    "heavyRainUrl": heavyRain.asset->url,
-    "snowUrl": snow.asset->url,
-    "thunderstormUrl": thunderstorm.asset->url
-  },
-  iconSet {
-    "sunnyUrl": sunny.asset->url,
-    "partlyCloudyUrl": partlyCloudy.asset->url,
-    "cloudyUrl": cloudy.asset->url,
-    "fogUrl": fog.asset->url,
-    "drizzleUrl": drizzle.asset->url,
-    "rainUrl": rain.asset->url,
-    "heavyRainUrl": heavyRain.asset->url,
-    "snowUrl": snow.asset->url,
-    "thunderstormUrl": thunderstorm.asset->url
-  }
-`;
-
-const query = `*[_type == "trip" && slug.current == $slug][0] {
-  title,
-  startDate,
-  heroIntro,
-  "heroImageUrl": heroImage.asset->url,
-  weatherConfig {
-    ${weatherForecastQuery},
-    ${weatherIconSetQuery}
-  },
-  sections[] {
-    sectionTitle,
-    sectionIntro,
-    "sectionImageUrl": sectionImage.asset->url,
-    layoutStyle,
-    initialLoadState,
-    weatherConfig {
-      ${weatherForecastQuery}
-    },
-    foodShortlist[] {
-      name,
-      "imageUrl": image.asset->url,
-      foodType,
-      area,
-      shortNote,
-      decisionStatus,
-      openingHours {
-        monday,
-        tuesday,
-        wednesday,
-        thursday,
-        friday,
-        saturday,
-        sunday
-      },
-      priceVibe,
-      bookingStatus,
-      websiteUrl,
-      mapUrl,
-      coordinates,
-      showOnDashboardMap
-    },
-    places[] {
-      placeName,
-      time,
-      endTime,
-      category,
-      area,
-      shortDescription,
-      decisionStatus,
-      info,
-      practicalInfo,
-      costStructure,
-      bookingLogistics,
-      paymentStatus,
-      bookingUrl,
-      websiteUrl,
-      travelNote,
-      "photoUrl": photo.asset->url,
-      coordinates,
-      countAsStop,
-      showOnDashboardMap,
-      transitDetails,
-      hotelDetails
-    }
-  }
-}`;
-
-const trip = await sanityClient.fetch(query, { slug });
+const trip = await sanityClient.fetch(tripDetailQuery, { slug });
 
 if (!trip) {
   return Astro.redirect("/404");
