@@ -28,13 +28,11 @@ type WeatherIconSetPreviewSelection = {
 };
 
 const decisionStateOptions = [
-  { title: 'Booked', value: 'booked' },
-  { title: 'To book', value: 'to-book' },
+  { title: 'Must do', value: 'must-do' },
   { title: 'Maybe', value: 'maybe' },
   { title: 'Backup', value: 'backup' },
-  { title: 'Avoid if tired', value: 'avoid-if-tired' },
   { title: 'Weather dependent', value: 'weather-dependent' },
-  { title: 'Must do', value: 'must-do' },
+  { title: 'Avoid if tired', value: 'avoid-if-tired' },
 ];
 
 const openingHoursFields = [
@@ -371,7 +369,7 @@ const transitDetailsField = {
   name: 'transitDetails',
   title: 'Journey Details',
   type: 'object',
-  hidden: ({ parent }: HiddenContext) => parent?.category !== 'Transit' && parent?.category !== 'Transport',
+  hidden: ({ parent }: HiddenContext) => parent?.category !== 'Transit',
   fields: [
     { name: 'origin', type: 'string', title: 'Origin Station/Airport' },
     { name: 'destination', type: 'string', title: 'Destination Station/Airport' },
@@ -491,6 +489,68 @@ const bookingLogisticsField = {
   ],
 };
 
+const scheduleField = {
+  name: 'schedule',
+  title: 'Schedule',
+  type: 'object',
+  description: 'Optional structured timing details. Leave anything blank when plans are flexible or unknown.',
+  fields: [
+    {
+      name: 'date',
+      title: 'Date',
+      type: 'date',
+    },
+    {
+      name: 'startTime',
+      title: 'Start Time',
+      type: 'string',
+      description: 'Use 24-hour time when known, for example 09:30.',
+    },
+    {
+      name: 'endTime',
+      title: 'End Time',
+      type: 'string',
+      description: 'Use 24-hour time when known, for example 13:00.',
+    },
+    {
+      name: 'duration',
+      title: 'Duration',
+      type: 'string',
+      description: 'Flexible text, for example 1-2 hours, half day, or 3 nights.',
+    },
+    {
+      name: 'suggestedTime',
+      title: 'Suggested Time',
+      type: 'string',
+      description: 'Flexible text, for example morning, after lunch, sunset, or rainy day option.',
+    },
+    {
+      name: 'timingStatus',
+      title: 'Timing Status',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'Confirmed', value: 'confirmed' },
+          { title: 'Estimated', value: 'estimated' },
+          { title: 'Flexible', value: 'flexible' },
+          { title: 'Opening-hours dependent', value: 'opening-hours-dependent' },
+        ],
+        layout: 'dropdown',
+      },
+    },
+    {
+      name: 'timingNote',
+      title: 'Timing Note',
+      type: 'text',
+      rows: 2,
+    },
+  ],
+  options: {
+    collapsible: true,
+    collapsed: false,
+  },
+};
+
 const placeFields = [
   {
     name: 'category',
@@ -499,7 +559,6 @@ const placeFields = [
     options: {
       list: [
         { title: '✈️ Transit (Flight/Rail/Transfer)', value: 'Transit' },
-        { title: '✈️ Transport (Legacy)', value: 'Transport' },
         { title: '🏨 Hotel / Accommodation', value: 'Hotel' },
         { title: '🎟️ Attraction', value: 'Attraction' },
         { title: '🏛️ Museum', value: 'Museum' },
@@ -519,16 +578,7 @@ const placeFields = [
     type: 'string',
     validation: (Rule: ValidationRule) => Rule.required(),
   },
-  {
-    name: 'time',
-    title: 'Start Time / Departure Time',
-    type: 'string',
-  },
-  {
-    name: 'endTime',
-    title: 'End Time / Arrival Time',
-    type: 'string',
-  },
+  scheduleField,
   transitDetailsField,
   hotelDetailsField,
   {

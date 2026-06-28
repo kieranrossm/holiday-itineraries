@@ -62,6 +62,47 @@ const tripBookedItems = [
 const tripMapPoints = getTripMapPoints(tripSections);
 const tripStaticMapUrl = getStaticMapUrl(tripMapPoints, googleMapsStaticApiKey);
 
+const timingStatusLabels: Record<string, string> = {
+  confirmed: "Confirmed",
+  estimated: "Estimated",
+  flexible: "Flexible",
+  "opening-hours-dependent": "Opening-hours dependent",
+};
+
+const hasText = (value: unknown) => typeof value === "string" && value.trim().length > 0;
+
+const getPlaceScheduleBadge = (place: any) => {
+  const schedule = place.schedule || {};
+
+  if (hasText(schedule.startTime)) {
+    return `${schedule.startTime}${hasText(schedule.endTime) ? ` - ${schedule.endTime}` : ""}`;
+  }
+
+  if (hasText(schedule.suggestedTime)) {
+    return schedule.suggestedTime;
+  }
+
+  return "";
+};
+
+const hasPlaceScheduleDetails = (place: any) => {
+  const schedule = place.schedule || {};
+
+  return [
+    schedule.date,
+    schedule.startTime,
+    schedule.endTime,
+    schedule.duration,
+    schedule.suggestedTime,
+    schedule.timingStatus,
+    schedule.timingNote,
+  ].some(hasText);
+};
+
+const getTimingStatusLabel = (status: unknown) => (
+  hasText(status) ? timingStatusLabels[String(status)] || String(status) : ""
+);
+
 ---
 
 <html lang="en-GB">
@@ -766,12 +807,10 @@ const tripStaticMapUrl = getStaticMapUrl(tripMapPoints, googleMapsStaticApiKey);
       .area-badge { background: var(--green-bg); color: var(--green-ink); }
       .decision-badge { background: var(--slate-bg); color: var(--slate-ink); }
       .decision-badge.must-do { background: #dcfce7; color: #166534; }
-      .decision-badge.to-book,
       .decision-badge.weather-dependent { background: #fef3c7; color: #92400e; }
       .decision-badge.maybe,
       .decision-badge.backup { background: #dbeafe; color: #1d4ed8; }
       .decision-badge.avoid-if-tired { background: #ffe4e6; color: #9f1239; }
-      .decision-badge.booked { background: #ede9fe; color: #5b21b6; }
       .payment-badge.paid { background: var(--green-bg); color: var(--green-ink); }
       .payment-badge.unpaid { background: var(--rose-bg); color: var(--rose-ink); }
       .booking-badge.to-book { background: var(--amber-bg); color: var(--amber-ink); border: 1px dashed var(--amber-ink); }
@@ -1496,9 +1535,9 @@ const tripStaticMapUrl = getStaticMapUrl(tripMapPoints, googleMapsStaticApiKey);
                         <article class={`place-card category-${getCategoryClass(place.category)}`}>
                           <div class="place-content">
                             <div class="place-meta">
-                              {place.time && (
+                              {getPlaceScheduleBadge(place) && (
                                 <span class="time-badge">
-                                  {place.time}{place.endTime ? ` - ${place.endTime}` : ""}
+                                  {getPlaceScheduleBadge(place)}
                                 </span>
                               )}
 
@@ -1596,8 +1635,25 @@ const tripStaticMapUrl = getStaticMapUrl(tripMapPoints, googleMapsStaticApiKey);
 
                             {place.info && <p class="place-info">{place.info}</p>}
 
-                            {(place.costStructure || place.practicalInfo || place.travelNote || place.bookingLogistics) && (
+                            {(hasPlaceScheduleDetails(place) || place.costStructure || place.practicalInfo || place.travelNote || place.bookingLogistics) && (
                               <div class="detail-list">
+                                {hasPlaceScheduleDetails(place) && (
+                                  <>
+                                    {hasText(place.schedule?.date) && <p><strong>Date:</strong> {formatInlineDate(place.schedule.date)}</p>}
+                                    {(hasText(place.schedule?.startTime) || hasText(place.schedule?.endTime)) && (
+                                      <p>
+                                        <strong>Time:</strong>
+                                        {hasText(place.schedule?.startTime) ? ` ${place.schedule.startTime}` : ""}
+                                        {hasText(place.schedule?.endTime) ? ` - ${place.schedule.endTime}` : ""}
+                                      </p>
+                                    )}
+                                    {hasText(place.schedule?.duration) && <p><strong>Duration:</strong> {place.schedule.duration}</p>}
+                                    {hasText(place.schedule?.suggestedTime) && <p><strong>Suggested time:</strong> {place.schedule.suggestedTime}</p>}
+                                    {getTimingStatusLabel(place.schedule?.timingStatus) && <p><strong>Timing status:</strong> {getTimingStatusLabel(place.schedule.timingStatus)}</p>}
+                                    {hasText(place.schedule?.timingNote) && <p><strong>Timing note:</strong> {place.schedule.timingNote}</p>}
+                                  </>
+                                )}
+
                                 {formatCost(place.costStructure) && (
                                   <p><strong>Price:</strong> {formatCost(place.costStructure)}</p>
                                 )}

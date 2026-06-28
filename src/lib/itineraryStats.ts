@@ -30,7 +30,7 @@ type ItineraryTrip = {
 };
 
 export const isTransitCategory = (category: string | undefined) => {
-  return category === "Transport" || category === "Transit";
+  return category === "Transit";
 };
 
 export const isTravelSection = (sectionTitle: string | undefined) => {

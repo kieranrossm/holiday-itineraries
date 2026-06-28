@@ -68,7 +68,6 @@ export const getSectionScanItems = (section: ItinerarySection) => {
   const decisionActions = [...places, ...foods].filter((item) => (
     item.decisionStatus === "maybe" ||
     item.decisionStatus === "backup" ||
-    item.decisionStatus === "to-book" ||
     item.decisionStatus === "weather-dependent"
   )).length;
   const areaLabel = getSectionAreaLabel(section);

@@ -10,13 +10,11 @@ export const toDisplayClass = (value: string | undefined, fallback = "") => {
 };
 
 export const DECISION_STATE_LABELS: Record<string, string> = {
-  booked: "Booked",
-  "to-book": "To book",
+  "must-do": "Must do",
   maybe: "Maybe",
   backup: "Backup",
-  "avoid-if-tired": "Avoid if tired",
   "weather-dependent": "Weather dependent",
-  "must-do": "Must do",
+  "avoid-if-tired": "Avoid if tired",
 };
 
 export const getDecisionStateLabel = (decisionStatus: string | undefined) => {

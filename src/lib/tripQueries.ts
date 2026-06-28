@@ -75,8 +75,15 @@ export const tripDetailQuery = `*[_type == "trip" && slug.current == $slug][0] {
     },
     places[] {
       placeName,
-      time,
-      endTime,
+      schedule {
+        date,
+        startTime,
+        endTime,
+        duration,
+        suggestedTime,
+        timingStatus,
+        timingNote
+      },
       category,
       area,
       shortDescription,
