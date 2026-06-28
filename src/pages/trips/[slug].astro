@@ -1202,6 +1202,10 @@ const getTimingStatusLabel = (status: unknown) => (
         margin-top: 1.5rem;
       }
 
+      .layout-grid .places-container[data-place-count="4"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .layout-grid .place-card {
         border-radius: 22px;
         overflow: hidden;
@@ -1264,6 +1268,7 @@ const getTimingStatusLabel = (status: unknown) => (
         .layout-timeline .places-container { margin-left: 0.25rem; padding-left: 1.25rem; }
         .layout-timeline .place-card::before { left: -1.9rem; }
         .layout-grid .places-container { grid-template-columns: 1fr; }
+        .layout-grid .places-container[data-place-count="4"] { grid-template-columns: 1fr; }
         .food-shortlist-header { align-items: flex-start; flex-direction: column; gap: 0.35rem; }
         .food-shortlist-actions { justify-content: flex-start; }
         .food-grid { grid-template-columns: 1fr; }
@@ -1530,7 +1535,7 @@ const getTimingStatusLabel = (status: unknown) => (
 
                 <div class="section-body">
                   {placeCount > 0 ? (
-                    <div class="places-container">
+                    <div class="places-container" data-place-count={placeCount}>
                       {section.places.map((place: any) => (
                         <article class={`place-card category-${getCategoryClass(place.category)}`}>
                           <div class="place-content">
