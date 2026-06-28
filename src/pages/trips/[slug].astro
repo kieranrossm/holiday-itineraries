@@ -71,6 +71,61 @@ const timingStatusLabels: Record<string, string> = {
 
 const hasText = (value: unknown) => typeof value === "string" && value.trim().length > 0;
 
+const getTransportList = (value: unknown) => (
+  Array.isArray(value) ? value.filter((item) => item && (typeof item !== "string" || hasText(item))) : []
+);
+
+const hasTransportFields = (item: any, fields: string[]) => fields.some((field) => hasText(item?.[field]));
+
+const transportHub = trip.transportHub?.enabled ? trip.transportHub : null;
+const transportBestMoves = getTransportList(transportHub?.bestMoveFirst);
+const transportArrivalAccess = getTransportList(transportHub?.arrivalAccess)
+  .filter((item: any) => hasTransportFields(item, ["routeName", "from", "to", "bestFor", "duration", "cost"]));
+const transportNetworkOverview = getTransportList(transportHub?.networkOverview)
+  .filter((item: any) => hasTransportFields(item, ["mode", "useFor", "notes"]));
+const transportTicketsAndApps = getTransportList(transportHub?.ticketsAndApps)
+  .filter((item: any) => hasTransportFields(item, ["title", "recommendation", "details"]));
+const transportPasses = getTransportList(transportHub?.passes)
+  .filter((item: any) => hasTransportFields(item, ["name", "verdict", "breakEven", "notes"]));
+const transportCostMarkers = getTransportList(transportHub?.usefulCostMarkers)
+  .filter((item: any) => hasTransportFields(item, ["label", "cost", "notes"]));
+const transportServiceTimes = getTransportList(transportHub?.serviceTimes)
+  .filter((item: any) => hasTransportFields(item, ["routeName", "typicalFrequency", "firstService", "lastService"]));
+const transportDecisionMatrix = getTransportList(transportHub?.decisionMatrix)
+  .filter((item: any) => hasTransportFields(item, ["situation", "useThis", "why"]));
+const transportCaveats = getTransportList(transportHub?.caveats);
+
+const hasTransportHub = Boolean(transportHub && [
+  transportHub.travellerSummary,
+  ...transportBestMoves,
+  ...transportArrivalAccess,
+  ...transportNetworkOverview,
+  ...transportTicketsAndApps,
+  ...transportPasses,
+  ...transportCostMarkers,
+  ...transportServiceTimes,
+  ...transportDecisionMatrix,
+  ...transportCaveats,
+].some((item) => typeof item === "string" ? hasText(item) : Boolean(item)));
+
+const transportVerdictLabels: Record<string, string> = {
+  "worth-it": "Worth it",
+  maybe: "Maybe",
+  skip: "Usually skip",
+};
+
+const getTransportVerdictLabel = (value: unknown) => (
+  hasText(value) ? transportVerdictLabels[String(value)] || String(value) : ""
+);
+
+const getTransportConfidenceLabel = (value: unknown) => (
+  hasText(value) ? `${String(value).charAt(0).toUpperCase()}${String(value).slice(1)} confidence` : ""
+);
+
+const getTransportTimeValue = (value: unknown) => (
+  hasText(value) ? String(value) : "Check timetable"
+);
+
 const getPlaceScheduleBadge = (place: any) => {
   const schedule = place.schedule || {};
 
@@ -349,6 +404,255 @@ const getTimingStatusLabel = (status: unknown) => (
         border-radius: 0;
       }
 
+      .transport-hub {
+        margin: 0 0 3rem;
+        padding: clamp(1.1rem, 3vw, 1.5rem);
+        border: 1px solid #d7dee8;
+        border-radius: 24px;
+        background: #ffffff;
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+      }
+
+      .transport-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 1rem;
+      }
+
+      .transport-kicker {
+        margin: 0 0 0.35rem;
+        color: #0f766e;
+        font-size: 0.78rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      .transport-title {
+        margin: 0;
+        color: var(--ink);
+        font-size: clamp(1.55rem, 3vw, 2.2rem);
+        line-height: 1.05;
+      }
+
+      .transport-summary {
+        max-width: 880px;
+        margin: 0.75rem 0 0;
+        color: #475569;
+        line-height: 1.65;
+        white-space: pre-line;
+      }
+
+      .transport-meta {
+        display: grid;
+        gap: 0.4rem;
+        justify-items: end;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-align: right;
+      }
+
+      .transport-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin: 1rem 0 0;
+      }
+
+      .transport-chip {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        padding: 0.42rem 0.7rem;
+        border: 1px solid #bae6fd;
+        border-radius: 999px;
+        background: #f0f9ff;
+        color: #075985;
+        font-size: 0.78rem;
+        font-weight: 850;
+        line-height: 1.25;
+      }
+
+      .transport-block {
+        margin-top: 1.25rem;
+      }
+
+      .transport-block-title {
+        margin: 0 0 0.75rem;
+        color: #1e293b;
+        font-size: 1rem;
+        line-height: 1.2;
+      }
+
+      .transport-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 0.85rem;
+      }
+
+      .transport-card {
+        min-width: 0;
+        padding: 1rem;
+        border: 1px solid var(--soft);
+        border-radius: 16px;
+        background: #f8fafc;
+      }
+
+      .transport-card h4 {
+        margin: 0;
+        color: var(--ink);
+        font-size: 1rem;
+        line-height: 1.25;
+      }
+
+      .transport-card p {
+        margin: 0.55rem 0 0;
+        color: #475569;
+        line-height: 1.5;
+        font-size: 0.9rem;
+      }
+
+      .transport-card-link {
+        display: inline-flex;
+        margin-top: 0.75rem;
+        color: #1d4ed8;
+        font-weight: 850;
+        font-size: 0.86rem;
+        text-decoration: none;
+      }
+
+      .transport-card-link:hover {
+        text-decoration: underline;
+      }
+
+      .transport-arrival-card {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      }
+
+      .transport-route-meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
+        margin-top: 0.75rem;
+      }
+
+      .transport-route-meta span,
+      .transport-service-grid span {
+        display: block;
+        min-width: 0;
+        padding: 0.55rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #ffffff;
+        color: #334155;
+        font-size: 0.8rem;
+        line-height: 1.35;
+      }
+
+      .transport-route-meta strong,
+      .transport-service-grid strong {
+        display: block;
+        margin-bottom: 0.2rem;
+        color: var(--muted);
+        font-size: 0.67rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .transport-warning {
+        margin-top: 0.75rem;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid #fed7aa;
+        border-radius: 12px;
+        background: #fff7ed;
+        color: #9a3412;
+        font-size: 0.84rem;
+        font-weight: 750;
+        line-height: 1.45;
+      }
+
+      .transport-verdict {
+        display: inline-flex;
+        margin: 0.65rem 0 0;
+        padding: 0.28rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+
+      .transport-verdict.worth-it {
+        background: #dcfce7;
+        color: #166534;
+      }
+
+      .transport-verdict.maybe {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .transport-verdict.skip {
+        background: #ffe4e6;
+        color: #9f1239;
+      }
+
+      .transport-table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--soft);
+        border-radius: 16px;
+        background: #ffffff;
+      }
+
+      .transport-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 640px;
+        font-size: 0.86rem;
+      }
+
+      .transport-table th,
+      .transport-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--soft);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .transport-table th {
+        color: var(--muted);
+        background: #f8fafc;
+        font-size: 0.7rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .transport-table tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .transport-service-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.55rem;
+        margin-top: 0.75rem;
+      }
+
+      .transport-caveats {
+        margin: 1rem 0 0;
+        padding-left: 1.1rem;
+        color: #475569;
+        line-height: 1.55;
+      }
+
+      .transport-caveats li + li {
+        margin-top: 0.45rem;
+      }
+
       .weather-card-header {
         display: flex;
         justify-content: space-between;
@@ -552,6 +856,19 @@ const getTimingStatusLabel = (status: unknown) => (
           align-items: flex-start;
           flex-direction: column;
           gap: 0.35rem;
+        }
+
+        .transport-header {
+          grid-template-columns: 1fr;
+        }
+
+        .transport-meta {
+          justify-items: start;
+          text-align: left;
+        }
+
+        .transport-route-meta {
+          grid-template-columns: 1fr;
         }
 
         .weather-card-header {
@@ -827,10 +1144,54 @@ const getTimingStatusLabel = (status: unknown) => (
       .logistics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; }
       .logistics-grid p { margin: 0.35rem 0; }
 
-      .detail-list { margin-top: auto; padding-top: 1.25rem; border-top: 1px solid var(--soft); font-size: 0.95rem; }
-      .detail-list p { margin: 0.5rem 0; color: #475569; }
+      .detail-list {
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--soft);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
 
-      .place-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
+      .detail-list summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.65rem 0.8rem;
+        border: 1px solid var(--soft);
+        border-radius: 12px;
+        background: var(--soft-2);
+        color: var(--ink);
+        font-weight: 800;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .detail-list summary::-webkit-details-marker { display: none; }
+
+      .detail-list summary::after {
+        content: "+";
+        display: inline-grid;
+        place-items: center;
+        width: 1.35rem;
+        height: 1.35rem;
+        border-radius: 999px;
+        background: #ffffff;
+        border: 1px solid var(--soft);
+        color: var(--muted);
+        font-weight: 900;
+        flex: 0 0 auto;
+      }
+
+      .detail-list[open] summary::after { content: "-"; }
+
+      .detail-list-content {
+        padding-top: 0.8rem;
+      }
+
+      .detail-list p { margin: 0.4rem 0; color: #475569; }
+
+      .place-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: auto; padding-top: 1.25rem; }
       .place-links a {
         display: inline-flex;
         align-items: center;
@@ -1458,6 +1819,211 @@ const getTimingStatusLabel = (status: unknown) => (
           )}
         </section>
 
+        {hasTransportHub && (
+          <section class="transport-hub" aria-label="Local transport guide">
+            <header class="transport-header">
+              <div>
+                <p class="transport-kicker">Local transport</p>
+                <h2 class="transport-title">
+                  {transportHub.destinationLabel ? `${transportHub.destinationLabel} transport guide` : "Transport guide"}
+                </h2>
+                {transportHub.travellerSummary && (
+                  <p class="transport-summary">{transportHub.travellerSummary}</p>
+                )}
+              </div>
+
+              <div class="transport-meta">
+                {transportHub.stayAreaLabel && <span>Stay area: {transportHub.stayAreaLabel}</span>}
+                {transportHub.generatedAt && <span>Checked: {formatDate(transportHub.generatedAt)}</span>}
+              </div>
+            </header>
+
+            {transportBestMoves.length > 0 && (
+              <div class="transport-chip-row" aria-label="Best transport moves">
+                {transportBestMoves.map((move: string) => (
+                  <span class="transport-chip">{move}</span>
+                ))}
+              </div>
+            )}
+
+            {transportArrivalAccess.length > 0 && (
+              <section class="transport-block" aria-label="Airport and arrival access">
+                <h3 class="transport-block-title">Airport and arrival access</h3>
+                <div class="transport-card-grid">
+                  {transportArrivalAccess.map((route: any) => (
+                    <article class="transport-card transport-arrival-card">
+                      <h4>{route.routeName || [route.from, route.to].filter(Boolean).join(" to ") || "Arrival route"}</h4>
+                      {route.bestFor && <p>{route.bestFor}</p>}
+
+                      <div class="transport-route-meta">
+                        {(route.from || route.to) && (
+                          <span><strong>Route</strong>{[route.from, route.to].filter(Boolean).join(" to ")}</span>
+                        )}
+                        {route.duration && <span><strong>Duration</strong>{route.duration}</span>}
+                        {route.cost && <span><strong>Cost</strong>{route.cost}</span>}
+                        <span><strong>Frequency</strong>{getTransportTimeValue(route.typicalFrequency)}</span>
+                        <span><strong>First service</strong>{getTransportTimeValue(route.firstService)}</span>
+                        <span><strong>Last service</strong>{getTransportTimeValue(route.lastService)}</span>
+                        {route.nightServiceStatus && <span><strong>Night service</strong>{route.nightServiceStatus}</span>}
+                        {route.lateArrivalFallback && <span><strong>Late fallback</strong>{route.lateArrivalFallback}</span>}
+                      </div>
+
+                      {getTransportConfidenceLabel(route.confidence) && (
+                        <p>{getTransportConfidenceLabel(route.confidence)}</p>
+                      )}
+                      {route.warning && <div class="transport-warning">{route.warning}</div>}
+                      {route.plannerUrl && (
+                        <a class="transport-card-link" href={route.plannerUrl} target="_blank" rel="noreferrer">Open planner</a>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {transportNetworkOverview.length > 0 && (
+              <section class="transport-block" aria-label="City transport overview">
+                <h3 class="transport-block-title">City transport overview</h3>
+                <div class="transport-card-grid">
+                  {transportNetworkOverview.map((item: any) => (
+                    <article class="transport-card">
+                      <h4>{item.mode || "Transport mode"}</h4>
+                      {item.useFor && <p><strong>Use for:</strong> {item.useFor}</p>}
+                      {item.notes && <p>{item.notes}</p>}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {transportTicketsAndApps.length > 0 && (
+              <section class="transport-block" aria-label="Tickets, payment and apps">
+                <h3 class="transport-block-title">Tickets, payment and apps</h3>
+                <div class="transport-card-grid">
+                  {transportTicketsAndApps.map((item: any) => (
+                    <article class="transport-card">
+                      <h4>{item.title || "Ticket or app"}</h4>
+                      {item.recommendation && <p><strong>{item.recommendation}</strong></p>}
+                      {item.details && <p>{item.details}</p>}
+                      {item.url && (
+                        <a class="transport-card-link" href={item.url} target="_blank" rel="noreferrer">Open resource</a>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {transportPasses.length > 0 && (
+              <section class="transport-block" aria-label="Passes, cards and tourist value">
+                <h3 class="transport-block-title">Passes, cards and tourist value</h3>
+                <div class="transport-card-grid">
+                  {transportPasses.map((pass: any) => (
+                    <article class="transport-card">
+                      <h4>{pass.name || "Transport pass"}</h4>
+                      {getTransportVerdictLabel(pass.verdict) && (
+                        <span class={`transport-verdict ${pass.verdict}`}>{getTransportVerdictLabel(pass.verdict)}</span>
+                      )}
+                      {pass.breakEven && <p><strong>Break-even:</strong> {pass.breakEven}</p>}
+                      {pass.notes && <p>{pass.notes}</p>}
+                      {pass.url && (
+                        <a class="transport-card-link" href={pass.url} target="_blank" rel="noreferrer">Open pass details</a>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {transportCostMarkers.length > 0 && (
+              <section class="transport-block" aria-label="Useful cost markers">
+                <h3 class="transport-block-title">Useful cost markers</h3>
+                <div class="transport-table-wrap">
+                  <table class="transport-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Cost</th>
+                        <th>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transportCostMarkers.map((marker: any) => (
+                        <tr>
+                          <td>{marker.label || "Cost marker"}</td>
+                          <td>{marker.cost || "Check current price"}</td>
+                          <td>{marker.notes || ""}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            {transportServiceTimes.length > 0 && (
+              <section class="transport-block" aria-label="Service times and late arrivals">
+                <h3 class="transport-block-title">Service times and late arrivals</h3>
+                <div class="transport-card-grid">
+                  {transportServiceTimes.map((service: any) => (
+                    <article class="transport-card">
+                      <h4>{service.routeName || "Service window"}</h4>
+                      <div class="transport-service-grid">
+                        <span><strong>Frequency</strong>{getTransportTimeValue(service.typicalFrequency)}</span>
+                        <span><strong>First</strong>{getTransportTimeValue(service.firstService)}</span>
+                        <span><strong>Last</strong>{getTransportTimeValue(service.lastService)}</span>
+                        <span><strong>Night service</strong>{getTransportTimeValue(service.nightServiceStatus)}</span>
+                        <span><strong>Late fallback</strong>{getTransportTimeValue(service.lateArrivalFallback)}</span>
+                        {getTransportConfidenceLabel(service.confidence) && (
+                          <span><strong>Confidence</strong>{getTransportConfidenceLabel(service.confidence)}</span>
+                        )}
+                      </div>
+                      {service.warning && <div class="transport-warning">{service.warning}</div>}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {transportDecisionMatrix.length > 0 && (
+              <section class="transport-block" aria-label="Traveller decision matrix">
+                <h3 class="transport-block-title">Traveller decision matrix</h3>
+                <div class="transport-table-wrap">
+                  <table class="transport-table">
+                    <thead>
+                      <tr>
+                        <th>Situation</th>
+                        <th>Use this</th>
+                        <th>Why</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transportDecisionMatrix.map((item: any) => (
+                        <tr>
+                          <td>{item.situation || "Situation"}</td>
+                          <td>{item.useThis || "Check planner"}</td>
+                          <td>{item.why || ""}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            {transportCaveats.length > 0 && (
+              <section class="transport-block" aria-label="Important transport caveats">
+                <h3 class="transport-block-title">Important caveats</h3>
+                <ul class="transport-caveats">
+                  {transportCaveats.map((caveat: string) => (
+                    <li>{caveat}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </section>
+        )}
+
         {trip.sections && trip.sections.map((section: any, sectionIndex: number) => {
           const placeCount = section.places?.length || 0;
           const foodShortlist = section.foodShortlist || [];
@@ -1641,7 +2207,9 @@ const getTimingStatusLabel = (status: unknown) => (
                             {place.info && <p class="place-info">{place.info}</p>}
 
                             {(hasPlaceScheduleDetails(place) || place.costStructure || place.practicalInfo || place.travelNote || place.bookingLogistics) && (
-                              <div class="detail-list">
+                              <details class="detail-list">
+                                <summary>Details</summary>
+                                <div class="detail-list-content">
                                 {hasPlaceScheduleDetails(place) && (
                                   <>
                                     {hasText(place.schedule?.date) && <p><strong>Date:</strong> {formatInlineDate(place.schedule.date)}</p>}
@@ -1673,7 +2241,8 @@ const getTimingStatusLabel = (status: unknown) => (
                                 {place.bookingLogistics?.bookingStatus === "booked" && (
                                   <p><strong>Booking:</strong> Confirmed</p>
                                 )}
-                              </div>
+                                </div>
+                              </details>
                             )}
 
                             <div class="place-links">

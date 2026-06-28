@@ -406,6 +406,279 @@ const transitDetailsField = {
   ],
 };
 
+const transportHubField = {
+  name: 'transportHub',
+  title: 'Local Transport Hub',
+  type: 'object',
+  description:
+    'Traveller-facing local transport guide generated from the locked Local Transport Intelligence skill output.',
+  options: {
+    collapsible: true,
+    collapsed: true,
+  },
+  fields: [
+    {
+      name: 'enabled',
+      title: 'Show Local Transport Hub',
+      type: 'boolean',
+      initialValue: false,
+    },
+    {
+      name: 'generatedAt',
+      title: 'Generated / Checked At',
+      type: 'datetime',
+    },
+    {
+      name: 'destinationLabel',
+      title: 'Destination Label',
+      type: 'string',
+      description: 'Example: Oslo, Tenerife, or Tokyo.',
+    },
+    {
+      name: 'stayAreaLabel',
+      title: 'Stay Area Label',
+      type: 'string',
+      description: 'Optional. Example: Aker Brygge, Costa Adeje, Shinjuku.',
+    },
+    {
+      name: 'travellerSummary',
+      title: 'Traveller Summary',
+      type: 'text',
+      rows: 3,
+    },
+    {
+      name: 'bestMoveFirst',
+      title: 'Best Move First Chips',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Short scannable recommendations, such as "Use metro for most central trips".',
+    },
+    {
+      name: 'arrivalAccess',
+      title: 'Airport / Arrival Access',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            { name: 'routeName', title: 'Route Name', type: 'string' },
+            { name: 'from', title: 'From', type: 'string' },
+            { name: 'to', title: 'To', type: 'string' },
+            { name: 'bestFor', title: 'Best For', type: 'string' },
+            { name: 'duration', title: 'Typical Duration', type: 'string' },
+            { name: 'cost', title: 'Cost', type: 'string' },
+            { name: 'typicalFrequency', title: 'Typical Frequency', type: 'string' },
+            { name: 'firstService', title: 'First Service', type: 'string' },
+            { name: 'lastService', title: 'Last Service', type: 'string' },
+            { name: 'nightServiceStatus', title: 'Night Service Status', type: 'string' },
+            { name: 'lateArrivalFallback', title: 'Late Arrival Fallback', type: 'string' },
+            {
+              name: 'confidence',
+              title: 'Timing Confidence',
+              type: 'string',
+              options: {
+                list: [
+                  { title: 'High', value: 'high' },
+                  { title: 'Medium', value: 'medium' },
+                  { title: 'Low', value: 'low' },
+                ],
+                layout: 'radio',
+              },
+            },
+            { name: 'warning', title: 'Traveller Warning', type: 'text', rows: 2 },
+            { name: 'sourceNote', title: 'Source / Evidence Note', type: 'string' },
+            { name: 'plannerUrl', title: 'Planner Link', type: 'url' },
+          ],
+          preview: {
+            select: {
+              title: 'routeName',
+              subtitle: 'bestFor',
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: 'networkOverview',
+      title: 'City Transport Overview',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            { name: 'mode', title: 'Mode', type: 'string' },
+            { name: 'useFor', title: 'Use For', type: 'string' },
+            { name: 'notes', title: 'Notes', type: 'text', rows: 2 },
+          ],
+          preview: {
+            select: {
+              title: 'mode',
+              subtitle: 'useFor',
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: 'ticketsAndApps',
+      title: 'Tickets, Payment and Apps',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            { name: 'title', title: 'Title', type: 'string' },
+            { name: 'recommendation', title: 'Recommendation', type: 'string' },
+            { name: 'details', title: 'Details', type: 'text', rows: 2 },
+            { name: 'url', title: 'Link', type: 'url' },
+          ],
+          preview: {
+            select: {
+              title: 'title',
+              subtitle: 'recommendation',
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: 'passes',
+      title: 'Passes, Cards and Tourist Value',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            { name: 'name', title: 'Pass / Card Name', type: 'string' },
+            {
+              name: 'verdict',
+              title: 'Verdict',
+              type: 'string',
+              options: {
+                list: [
+                  { title: 'Worth it', value: 'worth-it' },
+                  { title: 'Maybe', value: 'maybe' },
+                  { title: 'Usually skip', value: 'skip' },
+                ],
+                layout: 'radio',
+              },
+            },
+            { name: 'breakEven', title: 'Break-even Logic', type: 'string' },
+            { name: 'notes', title: 'Notes', type: 'text', rows: 2 },
+            { name: 'url', title: 'Link', type: 'url' },
+          ],
+          preview: {
+            select: {
+              title: 'name',
+              subtitle: 'verdict',
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: 'usefulCostMarkers',
+      title: 'Useful Cost Markers',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            { name: 'label', title: 'Label', type: 'string' },
+            { name: 'cost', title: 'Cost', type: 'string' },
+            { name: 'notes', title: 'Notes', type: 'string' },
+          ],
+          preview: {
+            select: {
+              title: 'label',
+              subtitle: 'cost',
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: 'serviceTimes',
+      title: 'Service Times and Late Arrivals',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            { name: 'routeName', title: 'Route Name', type: 'string' },
+            { name: 'typicalFrequency', title: 'Typical Frequency', type: 'string' },
+            { name: 'firstService', title: 'First Service', type: 'string' },
+            { name: 'lastService', title: 'Last Service', type: 'string' },
+            { name: 'nightServiceStatus', title: 'Night Service Status', type: 'string' },
+            { name: 'lateArrivalFallback', title: 'Late Arrival Fallback', type: 'string' },
+            {
+              name: 'confidence',
+              title: 'Frequency Confidence',
+              type: 'string',
+              options: {
+                list: [
+                  { title: 'High', value: 'high' },
+                  { title: 'Medium', value: 'medium' },
+                  { title: 'Low', value: 'low' },
+                ],
+                layout: 'radio',
+              },
+            },
+            { name: 'warning', title: 'Traveller Warning', type: 'text', rows: 2 },
+          ],
+          preview: {
+            select: {
+              title: 'routeName',
+              subtitle: 'typicalFrequency',
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: 'decisionMatrix',
+      title: 'Traveller Decision Matrix',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            { name: 'situation', title: 'Situation', type: 'string' },
+            { name: 'useThis', title: 'Use This', type: 'string' },
+            { name: 'why', title: 'Why', type: 'text', rows: 2 },
+          ],
+          preview: {
+            select: {
+              title: 'situation',
+              subtitle: 'useThis',
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: 'caveats',
+      title: 'Important Caveats',
+      type: 'array',
+      of: [{ type: 'string' }],
+    },
+    {
+      name: 'qualityFlags',
+      title: 'Quality Flags',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Internal validation flags from the source skill output.',
+    },
+    {
+      name: 'rawStructuredOutputJson',
+      title: 'Raw Structured Output JSON',
+      type: 'text',
+      rows: 8,
+      description: 'Paste the full locked skill structured output here for audit/debug reference.',
+    },
+  ],
+};
+
 const hotelDetailsField = {
   name: 'hotelDetails',
   title: 'Stay Details',
@@ -835,6 +1108,7 @@ const tripSchema = {
       description: 'Optional short intro shown over or near the hero image.',
     },
     weatherConfigField,
+    transportHubField,
     sectionsField,
   ],
   preview: {
