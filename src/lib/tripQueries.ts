@@ -41,71 +41,72 @@ export const tripDetailQuery = `*[_type == "trip" && slug.current == $slug][0] {
     ${weatherForecastQuery},
     ${weatherIconSetQuery}
   },
-  transportHub {
-    enabled,
+  transportBrief {
+    title,
+    defaultRecommendation,
     generatedAt,
     destinationLabel,
     stayAreaLabel,
-    travellerSummary,
-    bestMoveFirst,
-    arrivalAccess[] {
-      routeName,
-      from,
-      to,
-      bestFor,
-      duration,
-      cost,
-      typicalFrequency,
-      firstService,
-      lastService,
-      nightServiceStatus,
-      lateArrivalFallback,
-      confidence,
-      warning,
-      sourceNote,
-      plannerUrl
+    airportArrival[] {
+      id,
+      modeLabel,
+      roleLabel,
+      routeLabel,
+      timeLabel,
+      costLabel,
+      servicePattern,
+      coverage,
+      watchOut,
+      showRoute,
+      routeDetails {
+        steps,
+        ticketNote,
+        lateArrivalNote,
+        onwardConnectionNote,
+        costNote
+      },
+      evidenceIds
     },
-    networkOverview[] {
-      mode,
+    cityTravel[] {
+      id,
+      modeLabel,
       useFor,
-      notes
+      pattern,
+      coverage,
+      watchOut,
+      evidenceIds
     },
-    ticketsAndApps[] {
-      title,
-      recommendation,
-      details,
-      url
-    },
-    passes[] {
+    toolkit[] {
+      id,
       name,
-      verdict,
-      breakEven,
-      notes,
-      url
+      category,
+      useFor,
+      actionLabel,
+      url,
+      note,
+      evidenceIds
     },
-    usefulCostMarkers[] {
+    paymentReadiness {
+      summary,
+      cardOrContactlessRequired,
+      appPaymentSupported,
+      cashCaveat,
+      evidenceIds
+    },
+    fullReportPointer,
+    fullReport {
+      summary,
+      sections[] {
+        title,
+        body
+      }
+    },
+    sources[] {
+      id,
       label,
-      cost,
-      notes
-    },
-    serviceTimes[] {
-      routeName,
-      typicalFrequency,
-      firstService,
-      lastService,
-      nightServiceStatus,
-      lateArrivalFallback,
-      confidence,
-      warning
-    },
-    decisionMatrix[] {
-      situation,
-      useThis,
-      why
-    },
-    caveats,
-    qualityFlags,
-    rawStructuredOutputJson
+      url,
+      checked
+    }
   },
   sections[] {
     sectionTitle,

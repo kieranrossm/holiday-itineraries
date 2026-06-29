@@ -75,55 +75,42 @@ const getTransportList = (value: unknown) => (
   Array.isArray(value) ? value.filter((item) => item && (typeof item !== "string" || hasText(item))) : []
 );
 
-const hasTransportFields = (item: any, fields: string[]) => fields.some((field) => hasText(item?.[field]));
+const transportBrief = trip.transportBrief || null;
+const transportAirportArrival = getTransportList(transportBrief?.airportArrival)
+  .filter((item: any) => ["modeLabel", "roleLabel", "routeLabel", "timeLabel", "costLabel"].some((field) => hasText(item?.[field])));
+const transportCityTravel = getTransportList(transportBrief?.cityTravel)
+  .filter((item: any) => ["modeLabel", "useFor", "pattern", "watchOut"].some((field) => hasText(item?.[field])));
+const transportToolkit = getTransportList(transportBrief?.toolkit)
+  .filter((item: any) => ["name", "useFor", "note", "url"].some((field) => hasText(item?.[field])));
+const transportReportSections = getTransportList(transportBrief?.fullReport?.sections)
+  .filter((item: any) => ["title", "body"].some((field) => hasText(item?.[field])));
 
-const transportHub = trip.transportHub?.enabled ? trip.transportHub : null;
-const transportBestMoves = getTransportList(transportHub?.bestMoveFirst);
-const transportArrivalAccess = getTransportList(transportHub?.arrivalAccess)
-  .filter((item: any) => hasTransportFields(item, ["routeName", "from", "to", "bestFor", "duration", "cost"]));
-const transportNetworkOverview = getTransportList(transportHub?.networkOverview)
-  .filter((item: any) => hasTransportFields(item, ["mode", "useFor", "notes"]));
-const transportTicketsAndApps = getTransportList(transportHub?.ticketsAndApps)
-  .filter((item: any) => hasTransportFields(item, ["title", "recommendation", "details"]));
-const transportPasses = getTransportList(transportHub?.passes)
-  .filter((item: any) => hasTransportFields(item, ["name", "verdict", "breakEven", "notes"]));
-const transportCostMarkers = getTransportList(transportHub?.usefulCostMarkers)
-  .filter((item: any) => hasTransportFields(item, ["label", "cost", "notes"]));
-const transportServiceTimes = getTransportList(transportHub?.serviceTimes)
-  .filter((item: any) => hasTransportFields(item, ["routeName", "typicalFrequency", "firstService", "lastService"]));
-const transportDecisionMatrix = getTransportList(transportHub?.decisionMatrix)
-  .filter((item: any) => hasTransportFields(item, ["situation", "useThis", "why"]));
-const transportCaveats = getTransportList(transportHub?.caveats);
-
-const hasTransportHub = Boolean(transportHub && [
-  transportHub.travellerSummary,
-  ...transportBestMoves,
-  ...transportArrivalAccess,
-  ...transportNetworkOverview,
-  ...transportTicketsAndApps,
-  ...transportPasses,
-  ...transportCostMarkers,
-  ...transportServiceTimes,
-  ...transportDecisionMatrix,
-  ...transportCaveats,
+const hasTransportBrief = Boolean(transportBrief && [
+  transportBrief.defaultRecommendation,
+  ...transportAirportArrival,
+  ...transportCityTravel,
+  ...transportToolkit,
+  transportBrief.paymentReadiness?.summary,
+  transportBrief.fullReport?.summary,
+  ...transportReportSections,
 ].some((item) => typeof item === "string" ? hasText(item) : Boolean(item)));
 
-const transportVerdictLabels: Record<string, string> = {
-  "worth-it": "Worth it",
-  maybe: "Maybe",
-  skip: "Usually skip",
+const getTransportRoleClass = (value: unknown) => {
+  const label = hasText(value) ? String(value).toLowerCase() : "";
+  if (label.includes("best")) return "best";
+  if (label.includes("fallback")) return "fallback";
+  return "";
 };
 
-const getTransportVerdictLabel = (value: unknown) => (
-  hasText(value) ? transportVerdictLabels[String(value)] || String(value) : ""
-);
+const getTransportBadgeClass = (value: unknown) => {
+  const label = hasText(value) ? String(value).toLowerCase() : "";
+  if (label.includes("pass") || label.includes("ruter") || label.includes("included")) return "good";
+  if (label.includes("not")) return "warn";
+  return "";
+};
 
-const getTransportConfidenceLabel = (value: unknown) => (
-  hasText(value) ? `${String(value).charAt(0).toUpperCase()}${String(value).slice(1)} confidence` : ""
-);
-
-const getTransportTimeValue = (value: unknown) => (
-  hasText(value) ? String(value) : "Check timetable"
+const joinTransportBadges = (value: unknown) => (
+  getTransportList(value).filter((item) => hasText(item))
 );
 
 const getPlaceScheduleBadge = (place: any) => {
@@ -406,19 +393,20 @@ const getTimingStatusLabel = (status: unknown) => (
 
       .transport-hub {
         margin: 0 0 3rem;
-        padding: clamp(1.1rem, 3vw, 1.5rem);
         border: 1px solid #d7dee8;
-        border-radius: 24px;
-        background: #ffffff;
-        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 16px 38px rgba(24, 32, 42, 0.08);
+        overflow: hidden;
       }
 
       .transport-header {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        gap: 1rem;
+        gap: 1.1rem;
         align-items: start;
-        margin-bottom: 1rem;
+        padding: clamp(1.1rem, 3vw, 1.5rem);
+        border-bottom: 1px solid #d7dee8;
       }
 
       .transport-kicker {
@@ -433,16 +421,15 @@ const getTimingStatusLabel = (status: unknown) => (
       .transport-title {
         margin: 0;
         color: var(--ink);
-        font-size: clamp(1.55rem, 3vw, 2.2rem);
-        line-height: 1.05;
+        font-size: clamp(1.35rem, 3vw, 1.75rem);
+        line-height: 1.12;
       }
 
       .transport-summary {
-        max-width: 880px;
-        margin: 0.75rem 0 0;
+        max-width: 72ch;
+        margin: 0.65rem 0 0;
         color: #475569;
-        line-height: 1.65;
-        white-space: pre-line;
+        line-height: 1.55;
       }
 
       .transport-meta {
@@ -455,202 +442,337 @@ const getTimingStatusLabel = (status: unknown) => (
         text-align: right;
       }
 
-      .transport-chip-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.55rem;
-        margin: 1rem 0 0;
+      .transport-content {
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.85fr);
       }
 
-      .transport-chip {
-        display: inline-flex;
-        align-items: center;
-        max-width: 100%;
-        padding: 0.42rem 0.7rem;
-        border: 1px solid #bae6fd;
-        border-radius: 999px;
-        background: #f0f9ff;
-        color: #075985;
-        font-size: 0.78rem;
-        font-weight: 850;
-        line-height: 1.25;
+      .transport-primary,
+      .transport-side {
+        padding: clamp(1rem, 3vw, 1.5rem);
+      }
+
+      .transport-side {
+        border-left: 1px solid #d7dee8;
+        background: #fbfcfe;
       }
 
       .transport-block {
-        margin-top: 1.25rem;
+        margin-top: 1.6rem;
+      }
+
+      .transport-block:first-child {
+        margin-top: 0;
+      }
+
+      .transport-section-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.85rem;
+        align-items: end;
+        margin-bottom: 0.75rem;
       }
 
       .transport-block-title {
-        margin: 0 0 0.75rem;
+        margin: 0;
         color: #1e293b;
         font-size: 1rem;
         line-height: 1.2;
       }
 
-      .transport-card-grid {
+      .transport-section-note {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-align: right;
+      }
+
+      .transport-arrival-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.85rem;
       }
 
-      .transport-card {
+      .transport-arrival-card,
+      .transport-mode-card,
+      .transport-tool-row,
+      .transport-payment-card,
+      .transport-report {
         min-width: 0;
-        padding: 1rem;
         border: 1px solid var(--soft);
-        border-radius: 16px;
-        background: #f8fafc;
+        border-radius: 14px;
+        background: #fff;
       }
 
-      .transport-card h4 {
+      .transport-arrival-card {
+        display: flex;
+        flex-direction: column;
+        min-height: 370px;
+        overflow: hidden;
+      }
+
+      .transport-card-top {
+        padding: 0.95rem;
+        border-bottom: 1px solid var(--soft);
+      }
+
+      .transport-role {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.5rem;
+        margin-bottom: 0.65rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        background: #e4edfb;
+        color: #2457a6;
+        font-size: 0.72rem;
+        font-weight: 900;
+      }
+
+      .transport-arrival-card.best .transport-role {
+        background: #dff4ef;
+        color: #0f766e;
+      }
+
+      .transport-arrival-card.fallback .transport-role {
+        background: #fff1d6;
+        color: #9a5b00;
+      }
+
+      .transport-arrival-card h4,
+      .transport-mode-card h4,
+      .transport-tool-row h4 {
         margin: 0;
         color: var(--ink);
         font-size: 1rem;
         line-height: 1.25;
       }
 
-      .transport-card p {
-        margin: 0.55rem 0 0;
-        color: #475569;
-        line-height: 1.5;
-        font-size: 0.9rem;
-      }
-
-      .transport-card-link {
-        display: inline-flex;
-        margin-top: 0.75rem;
-        color: #1d4ed8;
-        font-weight: 850;
-        font-size: 0.86rem;
-        text-decoration: none;
-      }
-
-      .transport-card-link:hover {
-        text-decoration: underline;
-      }
-
-      .transport-arrival-card {
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-      }
-
-      .transport-route-meta {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.55rem;
-        margin-top: 0.75rem;
-      }
-
-      .transport-route-meta span,
-      .transport-service-grid span {
+      .transport-route-label {
         display: block;
-        min-width: 0;
-        padding: 0.55rem;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        background: #ffffff;
-        color: #334155;
+        margin-top: 0.25rem;
+        color: var(--muted);
         font-size: 0.8rem;
+        font-weight: 800;
+      }
+
+      .transport-facts {
+        display: grid;
+        gap: 0.5rem;
+        padding: 0.85rem 0.95rem;
+      }
+
+      .transport-fact,
+      .transport-mode-card div {
+        display: grid;
+        grid-template-columns: 4.4rem 1fr;
+        gap: 0.6rem;
+        align-items: start;
+        color: #475569;
+        font-size: 0.82rem;
         line-height: 1.35;
       }
 
-      .transport-route-meta strong,
-      .transport-service-grid strong {
-        display: block;
-        margin-bottom: 0.2rem;
+      .transport-fact strong,
+      .transport-mode-card dt {
         color: var(--muted);
-        font-size: 0.67rem;
+        font-size: 0.68rem;
+        font-weight: 900;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
       }
 
-      .transport-warning {
-        margin-top: 0.75rem;
-        padding: 0.65rem 0.75rem;
-        border: 1px solid #fed7aa;
-        border-radius: 12px;
-        background: #fff7ed;
-        color: #9a3412;
-        font-size: 0.84rem;
-        font-weight: 750;
+      .transport-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        padding: 0 0.95rem 0.75rem;
+      }
+
+      .transport-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.5rem;
+        padding: 0.18rem 0.48rem;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 0.7rem;
+        font-weight: 850;
+      }
+
+      .transport-badge.good {
+        background: #dff4ef;
+        color: #0f766e;
+      }
+
+      .transport-badge.warn {
+        background: #fff1d6;
+        color: #9a5b00;
+      }
+
+      .transport-watch {
+        margin: auto 0.95rem 0.85rem;
+        padding: 0.65rem;
+        border-radius: 10px;
+        background: #fde7ec;
+        color: #a33a4b;
+        font-size: 0.78rem;
+        line-height: 1.35;
+        font-weight: 760;
+      }
+
+      .transport-route-details {
+        margin: 0 0.95rem 0.95rem;
+        font-size: 0.8rem;
         line-height: 1.45;
       }
 
-      .transport-verdict {
-        display: inline-flex;
-        margin: 0.65rem 0 0;
-        padding: 0.28rem 0.55rem;
+      .transport-route-details summary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.35rem;
+        border: 1px solid var(--ink);
         border-radius: 999px;
-        font-size: 0.72rem;
+        background: var(--ink);
+        color: #fff;
+        font-size: 0.82rem;
         font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
+        cursor: pointer;
+        list-style: none;
       }
 
-      .transport-verdict.worth-it {
-        background: #dcfce7;
-        color: #166534;
+      .transport-route-details summary::-webkit-details-marker {
+        display: none;
       }
 
-      .transport-verdict.maybe {
-        background: #fef3c7;
-        color: #92400e;
-      }
-
-      .transport-verdict.skip {
-        background: #ffe4e6;
-        color: #9f1239;
-      }
-
-      .transport-table-wrap {
-        overflow-x: auto;
-        border: 1px solid var(--soft);
-        border-radius: 16px;
-        background: #ffffff;
-      }
-
-      .transport-table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 640px;
-        font-size: 0.86rem;
-      }
-
-      .transport-table th,
-      .transport-table td {
+      .transport-route-body {
+        margin-top: 0.7rem;
         padding: 0.75rem;
-        border-bottom: 1px solid var(--soft);
-        text-align: left;
-        vertical-align: top;
-      }
-
-      .transport-table th {
-        color: var(--muted);
+        border: 1px solid var(--soft);
+        border-radius: 12px;
         background: #f8fafc;
-        font-size: 0.7rem;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
       }
 
-      .transport-table tr:last-child td {
-        border-bottom: 0;
-      }
-
-      .transport-service-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 0.55rem;
-        margin-top: 0.75rem;
-      }
-
-      .transport-caveats {
-        margin: 1rem 0 0;
+      .transport-route-body ol {
+        margin: 0 0 0.65rem;
         padding-left: 1.1rem;
+      }
+
+      .transport-route-body p {
+        margin: 0.45rem 0 0;
         color: #475569;
+      }
+
+      .transport-city-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
+      }
+
+      .transport-mode-card {
+        padding: 0.95rem;
+        min-height: 176px;
+      }
+
+      .transport-mode-card dl {
+        display: grid;
+        gap: 0.48rem;
+        margin: 0.7rem 0 0;
+      }
+
+      .transport-mode-card dd {
+        margin: 0;
+        color: #475569;
+      }
+
+      .transport-payment-card {
+        margin-bottom: 1rem;
+        padding: 0.9rem;
+        background: #dff4ef;
+        color: #14524d;
+      }
+
+      .transport-payment-card h3,
+      .transport-report summary {
+        margin: 0;
+        font-size: 0.92rem;
+        font-weight: 900;
+      }
+
+      .transport-payment-card p {
+        margin: 0.4rem 0 0;
+        font-size: 0.82rem;
+        line-height: 1.4;
+        font-weight: 720;
+      }
+
+      .transport-tool-list {
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .transport-tool-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.75rem;
+      }
+
+      .transport-tool-row p {
+        margin: 0.25rem 0 0;
+        color: #475569;
+        font-size: 0.78rem;
+        line-height: 1.35;
+      }
+
+      .transport-tool-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.25rem;
+        min-width: 6rem;
+        padding: 0 0.75rem;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 900;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .transport-report {
+        margin-top: 1rem;
+        overflow: hidden;
+      }
+
+      .transport-report summary {
+        padding: 0.9rem;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .transport-report summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .transport-report-body {
+        padding: 0 0.9rem 0.9rem;
+        color: #475569;
+        font-size: 0.84rem;
         line-height: 1.55;
       }
 
-      .transport-caveats li + li {
-        margin-top: 0.45rem;
+      .transport-report-body h4 {
+        margin: 0.9rem 0 0.25rem;
+        color: var(--ink);
+        font-size: 0.9rem;
+      }
+
+      .transport-report-body p {
+        margin: 0.35rem 0 0;
       }
 
       .weather-card-header {
@@ -862,13 +984,38 @@ const getTimingStatusLabel = (status: unknown) => (
           grid-template-columns: 1fr;
         }
 
+        .transport-content {
+          grid-template-columns: 1fr;
+        }
+
+        .transport-side {
+          border-left: 0;
+          border-top: 1px solid #d7dee8;
+        }
+
+        .transport-arrival-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .transport-arrival-card {
+          min-height: 0;
+        }
+
+        .transport-city-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .transport-tool-row {
+          grid-template-columns: 1fr;
+        }
+
+        .transport-tool-link {
+          width: 100%;
+        }
+
         .transport-meta {
           justify-items: start;
           text-align: left;
-        }
-
-        .transport-route-meta {
-          grid-template-columns: 1fr;
         }
 
         .weather-card-header {
@@ -1819,208 +1966,163 @@ const getTimingStatusLabel = (status: unknown) => (
           )}
         </section>
 
-        {hasTransportHub && (
+        {hasTransportBrief && (
           <section class="transport-hub" aria-label="Local transport guide">
             <header class="transport-header">
               <div>
                 <p class="transport-kicker">Local transport</p>
                 <h2 class="transport-title">
-                  {transportHub.destinationLabel ? `${transportHub.destinationLabel} transport guide` : "Transport guide"}
+                  {transportBrief.title || (transportBrief.destinationLabel ? `${transportBrief.destinationLabel} transport brief` : "Transport brief")}
                 </h2>
-                {transportHub.travellerSummary && (
-                  <p class="transport-summary">{transportHub.travellerSummary}</p>
+                {transportBrief.defaultRecommendation && (
+                  <p class="transport-summary">{transportBrief.defaultRecommendation}</p>
                 )}
               </div>
 
               <div class="transport-meta">
-                {transportHub.stayAreaLabel && <span>Stay area: {transportHub.stayAreaLabel}</span>}
-                {transportHub.generatedAt && <span>Checked: {formatDate(transportHub.generatedAt)}</span>}
+                {transportBrief.destinationLabel && <span>{transportBrief.destinationLabel}</span>}
+                {transportBrief.stayAreaLabel && <span>Stay area: {transportBrief.stayAreaLabel}</span>}
+                {transportBrief.generatedAt && <span>Checked: {formatDate(transportBrief.generatedAt)}</span>}
               </div>
             </header>
 
-            {transportBestMoves.length > 0 && (
-              <div class="transport-chip-row" aria-label="Best transport moves">
-                {transportBestMoves.map((move: string) => (
-                  <span class="transport-chip">{move}</span>
-                ))}
-              </div>
-            )}
+            <div class="transport-content">
+              <section class="transport-primary">
+                {transportAirportArrival.length > 0 && (
+                  <section class="transport-block" aria-label="Airport arrival">
+                    <div class="transport-section-head">
+                      <h3 class="transport-block-title">Airport Arrival</h3>
+                      <span class="transport-section-note">Compare first, drill down second</span>
+                    </div>
+                    <div class="transport-arrival-grid">
+                      {transportAirportArrival.map((route: any) => {
+                        const coverage = joinTransportBadges(route.coverage);
+                        const steps = getTransportList(route.routeDetails?.steps);
 
-            {transportArrivalAccess.length > 0 && (
-              <section class="transport-block" aria-label="Airport and arrival access">
-                <h3 class="transport-block-title">Airport and arrival access</h3>
-                <div class="transport-card-grid">
-                  {transportArrivalAccess.map((route: any) => (
-                    <article class="transport-card transport-arrival-card">
-                      <h4>{route.routeName || [route.from, route.to].filter(Boolean).join(" to ") || "Arrival route"}</h4>
-                      {route.bestFor && <p>{route.bestFor}</p>}
+                        return (
+                          <article class={`transport-arrival-card ${getTransportRoleClass(route.roleLabel)}`}>
+                            <div class="transport-card-top">
+                              {route.roleLabel && <span class="transport-role">{route.roleLabel}</span>}
+                              <h4>{route.modeLabel || "Arrival option"}</h4>
+                              {route.routeLabel && <span class="transport-route-label">{route.routeLabel}</span>}
+                            </div>
 
-                      <div class="transport-route-meta">
-                        {(route.from || route.to) && (
-                          <span><strong>Route</strong>{[route.from, route.to].filter(Boolean).join(" to ")}</span>
-                        )}
-                        {route.duration && <span><strong>Duration</strong>{route.duration}</span>}
-                        {route.cost && <span><strong>Cost</strong>{route.cost}</span>}
-                        <span><strong>Frequency</strong>{getTransportTimeValue(route.typicalFrequency)}</span>
-                        <span><strong>First service</strong>{getTransportTimeValue(route.firstService)}</span>
-                        <span><strong>Last service</strong>{getTransportTimeValue(route.lastService)}</span>
-                        {route.nightServiceStatus && <span><strong>Night service</strong>{route.nightServiceStatus}</span>}
-                        {route.lateArrivalFallback && <span><strong>Late fallback</strong>{route.lateArrivalFallback}</span>}
-                      </div>
+                            <div class="transport-facts">
+                              {route.timeLabel && <div class="transport-fact"><strong>Time</strong><span>{route.timeLabel}</span></div>}
+                              {route.costLabel && <div class="transport-fact"><strong>Cost</strong><span>{route.costLabel}</span></div>}
+                              {route.servicePattern && <div class="transport-fact"><strong>Service</strong><span>{route.servicePattern}</span></div>}
+                            </div>
 
-                      {getTransportConfidenceLabel(route.confidence) && (
-                        <p>{getTransportConfidenceLabel(route.confidence)}</p>
-                      )}
-                      {route.warning && <div class="transport-warning">{route.warning}</div>}
-                      {route.plannerUrl && (
-                        <a class="transport-card-link" href={route.plannerUrl} target="_blank" rel="noreferrer">Open planner</a>
-                      )}
-                    </article>
-                  ))}
-                </div>
+                            {coverage.length > 0 && (
+                              <div class="transport-badges">
+                                {coverage.map((label: string) => (
+                                  <span class={`transport-badge ${getTransportBadgeClass(label)}`}>{label}</span>
+                                ))}
+                              </div>
+                            )}
+
+                            {route.watchOut && <div class="transport-watch">{route.watchOut}</div>}
+
+                            {route.showRoute !== false && route.routeDetails && (
+                              <details class="transport-route-details">
+                                <summary>Show route</summary>
+                                <div class="transport-route-body">
+                                  {steps.length > 0 && (
+                                    <ol>
+                                      {steps.map((step: string) => <li>{step}</li>)}
+                                    </ol>
+                                  )}
+                                  {route.routeDetails.ticketNote && <p><strong>Ticket:</strong> {route.routeDetails.ticketNote}</p>}
+                                  {route.routeDetails.lateArrivalNote && <p><strong>Late:</strong> {route.routeDetails.lateArrivalNote}</p>}
+                                  {route.routeDetails.onwardConnectionNote && <p><strong>Onward:</strong> {route.routeDetails.onwardConnectionNote}</p>}
+                                  {route.routeDetails.costNote && <p><strong>Cost:</strong> {route.routeDetails.costNote}</p>}
+                                </div>
+                              </details>
+                            )}
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+
+                {transportCityTravel.length > 0 && (
+                  <section class="transport-block" aria-label="General city travel">
+                    <div class="transport-section-head">
+                      <h3 class="transport-block-title">General City Travel</h3>
+                      <span class="transport-section-note">Mode decisions for the trip</span>
+                    </div>
+                    <div class="transport-city-grid">
+                      {transportCityTravel.map((item: any) => {
+                        const coverage = joinTransportBadges(item.coverage);
+
+                        return (
+                          <article class="transport-mode-card">
+                            <h4>{item.modeLabel || "Transport mode"}</h4>
+                            <dl>
+                              {item.useFor && <div><dt>Use for</dt><dd>{item.useFor}</dd></div>}
+                              {item.pattern && <div><dt>Pattern</dt><dd>{item.pattern}</dd></div>}
+                              {coverage.length > 0 && <div><dt>Coverage</dt><dd>{coverage.join(", ")}</dd></div>}
+                              {item.watchOut && <div><dt>Watch</dt><dd>{item.watchOut}</dd></div>}
+                            </dl>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
               </section>
-            )}
 
-            {transportNetworkOverview.length > 0 && (
-              <section class="transport-block" aria-label="City transport overview">
-                <h3 class="transport-block-title">City transport overview</h3>
-                <div class="transport-card-grid">
-                  {transportNetworkOverview.map((item: any) => (
-                    <article class="transport-card">
-                      <h4>{item.mode || "Transport mode"}</h4>
-                      {item.useFor && <p><strong>Use for:</strong> {item.useFor}</p>}
-                      {item.notes && <p>{item.notes}</p>}
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
+              <aside class="transport-side">
+                {transportBrief.paymentReadiness?.summary && (
+                  <section class="transport-payment-card">
+                    <h3>Payment Readiness</h3>
+                    <p>{transportBrief.paymentReadiness.summary}</p>
+                    {transportBrief.paymentReadiness.cashCaveat && <p>{transportBrief.paymentReadiness.cashCaveat}</p>}
+                  </section>
+                )}
 
-            {transportTicketsAndApps.length > 0 && (
-              <section class="transport-block" aria-label="Tickets, payment and apps">
-                <h3 class="transport-block-title">Tickets, payment and apps</h3>
-                <div class="transport-card-grid">
-                  {transportTicketsAndApps.map((item: any) => (
-                    <article class="transport-card">
-                      <h4>{item.title || "Ticket or app"}</h4>
-                      {item.recommendation && <p><strong>{item.recommendation}</strong></p>}
-                      {item.details && <p>{item.details}</p>}
-                      {item.url && (
-                        <a class="transport-card-link" href={item.url} target="_blank" rel="noreferrer">Open resource</a>
-                      )}
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {transportPasses.length > 0 && (
-              <section class="transport-block" aria-label="Passes, cards and tourist value">
-                <h3 class="transport-block-title">Passes, cards and tourist value</h3>
-                <div class="transport-card-grid">
-                  {transportPasses.map((pass: any) => (
-                    <article class="transport-card">
-                      <h4>{pass.name || "Transport pass"}</h4>
-                      {getTransportVerdictLabel(pass.verdict) && (
-                        <span class={`transport-verdict ${pass.verdict}`}>{getTransportVerdictLabel(pass.verdict)}</span>
-                      )}
-                      {pass.breakEven && <p><strong>Break-even:</strong> {pass.breakEven}</p>}
-                      {pass.notes && <p>{pass.notes}</p>}
-                      {pass.url && (
-                        <a class="transport-card-link" href={pass.url} target="_blank" rel="noreferrer">Open pass details</a>
-                      )}
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {transportCostMarkers.length > 0 && (
-              <section class="transport-block" aria-label="Useful cost markers">
-                <h3 class="transport-block-title">Useful cost markers</h3>
-                <div class="transport-table-wrap">
-                  <table class="transport-table">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th>Cost</th>
-                        <th>Notes</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {transportCostMarkers.map((marker: any) => (
-                        <tr>
-                          <td>{marker.label || "Cost marker"}</td>
-                          <td>{marker.cost || "Check current price"}</td>
-                          <td>{marker.notes || ""}</td>
-                        </tr>
+                {transportToolkit.length > 0 && (
+                  <section class="transport-block" aria-label="Apps and links">
+                    <div class="transport-section-head">
+                      <h3 class="transport-block-title">Apps & Links</h3>
+                    </div>
+                    <div class="transport-tool-list">
+                      {transportToolkit.map((item: any) => (
+                        <article class="transport-tool-row">
+                          <div>
+                            <h4>{item.name || "Resource"}</h4>
+                            {(item.useFor || item.note) && (
+                              <p>{item.useFor && <strong>{item.useFor}. </strong>}{item.note}</p>
+                            )}
+                          </div>
+                          {item.url && (
+                            <a class="transport-tool-link" href={item.url} target="_blank" rel="noreferrer">
+                              {item.actionLabel || "Open"}
+                            </a>
+                          )}
+                        </article>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
+                    </div>
+                  </section>
+                )}
 
-            {transportServiceTimes.length > 0 && (
-              <section class="transport-block" aria-label="Service times and late arrivals">
-                <h3 class="transport-block-title">Service times and late arrivals</h3>
-                <div class="transport-card-grid">
-                  {transportServiceTimes.map((service: any) => (
-                    <article class="transport-card">
-                      <h4>{service.routeName || "Service window"}</h4>
-                      <div class="transport-service-grid">
-                        <span><strong>Frequency</strong>{getTransportTimeValue(service.typicalFrequency)}</span>
-                        <span><strong>First</strong>{getTransportTimeValue(service.firstService)}</span>
-                        <span><strong>Last</strong>{getTransportTimeValue(service.lastService)}</span>
-                        <span><strong>Night service</strong>{getTransportTimeValue(service.nightServiceStatus)}</span>
-                        <span><strong>Late fallback</strong>{getTransportTimeValue(service.lateArrivalFallback)}</span>
-                        {getTransportConfidenceLabel(service.confidence) && (
-                          <span><strong>Confidence</strong>{getTransportConfidenceLabel(service.confidence)}</span>
-                        )}
-                      </div>
-                      {service.warning && <div class="transport-warning">{service.warning}</div>}
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {transportDecisionMatrix.length > 0 && (
-              <section class="transport-block" aria-label="Traveller decision matrix">
-                <h3 class="transport-block-title">Traveller decision matrix</h3>
-                <div class="transport-table-wrap">
-                  <table class="transport-table">
-                    <thead>
-                      <tr>
-                        <th>Situation</th>
-                        <th>Use this</th>
-                        <th>Why</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {transportDecisionMatrix.map((item: any) => (
-                        <tr>
-                          <td>{item.situation || "Situation"}</td>
-                          <td>{item.useThis || "Check planner"}</td>
-                          <td>{item.why || ""}</td>
-                        </tr>
+                {(transportBrief.fullReport?.summary || transportReportSections.length > 0) && (
+                  <details class="transport-report">
+                    <summary>Read full transport report</summary>
+                    <div class="transport-report-body">
+                      {transportBrief.fullReport?.summary && <p>{transportBrief.fullReport.summary}</p>}
+                      {transportReportSections.map((section: any) => (
+                        <>
+                          {section.title && <h4>{section.title}</h4>}
+                          {section.body && <p>{section.body}</p>}
+                        </>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
-
-            {transportCaveats.length > 0 && (
-              <section class="transport-block" aria-label="Important transport caveats">
-                <h3 class="transport-block-title">Important caveats</h3>
-                <ul class="transport-caveats">
-                  {transportCaveats.map((caveat: string) => (
-                    <li>{caveat}</li>
-                  ))}
-                </ul>
-              </section>
-            )}
+                    </div>
+                  </details>
+                )}
+              </aside>
+            </div>
           </section>
         )}
 
