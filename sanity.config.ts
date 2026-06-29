@@ -501,6 +501,8 @@ const transportBriefField = {
             { name: 'useFor', title: 'Use For', type: 'string' },
             { name: 'actionLabel', title: 'Action Label', type: 'string' },
             { name: 'url', title: 'URL', type: 'url' },
+            { name: 'faviconUrl', title: 'Favicon URL', type: 'url', description: 'Optional harvested icon for this app or link. The frontend can fall back to the URL domain favicon.' },
+            { name: 'iconUrl', title: 'Icon URL', type: 'url', description: 'Optional explicit icon URL if it is not a normal favicon.' },
             { name: 'note', title: 'Note', type: 'text', rows: 2 },
             { name: 'evidenceIds', title: 'Evidence IDs', type: 'array', of: [{ type: 'string' }] },
           ],

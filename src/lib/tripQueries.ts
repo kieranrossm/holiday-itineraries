@@ -83,6 +83,8 @@ export const tripDetailQuery = `*[_type == "trip" && slug.current == $slug][0] {
       useFor,
       actionLabel,
       url,
+      faviconUrl,
+      iconUrl,
       note,
       evidenceIds
     },
