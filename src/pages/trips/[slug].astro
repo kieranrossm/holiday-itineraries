@@ -164,6 +164,13 @@ const getTransportModeIcon = (value: unknown) => {
   return "network";
 };
 
+const getTransportArrivalIcon = (value: unknown) => {
+  const label = hasText(value) ? String(value).toLowerCase() : "";
+  if (label.includes("taxi") || label.includes("ride")) return "taxi";
+  if (label.includes("flytoget") || label.includes("express")) return "express";
+  return "train";
+};
+
 const getPlaceScheduleBadge = (place: any) => {
   const schedule = place.schedule || {};
 
@@ -562,8 +569,75 @@ const getTimingStatusLabel = (status: unknown) => (
       }
 
       .transport-card-top {
+        position: relative;
         padding: 0.95rem;
+        padding-right: 5.35rem;
         border-bottom: 1px solid var(--soft);
+      }
+
+      .transport-arrival-icon {
+        position: absolute;
+        top: 0.95rem;
+        right: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3.7rem;
+        height: 3.7rem;
+        border: 1px solid #d9e8ff;
+        border-radius: 12px;
+        background: #f2f7ff;
+        color: #2754c5;
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+      }
+
+      .transport-arrival-icon.train {
+        background: #ecfdf5;
+        border-color: #c7ead8;
+        color: #0f766e;
+      }
+
+      .transport-arrival-icon.express {
+        background: #f2f7ff;
+        border-color: #d9e8ff;
+        color: #2754c5;
+      }
+
+      .transport-arrival-icon.taxi {
+        background: #fff9db;
+        border-color: #fde68a;
+        color: #a16207;
+      }
+
+      .transport-arrival-icon svg {
+        width: 2.25rem;
+        height: 2.25rem;
+        stroke: currentColor;
+        stroke-width: 2.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+      }
+
+      .transport-arrival-icon.taxi svg {
+        width: 2.5rem;
+        height: 2.5rem;
+        stroke-width: 1.9;
+      }
+
+      .transport-arrival-icon.taxi .taxi-body {
+        fill: #facc15;
+        stroke: #a16207;
+      }
+
+      .transport-arrival-icon.taxi .taxi-window {
+        fill: #fff7cc;
+        stroke: #a16207;
+      }
+
+      .transport-arrival-icon.taxi .taxi-wheel {
+        fill: #1f2937;
+        stroke: none;
       }
 
       .transport-role {
@@ -760,7 +834,7 @@ const getTimingStatusLabel = (status: unknown) => (
       .transport-mode-title {
         display: flex;
         align-items: center;
-        gap: 0.55rem;
+        gap: 0.7rem;
       }
 
       .transport-mode-icon {
@@ -768,18 +842,51 @@ const getTimingStatusLabel = (status: unknown) => (
         align-items: center;
         justify-content: center;
         flex: 0 0 auto;
-        width: 2rem;
-        height: 2rem;
-        border-radius: 999px;
-        background: #eef6ff;
+        width: 2.7rem;
+        height: 2.7rem;
+        border: 1px solid #e5edf5;
+        border-radius: 12px;
+        background: #ffffff;
+        color: #2563eb;
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+      }
+
+      .transport-mode-icon.network {
+        background: #fff4f4;
+        border-color: #ffd7d7;
+        color: #dc2626;
+      }
+
+      .transport-mode-icon.metro {
+        background: #f2f7ff;
+        border-color: #d9e8ff;
+        color: #2754c5;
+      }
+
+      .transport-mode-icon.bus-ferry {
+        background: #eff6ff;
+        border-color: #cfe2ff;
         color: #2563eb;
       }
 
+      .transport-mode-icon.tram-walk {
+        background: #f0faf3;
+        border-color: #ccebd7;
+        color: #2f8f55;
+      }
+
+      .transport-mode-glyph {
+        font-size: 1.95rem;
+        line-height: 1;
+        font-weight: 950;
+        letter-spacing: 0;
+      }
+
       .transport-mode-icon svg {
-        width: 1.15rem;
-        height: 1.15rem;
+        width: 1.65rem;
+        height: 1.65rem;
         stroke: currentColor;
-        stroke-width: 2;
+        stroke-width: 2.7;
         stroke-linecap: round;
         stroke-linejoin: round;
         fill: none;
@@ -2147,10 +2254,43 @@ const getTimingStatusLabel = (status: unknown) => (
                       {transportAirportArrival.map((route: any) => {
                         const coverage = getTransportCoverageBadges(route.coverage);
                         const steps = getTransportList(route.routeDetails?.steps);
+                        const arrivalIcon = getTransportArrivalIcon(route.modeLabel);
 
                         return (
                           <article class={`transport-arrival-card ${getTransportRoleClass(route.roleLabel)}`}>
                             <div class="transport-card-top">
+                              <span class={`transport-arrival-icon ${arrivalIcon}`} aria-hidden="true">
+                                {arrivalIcon === "taxi" && (
+                                  <svg viewBox="0 0 24 24">
+                                    <path class="taxi-body" d="M4 11h2.2l1.7-3.2A2 2 0 0 1 9.7 6.7h4.8a2 2 0 0 1 1.7 1l1.8 3.3H20a1.8 1.8 0 0 1 1.8 1.8v3.1a1.8 1.8 0 0 1-1.8 1.8H4a1.8 1.8 0 0 1-1.8-1.8v-3.1A1.8 1.8 0 0 1 4 11z"></path>
+                                    <path class="taxi-window" d="M8.6 10.8l1.1-2h4.6l1.1 2H8.6z"></path>
+                                    <path d="M10 5h4"></path>
+                                    <path d="M10.8 3.8h2.4"></path>
+                                    <circle class="taxi-wheel" cx="7" cy="17.6" r="1.35"></circle>
+                                    <circle class="taxi-wheel" cx="17" cy="17.6" r="1.35"></circle>
+                                  </svg>
+                                )}
+                                {arrivalIcon === "express" && (
+                                  <svg viewBox="0 0 24 24">
+                                    <path d="M5 5h11a4 4 0 0 1 4 4v5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a1 1 0 0 1 1-1z"></path>
+                                    <path d="M8 9h8"></path>
+                                    <path d="M8 13h5"></path>
+                                    <path d="M8 17l-2 3"></path>
+                                    <path d="M16 17l2 3"></path>
+                                    <path d="M18 4l2-2"></path>
+                                  </svg>
+                                )}
+                                {arrivalIcon === "train" && (
+                                  <svg viewBox="0 0 24 24">
+                                    <rect x="5" y="4" width="14" height="13" rx="3"></rect>
+                                    <path d="M8 9h8"></path>
+                                    <path d="M8 13h.01"></path>
+                                    <path d="M16 13h.01"></path>
+                                    <path d="M8 17l-2 3"></path>
+                                    <path d="M16 17l2 3"></path>
+                                  </svg>
+                                )}
+                              </span>
                               {route.roleLabel && <span class="transport-role">{route.roleLabel}</span>}
                               <h4>{formatTransportLabel(route.modeLabel, "Arrival Option")}</h4>
                               {route.routeLabel && <span class="transport-route-label">{route.routeLabel}</span>}
@@ -2209,45 +2349,33 @@ const getTimingStatusLabel = (status: unknown) => (
                         return (
                           <article class="transport-mode-card">
                             <h4 class="transport-mode-title">
-                              <span class="transport-mode-icon" aria-hidden="true">
+                              <span class={`transport-mode-icon ${modeIcon}`} aria-hidden="true">
                                 {modeIcon === "metro" && (
-                                  <svg viewBox="0 0 24 24">
-                                    <rect x="5" y="4" width="14" height="13" rx="3"></rect>
-                                    <path d="M8 17l-2 3"></path>
-                                    <path d="M16 17l2 3"></path>
-                                    <path d="M8 9h8"></path>
-                                    <path d="M8 13h.01"></path>
-                                    <path d="M16 13h.01"></path>
-                                  </svg>
+                                  <span class="transport-mode-glyph">T</span>
                                 )}
                                 {modeIcon === "tram-walk" && (
                                   <svg viewBox="0 0 24 24">
-                                    <path d="M6 5h10a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V8a3 3 0 0 1 1-3z"></path>
-                                    <path d="M8 9h8"></path>
-                                    <path d="M8 16l-2 3"></path>
-                                    <path d="M16 16l2 3"></path>
-                                    <path d="M20 5l1-2"></path>
-                                    <path d="M11 3h2"></path>
+                                    <path d="M7 6h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"></path>
+                                    <path d="M8 10h8"></path>
+                                    <path d="M9 17l-2 3"></path>
+                                    <path d="M15 17l2 3"></path>
+                                    <path d="M9 4h6"></path>
+                                    <path d="M12 4v2"></path>
                                   </svg>
                                 )}
                                 {modeIcon === "bus-ferry" && (
                                   <svg viewBox="0 0 24 24">
-                                    <path d="M6 5h10a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3H7a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1z"></path>
+                                    <path d="M7 5h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path>
                                     <path d="M8 9h8"></path>
-                                    <path d="M7 16v2"></path>
-                                    <path d="M17 16v2"></path>
-                                    <path d="M3 20c2 1 4 1 6 0s4-1 6 0 4 1 6 0"></path>
+                                    <path d="M8 14h.01"></path>
+                                    <path d="M16 14h.01"></path>
+                                    <path d="M8 17v2"></path>
+                                    <path d="M16 17v2"></path>
+                                    <path d="M5 21c2 .7 4 .7 6 0s4-.7 6 0"></path>
                                   </svg>
                                 )}
                                 {modeIcon === "network" && (
-                                  <svg viewBox="0 0 24 24">
-                                    <circle cx="6" cy="7" r="2.5"></circle>
-                                    <circle cx="18" cy="7" r="2.5"></circle>
-                                    <circle cx="12" cy="17" r="2.5"></circle>
-                                    <path d="M8.2 8.8l2.6 5.2"></path>
-                                    <path d="M15.8 8.8L13.2 14"></path>
-                                    <path d="M8.5 7h7"></path>
-                                  </svg>
+                                  <span class="transport-mode-glyph">#</span>
                                 )}
                               </span>
                               <span>{formatTransportLabel(item.modeLabel, "Transport Mode")}</span>
