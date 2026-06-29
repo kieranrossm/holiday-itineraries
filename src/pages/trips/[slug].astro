@@ -102,16 +102,37 @@ const getTransportRoleClass = (value: unknown) => {
   return "";
 };
 
-const getTransportBadgeClass = (value: unknown) => {
-  const label = hasText(value) ? String(value).toLowerCase() : "";
-  if (label.includes("pass") || label.includes("ruter") || label.includes("included")) return "good";
-  if (label.includes("not")) return "warn";
-  return "";
-};
-
 const joinTransportBadges = (value: unknown) => (
   getTransportList(value).filter((item) => hasText(item))
 );
+
+const getTransportCoverageBadges = (value: unknown) => {
+  const labels = joinTransportBadges(value);
+  const seen = new Set<string>();
+
+  return labels.flatMap((label) => {
+    const original = String(label).trim();
+    const normalised = original.toLowerCase();
+    const isPassExclusion = normalised.includes("not pass") || normalised.includes("not oslo pass") || normalised.includes("no oslo pass");
+    const isOsloPass = normalised.includes("oslo pass") || isPassExclusion;
+    const isIncluded = isOsloPass && !isPassExclusion;
+
+    const displayLabel = isOsloPass
+      ? `${isIncluded ? "✓" : "×"} Oslo Pass`
+      : formatTransportLabel(original);
+    const tone = isOsloPass ? (isIncluded ? "good" : "warn") : "";
+    const key = `${displayLabel}:${tone}`;
+
+    if (!displayLabel || seen.has(key)) return [];
+    seen.add(key);
+
+    return [{
+      label: displayLabel,
+      tone,
+      title: displayLabel === original ? "" : original,
+    }];
+  });
+};
 
 const formatTransportLabel = (value: unknown, fallback = "") => {
   if (!hasText(value)) return fallback;
@@ -133,6 +154,14 @@ const getTransportFaviconUrl = (item: any) => {
   } catch {
     return "";
   }
+};
+
+const getTransportModeIcon = (value: unknown) => {
+  const label = hasText(value) ? String(value).toLowerCase() : "";
+  if (label.includes("metro")) return "metro";
+  if (label.includes("tram") || label.includes("walk")) return "tram-walk";
+  if (label.includes("bus") || label.includes("ferry")) return "bus-ferry";
+  return "network";
 };
 
 const getPlaceScheduleBadge = (place: any) => {
@@ -657,8 +686,8 @@ const getTimingStatusLabel = (status: unknown) => (
       }
 
       .transport-badge.warn {
-        background: #fff1d6;
-        color: #9a5b00;
+        background: #fee2e2;
+        color: #b91c1c;
       }
 
       .transport-watch {
@@ -726,6 +755,34 @@ const getTimingStatusLabel = (status: unknown) => (
         flex-direction: column;
         padding: 0.95rem;
         min-height: 176px;
+      }
+
+      .transport-mode-title {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+      }
+
+      .transport-mode-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        background: #eef6ff;
+        color: #2563eb;
+      }
+
+      .transport-mode-icon svg {
+        width: 1.15rem;
+        height: 1.15rem;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
       }
 
       .transport-mode-card dl {
@@ -2088,7 +2145,7 @@ const getTimingStatusLabel = (status: unknown) => (
                     </div>
                     <div class="transport-arrival-grid">
                       {transportAirportArrival.map((route: any) => {
-                        const coverage = joinTransportBadges(route.coverage);
+                        const coverage = getTransportCoverageBadges(route.coverage);
                         const steps = getTransportList(route.routeDetails?.steps);
 
                         return (
@@ -2107,8 +2164,8 @@ const getTimingStatusLabel = (status: unknown) => (
 
                             {coverage.length > 0 && (
                               <div class="transport-badges">
-                                {coverage.map((label: string) => (
-                                  <span class={`transport-badge ${getTransportBadgeClass(label)}`}>{label}</span>
+                                {coverage.map((badge) => (
+                                  <span class={`transport-badge ${badge.tone}`} title={badge.title || undefined}>{badge.label}</span>
                                 ))}
                               </div>
                             )}
@@ -2146,11 +2203,55 @@ const getTimingStatusLabel = (status: unknown) => (
                     </div>
                     <div class="transport-city-grid">
                       {transportCityTravel.map((item: any) => {
-                        const coverage = joinTransportBadges(item.coverage);
+                        const coverage = getTransportCoverageBadges(item.coverage);
+                        const modeIcon = getTransportModeIcon(item.modeLabel);
 
                         return (
                           <article class="transport-mode-card">
-                            <h4>{formatTransportLabel(item.modeLabel, "Transport Mode")}</h4>
+                            <h4 class="transport-mode-title">
+                              <span class="transport-mode-icon" aria-hidden="true">
+                                {modeIcon === "metro" && (
+                                  <svg viewBox="0 0 24 24">
+                                    <rect x="5" y="4" width="14" height="13" rx="3"></rect>
+                                    <path d="M8 17l-2 3"></path>
+                                    <path d="M16 17l2 3"></path>
+                                    <path d="M8 9h8"></path>
+                                    <path d="M8 13h.01"></path>
+                                    <path d="M16 13h.01"></path>
+                                  </svg>
+                                )}
+                                {modeIcon === "tram-walk" && (
+                                  <svg viewBox="0 0 24 24">
+                                    <path d="M6 5h10a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V8a3 3 0 0 1 1-3z"></path>
+                                    <path d="M8 9h8"></path>
+                                    <path d="M8 16l-2 3"></path>
+                                    <path d="M16 16l2 3"></path>
+                                    <path d="M20 5l1-2"></path>
+                                    <path d="M11 3h2"></path>
+                                  </svg>
+                                )}
+                                {modeIcon === "bus-ferry" && (
+                                  <svg viewBox="0 0 24 24">
+                                    <path d="M6 5h10a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3H7a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1z"></path>
+                                    <path d="M8 9h8"></path>
+                                    <path d="M7 16v2"></path>
+                                    <path d="M17 16v2"></path>
+                                    <path d="M3 20c2 1 4 1 6 0s4-1 6 0 4 1 6 0"></path>
+                                  </svg>
+                                )}
+                                {modeIcon === "network" && (
+                                  <svg viewBox="0 0 24 24">
+                                    <circle cx="6" cy="7" r="2.5"></circle>
+                                    <circle cx="18" cy="7" r="2.5"></circle>
+                                    <circle cx="12" cy="17" r="2.5"></circle>
+                                    <path d="M8.2 8.8l2.6 5.2"></path>
+                                    <path d="M15.8 8.8L13.2 14"></path>
+                                    <path d="M8.5 7h7"></path>
+                                  </svg>
+                                )}
+                              </span>
+                              <span>{formatTransportLabel(item.modeLabel, "Transport Mode")}</span>
+                            </h4>
                             <dl>
                               {item.useFor && <div><dt>Use for</dt><dd>{item.useFor}</dd></div>}
                               {item.pattern && <div><dt>Pattern</dt><dd>{item.pattern}</dd></div>}
@@ -2158,8 +2259,8 @@ const getTimingStatusLabel = (status: unknown) => (
                             </dl>
                             {coverage.length > 0 && (
                               <div class="transport-badges" aria-label={`${item.modeLabel || "Transport mode"} coverage`}>
-                                {coverage.map((label: string) => (
-                                  <span class={`transport-badge ${getTransportBadgeClass(label)}`}>{label}</span>
+                                {coverage.map((badge) => (
+                                  <span class={`transport-badge ${badge.tone}`} title={badge.title || undefined}>{badge.label}</span>
                                 ))}
                               </div>
                             )}

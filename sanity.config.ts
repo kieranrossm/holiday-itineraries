@@ -436,7 +436,7 @@ const transportBriefField = {
             { name: 'timeLabel', title: 'Time Label', type: 'string', description: 'Compact comparison value only, e.g. 40-55 min.' },
             { name: 'costLabel', title: 'Cost Label', type: 'string', description: 'Compact fare/range only, e.g. 900-1400 NOK / ~GBP 66-102. Put caveats in Watch Out or Route Details.' },
             { name: 'servicePattern', title: 'Service Pattern', type: 'string', description: 'Compact service marker only, e.g. Regular departures, Every 10-20 min, or On demand.' },
-            { name: 'coverage', title: 'Coverage Badges', type: 'array', of: [{ type: 'string' }] },
+            { name: 'coverage', title: 'Coverage Badges', type: 'array', of: [{ type: 'string' }], description: 'Use consistent pass/ticket labels. Prefer Oslo Pass-covered or Not Oslo Pass-covered for pass status, plus separate ticket/payment labels such as Vy/Ruter ticket or Card/app payment.' },
             { name: 'watchOut', title: 'Watch Out', type: 'text', rows: 2 },
             { name: 'showRoute', title: 'Show Route Drill-down', type: 'boolean', initialValue: true },
             {
@@ -474,7 +474,7 @@ const transportBriefField = {
             { name: 'modeLabel', title: 'Mode Label', type: 'string' },
             { name: 'useFor', title: 'Use For', type: 'string' },
             { name: 'pattern', title: 'Pattern', type: 'text', rows: 2 },
-            { name: 'coverage', title: 'Coverage Badges', type: 'array', of: [{ type: 'string' }] },
+            { name: 'coverage', title: 'Coverage Badges', type: 'array', of: [{ type: 'string' }], description: 'Use consistent pass/ticket labels. Prefer Oslo Pass-covered or Not Oslo Pass-covered for pass status, plus separate ticket/payment labels such as Ruter ticket.' },
             { name: 'watchOut', title: 'Watch Out', type: 'text', rows: 2 },
             { name: 'evidenceIds', title: 'Evidence IDs', type: 'array', of: [{ type: 'string' }] },
           ],
