@@ -464,18 +464,18 @@ const getTimingStatusLabel = (status: unknown) => (
       }
 
       .transport-content {
-        display: grid;
-        grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.85fr);
+        display: block;
       }
 
-      .transport-primary,
-      .transport-side {
+      .transport-primary {
         padding: clamp(1rem, 3vw, 1.5rem);
       }
 
-      .transport-side {
-        border-left: 1px solid #d7dee8;
-        background: #fbfcfe;
+      .transport-utility-grid {
+        display: grid;
+        grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+        gap: 1rem;
+        padding: 0 clamp(1rem, 3vw, 1.5rem) clamp(1rem, 3vw, 1.5rem);
       }
 
       .transport-block {
@@ -579,11 +579,41 @@ const getTimingStatusLabel = (status: unknown) => (
 
       .transport-facts {
         display: grid;
-        gap: 0.5rem;
-        padding: 0.85rem 0.95rem;
+        gap: 0.65rem;
+        padding: 0.85rem 0.95rem 0.75rem;
       }
 
-      .transport-fact,
+      .transport-fact {
+        display: grid;
+        gap: 0.22rem;
+        min-width: 0;
+        padding-top: 0.65rem;
+        border-top: 1px solid #e2e8f0;
+        color: #475569;
+        font-size: 0.82rem;
+        line-height: 1.38;
+      }
+
+      .transport-fact:first-child {
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      .transport-fact strong {
+        display: block;
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .transport-fact span {
+        display: block;
+        color: var(--ink);
+        font-weight: 780;
+        overflow-wrap: anywhere;
+      }
+
       .transport-mode-card div {
         display: grid;
         grid-template-columns: 4.4rem 1fr;
@@ -594,7 +624,6 @@ const getTimingStatusLabel = (status: unknown) => (
         line-height: 1.35;
       }
 
-      .transport-fact strong,
       .transport-mode-card dt {
         color: var(--muted);
         font-size: 0.68rem;
@@ -606,6 +635,7 @@ const getTimingStatusLabel = (status: unknown) => (
         display: flex;
         flex-wrap: wrap;
         gap: 0.35rem;
+        margin-top: auto;
         padding: 0 0.95rem 0.75rem;
       }
 
@@ -632,14 +662,14 @@ const getTimingStatusLabel = (status: unknown) => (
       }
 
       .transport-watch {
-        margin: auto 0.95rem 0.85rem;
-        padding: 0.65rem;
+        margin: 0.7rem 0.95rem 0.85rem;
+        padding: 0;
         border-radius: 10px;
-        background: #fde7ec;
-        color: #a33a4b;
+        background: transparent;
+        color: #475569;
         font-size: 0.78rem;
-        line-height: 1.35;
-        font-weight: 760;
+        line-height: 1.42;
+        font-weight: 720;
       }
 
       .transport-route-details {
@@ -692,6 +722,8 @@ const getTimingStatusLabel = (status: unknown) => (
       }
 
       .transport-mode-card {
+        display: flex;
+        flex-direction: column;
         padding: 0.95rem;
         min-height: 176px;
       }
@@ -707,8 +739,12 @@ const getTimingStatusLabel = (status: unknown) => (
         color: #475569;
       }
 
+      .transport-mode-card .transport-badges {
+        margin-top: auto;
+        padding: 0.85rem 0 0;
+      }
+
       .transport-payment-card {
-        margin-bottom: 1rem;
         padding: 0.9rem;
         background: #dff4ef;
         color: #14524d;
@@ -730,7 +766,13 @@ const getTimingStatusLabel = (status: unknown) => (
 
       .transport-tool-list {
         display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
         gap: 0.65rem;
+      }
+
+      .transport-toolkit-band {
+        margin: 0;
+        padding: 0 clamp(1rem, 3vw, 1.5rem) clamp(1rem, 3vw, 1.5rem);
       }
 
       .transport-tool-row {
@@ -804,7 +846,6 @@ const getTimingStatusLabel = (status: unknown) => (
       }
 
       .transport-report {
-        margin-top: 1rem;
         overflow: hidden;
       }
 
@@ -1044,15 +1085,6 @@ const getTimingStatusLabel = (status: unknown) => (
           grid-template-columns: 1fr;
         }
 
-        .transport-content {
-          grid-template-columns: 1fr;
-        }
-
-        .transport-side {
-          border-left: 0;
-          border-top: 1px solid #d7dee8;
-        }
-
         .transport-arrival-grid {
           grid-template-columns: 1fr;
         }
@@ -1067,6 +1099,10 @@ const getTimingStatusLabel = (status: unknown) => (
 
         .transport-tool-row {
           grid-template-columns: minmax(0, 1fr) 2.35rem;
+        }
+
+        .transport-utility-grid {
+          grid-template-columns: 1fr;
         }
 
         .transport-meta {
@@ -2118,61 +2154,13 @@ const getTimingStatusLabel = (status: unknown) => (
                             <dl>
                               {item.useFor && <div><dt>Use for</dt><dd>{item.useFor}</dd></div>}
                               {item.pattern && <div><dt>Pattern</dt><dd>{item.pattern}</dd></div>}
-                              {coverage.length > 0 && <div><dt>Coverage</dt><dd>{coverage.join(", ")}</dd></div>}
                               {item.watchOut && <div><dt>Watch</dt><dd>{item.watchOut}</dd></div>}
                             </dl>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
-              </section>
-
-              <aside class="transport-side">
-                {transportBrief.paymentReadiness?.summary && (
-                  <section class="transport-payment-card">
-                    <h3>Payment Readiness</h3>
-                    <p>{transportBrief.paymentReadiness.summary}</p>
-                    {transportBrief.paymentReadiness.cashCaveat && <p>{transportBrief.paymentReadiness.cashCaveat}</p>}
-                  </section>
-                )}
-
-                {transportToolkit.length > 0 && (
-                  <section class="transport-block" aria-label="Apps and links">
-                    <div class="transport-section-head">
-                      <h3 class="transport-block-title">Apps & Links</h3>
-                    </div>
-                    <div class="transport-tool-list">
-                      {transportToolkit.map((item: any) => {
-                        const faviconUrl = getTransportFaviconUrl(item);
-
-                        return (
-                          <article class="transport-tool-row">
-                            <div class="transport-tool-copy">
-                              <div class="transport-tool-titleline">
-                                <h4>{formatTransportLabel(item.name, "Resource")}</h4>
-                                {item.category && <span>{formatTransportLabel(item.category)}</span>}
-                              </div>
-                              {(item.useFor || item.note) && (
-                                <p>{item.useFor && <strong>{item.useFor}. </strong>}{item.note}</p>
-                              )}
-                            </div>
-                            {item.url ? (
-                              <a class="transport-tool-icon" href={item.url} target="_blank" rel="noreferrer" aria-label={item.actionLabel || `Open ${item.name || "resource"}`}>
-                                {faviconUrl ? (
-                                  <img src={faviconUrl} alt="" loading="lazy" />
-                                ) : (
-                                  <span>{String(item.name || "R").slice(0, 1)}</span>
-                                )}
-                              </a>
-                            ) : (
-                              <div class="transport-tool-icon" aria-hidden="true">
-                                {faviconUrl ? (
-                                  <img src={faviconUrl} alt="" loading="lazy" />
-                                ) : (
-                                  <span>{String(item.name || "R").slice(0, 1)}</span>
-                                )}
+                            {coverage.length > 0 && (
+                              <div class="transport-badges" aria-label={`${item.modeLabel || "Transport mode"} coverage`}>
+                                {coverage.map((label: string) => (
+                                  <span class={`transport-badge ${getTransportBadgeClass(label)}`}>{label}</span>
+                                ))}
                               </div>
                             )}
                           </article>
@@ -2181,22 +2169,79 @@ const getTimingStatusLabel = (status: unknown) => (
                     </div>
                   </section>
                 )}
+              </section>
 
-                {(transportBrief.fullReport?.summary || transportReportSections.length > 0) && (
-                  <details class="transport-report">
-                    <summary>Read full transport report</summary>
-                    <div class="transport-report-body">
-                      {transportBrief.fullReport?.summary && <p>{transportBrief.fullReport.summary}</p>}
-                      {transportReportSections.map((section: any) => (
-                        <>
-                          {section.title && <h4>{section.title}</h4>}
-                          {section.body && <p>{section.body}</p>}
-                        </>
-                      ))}
-                    </div>
-                  </details>
-                )}
-              </aside>
+              {transportToolkit.length > 0 && (
+                <section class="transport-block transport-toolkit-band" aria-label="Apps and links">
+                  <div class="transport-section-head">
+                    <h3 class="transport-block-title">Apps & Links</h3>
+                    <span class="transport-section-note">Planners, tickets, maps and fallbacks</span>
+                  </div>
+                  <div class="transport-tool-list">
+                    {transportToolkit.map((item: any) => {
+                      const faviconUrl = getTransportFaviconUrl(item);
+
+                      return (
+                        <article class="transport-tool-row">
+                          <div class="transport-tool-copy">
+                            <div class="transport-tool-titleline">
+                              <h4>{formatTransportLabel(item.name, "Resource")}</h4>
+                              {item.category && <span>{formatTransportLabel(item.category)}</span>}
+                            </div>
+                            {(item.useFor || item.note) && (
+                              <p>{item.useFor && <strong>{item.useFor}. </strong>}{item.note}</p>
+                            )}
+                          </div>
+                          {item.url ? (
+                            <a class="transport-tool-icon" href={item.url} target="_blank" rel="noreferrer" aria-label={item.actionLabel || `Open ${item.name || "resource"}`}>
+                              {faviconUrl ? (
+                                <img src={faviconUrl} alt="" loading="lazy" />
+                              ) : (
+                                <span>{String(item.name || "R").slice(0, 1)}</span>
+                              )}
+                            </a>
+                          ) : (
+                            <div class="transport-tool-icon" aria-hidden="true">
+                              {faviconUrl ? (
+                                <img src={faviconUrl} alt="" loading="lazy" />
+                              ) : (
+                                <span>{String(item.name || "R").slice(0, 1)}</span>
+                              )}
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {(transportBrief.paymentReadiness?.summary || transportBrief.fullReport?.summary || transportReportSections.length > 0) && (
+                <div class="transport-utility-grid">
+                  {transportBrief.paymentReadiness?.summary && (
+                    <section class="transport-payment-card">
+                      <h3>Payment Readiness</h3>
+                      <p>{transportBrief.paymentReadiness.summary}</p>
+                      {transportBrief.paymentReadiness.cashCaveat && <p>{transportBrief.paymentReadiness.cashCaveat}</p>}
+                    </section>
+                  )}
+
+                  {(transportBrief.fullReport?.summary || transportReportSections.length > 0) && (
+                    <details class="transport-report">
+                      <summary>Read full transport report</summary>
+                      <div class="transport-report-body">
+                        {transportBrief.fullReport?.summary && <p>{transportBrief.fullReport.summary}</p>}
+                        {transportReportSections.map((section: any) => (
+                          <>
+                            {section.title && <h4>{section.title}</h4>}
+                            {section.body && <p>{section.body}</p>}
+                          </>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              )}
             </div>
           </section>
         )}
