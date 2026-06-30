@@ -1,0 +1,1216 @@
+---
+import { sanityClient } from "sanity:client";
+import { formatDate } from "../../../lib/formatters";
+import { tripDetailQuery, visibleTripSlugsQuery } from "../../../lib/tripQueries";
+
+export async function getStaticPaths() {
+  const data = await sanityClient.fetch(visibleTripSlugsQuery);
+  return data.map((item: any) => ({
+    params: { slug: item.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+
+const trip = await sanityClient.fetch(tripDetailQuery, { slug });
+
+if (!trip) {
+  return Astro.redirect("/404");
+}
+
+const transportBrief = trip.transportBrief || null;
+
+if (!transportBrief) {
+  return Astro.redirect(`/trips/${slug}/`);
+}
+
+const hasText = (value: unknown) => typeof value === "string" && value.trim().length > 0;
+
+const getList = (value: unknown) => (
+  Array.isArray(value) ? value.filter((item) => item && (typeof item !== "string" || hasText(item))) : []
+);
+
+const formatTransportLabel = (value: unknown, fallback = "") => {
+  if (!hasText(value)) return fallback;
+
+  return String(value).trim().replace(/[A-Za-z][A-Za-z']*/g, (word) => {
+    if (word.length <= 2 && word === word.toUpperCase()) return word;
+    return `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`;
+  });
+};
+
+const getTransportCoverageSortRank = (value: unknown) => {
+  const label = hasText(value) ? String(value).toLowerCase() : "";
+  if (label.includes("pass") || label.includes("covered")) return 0;
+  if (label.includes("ticket")) return 1;
+  if (label.includes("payment") || label.includes("card") || label.includes("app")) return 2;
+  return 3;
+};
+
+const getSortedCoverage = (value: unknown) => (
+  getList(value).sort((a: string, b: string) => (
+    getTransportCoverageSortRank(a) - getTransportCoverageSortRank(b) ||
+    String(a).localeCompare(String(b))
+  ))
+);
+
+const getCoverageTone = (value: unknown) => {
+  const label = hasText(value) ? String(value).toLowerCase() : "";
+  if (label.includes("not pass") || label.includes("not oslo pass") || label.includes("no oslo pass")) return "warn";
+  if (label.includes("pass") || label.includes("ticket") || label.includes("payment") || label.includes("covered")) return "good";
+  return "";
+};
+
+const getTransportFaviconUrl = (item: any) => {
+  if (hasText(item?.faviconUrl)) return String(item.faviconUrl).trim();
+  if (hasText(item?.iconUrl)) return String(item.iconUrl).trim();
+  if (!hasText(item?.url)) return "";
+
+  try {
+    const host = new URL(String(item.url)).hostname;
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
+  } catch {
+    return "";
+  }
+};
+
+const transportAirportArrival = getList(transportBrief.airportArrival)
+  .filter((item: any) => ["modeLabel", "roleLabel", "routeLabel", "timeLabel", "costLabel"].some((field) => hasText(item?.[field])));
+const transportCityTravel = getList(transportBrief.cityTravel)
+  .filter((item: any) => ["modeLabel", "useFor", "pattern", "watchOut"].some((field) => hasText(item?.[field])));
+const transportToolkit = getList(transportBrief.toolkit)
+  .filter((item: any) => ["name", "useFor", "note", "url"].some((field) => hasText(item?.[field])));
+const transportReportSections = getList(transportBrief.fullReport?.sections)
+  .filter((item: any) => ["title", "body"].some((field) => hasText(item?.[field])));
+const transportSources = getList(transportBrief.sources)
+  .filter((item: any) => ["label", "url"].some((field) => hasText(item?.[field])));
+const getSourceFreshnessLabel = (sources: any[]) => {
+  const checkedDates = sources
+    .map((source) => hasText(source?.checked) ? String(source.checked).slice(0, 10) : "")
+    .filter(Boolean)
+    .sort();
+
+  if (checkedDates.length === 0) return "";
+
+  const first = checkedDates[0];
+  const last = checkedDates[checkedDates.length - 1];
+
+  return first === last
+    ? `Sources Checked: ${formatDate(first)}`
+    : `Sources Checked: ${formatDate(first)} - ${formatDate(last)}`;
+};
+
+const sourceFreshnessLabel = getSourceFreshnessLabel(transportSources);
+const osloPassTool = transportToolkit.find((item: any) => String(item?.name || "").toLowerCase().includes("oslo pass"));
+const osloPassReportSection = transportReportSections.find((section: any) => String(section?.title || "").toLowerCase().includes("pass"));
+const osloPassCoverageRows = [
+  ...transportAirportArrival.map((item: any) => ({
+    modeLabel: item.modeLabel,
+    context: item.routeLabel,
+    coverageQualifier: item.coverageQualifier,
+    coverage: getList(item.coverage).filter((label: string) => String(label).toLowerCase().includes("pass")),
+    note: item.routeDetails?.ticketNote || item.watchOut,
+    evidenceIds: item.evidenceIds,
+  })),
+  ...transportCityTravel.map((item: any) => ({
+    modeLabel: item.modeLabel,
+    context: item.useFor,
+    coverageQualifier: item.coverageQualifier,
+    coverage: getList(item.coverage).filter((label: string) => String(label).toLowerCase().includes("pass")),
+    note: item.watchOut || item.pattern,
+    evidenceIds: item.evidenceIds,
+  })),
+].filter((item) => item.coverage.length > 0 || hasText(item.note));
+const transportCostMarkers = transportAirportArrival
+  .filter((item: any) => hasText(item.costLabel))
+  .map((item: any) => ({
+    modeLabel: item.modeLabel,
+    routeLabel: item.routeLabel,
+    costLabel: item.costLabel,
+    costNote: item.routeDetails?.costNote,
+    evidenceIds: item.evidenceIds,
+  }));
+const transportLateNotes = transportAirportArrival
+  .filter((item: any) => (
+    hasText(item.servicePattern) ||
+    hasText(item.routeDetails?.lateArrivalNote) ||
+    Object.values(item.serviceWindow || {}).some(hasText)
+  ))
+  .map((item: any) => ({
+    modeLabel: item.modeLabel,
+    servicePattern: item.servicePattern,
+    serviceWindow: item.serviceWindow || {},
+    lateArrivalNote: item.routeDetails?.lateArrivalNote,
+    watchOut: item.watchOut,
+    evidenceIds: item.evidenceIds,
+  }));
+const transportCaveats = [
+  ...transportAirportArrival
+    .filter((item: any) => hasText(item.watchOut))
+    .map((item: any) => ({ title: item.modeLabel, body: item.watchOut, evidenceIds: item.evidenceIds })),
+  ...transportCityTravel
+    .filter((item: any) => hasText(item.watchOut))
+    .map((item: any) => ({ title: item.modeLabel, body: item.watchOut, evidenceIds: item.evidenceIds })),
+];
+
+const sourceById = new Map(transportSources.map((source: any) => [source.id, source]));
+const getSourcesForEvidence = (evidenceIds: unknown) => (
+  getList(evidenceIds)
+    .map((id) => sourceById.get(id))
+    .filter(Boolean)
+);
+const osloPassSources = getSourcesForEvidence([
+  ...(osloPassTool?.evidenceIds || []),
+  ...osloPassCoverageRows.flatMap((item) => getList(item.evidenceIds)),
+]);
+const hasOsloPassSection = Boolean(osloPassTool || osloPassReportSection || osloPassCoverageRows.length > 0);
+
+const tripUrl = `/trips/${slug}/`;
+const pageTitle = `${transportBrief.title || "Transport Brief"} - ${trip.title}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172033;
+        --muted: #64748b;
+        --paper: #f6f8fb;
+        --panel: #ffffff;
+        --line: #d7dee8;
+        --soft: #e7edf5;
+        --soft-2: #f8fafc;
+        --green: #0f766e;
+        --green-bg: #dff4ef;
+        --blue: #2457a6;
+        --blue-bg: #e4edfb;
+        --amber: #9a5b00;
+        --amber-bg: #fff1d6;
+        --rose: #b91c1c;
+        --rose-bg: #fee2e2;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        letter-spacing: 0;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .report-shell {
+        width: min(1120px, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 1.4rem 0 3.5rem;
+      }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.15rem;
+        margin-bottom: 0.8rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 850;
+        text-decoration: none;
+      }
+
+      .back-link:hover {
+        color: var(--ink);
+      }
+
+      .report-hero,
+      .report-section,
+      .report-card,
+      .report-resource,
+      .source-row {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel);
+        box-shadow: 0 14px 34px rgba(24, 32, 42, 0.06);
+      }
+
+      .report-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: start;
+        padding: clamp(1.15rem, 3vw, 1.7rem);
+      }
+
+      .kicker {
+        margin: 0 0 0.4rem;
+        color: var(--green);
+        font-size: 0.76rem;
+        font-weight: 950;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p {
+        overflow-wrap: anywhere;
+      }
+
+      h1 {
+        max-width: 15ch;
+        margin: 0;
+        font-size: clamp(2rem, 6vw, 4.6rem);
+        line-height: 0.98;
+      }
+
+      .hero-summary {
+        max-width: 74ch;
+        margin: 1rem 0 0;
+        color: #475569;
+        font-size: 1rem;
+        line-height: 1.58;
+        font-weight: 650;
+      }
+
+      .hero-meta {
+        display: grid;
+        gap: 0.45rem;
+        justify-items: end;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 850;
+        text-align: right;
+      }
+
+      .hero-meta span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.8rem;
+        padding: 0.28rem 0.6rem;
+        border: 1px solid var(--soft);
+        border-radius: 999px;
+        background: var(--soft-2);
+      }
+
+      .jump-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin: 1rem 0;
+      }
+
+      .jump-links a,
+      .primary-link,
+      .resource-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.15rem;
+        padding: 0.42rem 0.78rem;
+        border: 1px solid var(--soft);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--ink);
+        font-size: 0.8rem;
+        font-weight: 900;
+        text-decoration: none;
+      }
+
+      .primary-link {
+        border-color: var(--ink);
+        background: var(--ink);
+        color: #ffffff;
+      }
+
+      .report-section {
+        margin-top: 1rem;
+        padding: clamp(1rem, 3vw, 1.35rem);
+        box-shadow: none;
+      }
+
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: end;
+        margin-bottom: 0.9rem;
+      }
+
+      .section-head h2 {
+        margin: 0;
+        font-size: clamp(1.25rem, 3vw, 1.75rem);
+        line-height: 1.1;
+      }
+
+      .section-note {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 850;
+        text-align: right;
+      }
+
+      .arrival-stack,
+      .city-grid,
+      .prose-grid,
+      .marker-grid,
+      .resource-grid,
+      .source-grid {
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .arrival-stack {
+        grid-template-columns: 1fr;
+      }
+
+      .city-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .prose-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .marker-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .resource-grid {
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      }
+
+      .source-grid {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      }
+
+      .report-card {
+        display: grid;
+        gap: 0.9rem;
+        padding: 1rem;
+        box-shadow: none;
+      }
+
+      .arrival-card {
+        grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.4fr);
+      }
+
+      .card-kicker {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        min-height: 1.55rem;
+        margin-bottom: 0.55rem;
+        padding: 0.22rem 0.55rem;
+        border-radius: 999px;
+        background: var(--blue-bg);
+        color: var(--blue);
+        font-size: 0.7rem;
+        font-weight: 900;
+      }
+
+      .card-kicker.best {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+
+      .card-kicker.fallback {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+
+      .card-title {
+        margin: 0;
+        font-size: 1.15rem;
+        line-height: 1.2;
+      }
+
+      .route-label {
+        display: block;
+        margin-top: 0.25rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 850;
+      }
+
+      .fact-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.55rem;
+      }
+
+      .service-window-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
+      }
+
+      .fact {
+        min-width: 0;
+        padding: 0.65rem;
+        border: 1px solid var(--soft);
+        border-radius: 12px;
+        background: var(--soft-2);
+      }
+
+      .fact strong,
+      .detail-label {
+        display: block;
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 950;
+        text-transform: uppercase;
+      }
+
+      .fact span {
+        display: block;
+        margin-top: 0.22rem;
+        color: var(--ink);
+        font-size: 0.9rem;
+        font-weight: 850;
+        line-height: 1.25;
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+
+      .coverage-qualifier {
+        margin: 0.35rem 0 0;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+        line-height: 1.35;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.55rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 0.72rem;
+        font-weight: 850;
+      }
+
+      .badge.good {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+
+      .badge.warn {
+        background: var(--rose-bg);
+        color: var(--rose);
+      }
+
+      .watch-note {
+        margin: 0;
+        color: #475569;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        font-weight: 700;
+      }
+
+      .route-steps {
+        margin: 0;
+        padding-left: 1.2rem;
+        color: #475569;
+        font-size: 0.88rem;
+        line-height: 1.55;
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
+      }
+
+      .detail-box {
+        padding: 0.75rem;
+        border: 1px solid var(--soft);
+        border-radius: 12px;
+        background: #ffffff;
+        color: #475569;
+        font-size: 0.86rem;
+        line-height: 1.5;
+      }
+
+      .detail-box p {
+        margin: 0.24rem 0 0;
+      }
+
+      .city-card h3,
+      .prose-card h3,
+      .report-resource h3 {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.25;
+      }
+
+      .city-card dl {
+        display: grid;
+        gap: 0.55rem;
+        margin: 0;
+      }
+
+      .city-card div {
+        display: grid;
+        grid-template-columns: 4.5rem 1fr;
+        gap: 0.65rem;
+      }
+
+      .city-card dt {
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 950;
+        text-transform: uppercase;
+      }
+
+      .city-card dd {
+        margin: 0;
+        color: #475569;
+        font-size: 0.86rem;
+        line-height: 1.45;
+      }
+
+      .prose-card {
+        align-content: start;
+      }
+
+      .prose-card p,
+      .payment-copy p,
+      .source-row p {
+        margin: 0.4rem 0 0;
+        color: #475569;
+        font-size: 0.9rem;
+        line-height: 1.58;
+      }
+
+      .gap-note {
+        margin-top: 0.85rem;
+        padding: 0.8rem;
+        border: 1px solid #fde68a;
+        border-radius: 12px;
+        background: #fffbeb;
+        color: #854d0e;
+        font-size: 0.86rem;
+        line-height: 1.45;
+        font-weight: 750;
+      }
+
+      .payment-copy {
+        max-width: 78ch;
+      }
+
+      .report-resource {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 2.35rem;
+        gap: 0.7rem;
+        align-items: start;
+        padding: 0.85rem;
+        box-shadow: none;
+      }
+
+      .resource-type {
+        display: inline-flex;
+        margin-top: 0.25rem;
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 950;
+        text-transform: uppercase;
+      }
+
+      .report-resource p {
+        margin: 0.35rem 0 0;
+        color: #475569;
+        font-size: 0.84rem;
+        line-height: 1.45;
+      }
+
+      .resource-icon {
+        width: 2.35rem;
+        height: 2.35rem;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--soft);
+        border-radius: 10px;
+        background: var(--soft-2);
+        color: var(--ink);
+        font-size: 0.85rem;
+        font-weight: 950;
+        text-decoration: none;
+        overflow: hidden;
+      }
+
+      .resource-icon img {
+        width: 1.45rem;
+        height: 1.45rem;
+        object-fit: contain;
+      }
+
+      .source-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+
+      .source-chip {
+        display: inline-flex;
+        min-height: 1.45rem;
+        align-items: center;
+        border-radius: 999px;
+        background: #eef6ff;
+        color: #2457a6;
+        padding: 0.18rem 0.48rem;
+        font-size: 0.68rem;
+        font-weight: 900;
+        text-decoration: none;
+      }
+
+      .source-row {
+        display: block;
+        padding: 0.85rem;
+        box-shadow: none;
+        text-decoration: none;
+      }
+
+      .source-row h3 {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.3;
+      }
+
+      @media (max-width: 760px) {
+        .report-shell {
+          width: min(100% - 1rem, 1120px);
+          padding-top: 0.8rem;
+        }
+
+        .report-hero {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-meta {
+          justify-items: start;
+          text-align: left;
+        }
+
+        .section-head {
+          align-items: start;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+
+        .section-note {
+          text-align: left;
+        }
+
+        .arrival-card,
+        .city-grid,
+        .prose-grid,
+        .marker-grid,
+        .detail-grid,
+        .fact-grid,
+        .service-window-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="report-shell">
+      <a class="back-link" href={tripUrl}>Back to itinerary</a>
+
+      <header class="report-hero">
+        <div>
+          <p class="kicker">Local transport report</p>
+          <h1>{transportBrief.title || `${trip.title} transport`}</h1>
+          {transportBrief.defaultRecommendation && (
+            <p class="hero-summary">{transportBrief.defaultRecommendation}</p>
+          )}
+        </div>
+        <div class="hero-meta">
+          {transportBrief.destinationLabel && <span>{transportBrief.destinationLabel}</span>}
+          {transportBrief.stayAreaLabel && <span>Stay area: {transportBrief.stayAreaLabel}</span>}
+          {transportBrief.generatedAt && <span>Checked: {formatDate(transportBrief.generatedAt)}</span>}
+          {sourceFreshnessLabel && <span>{sourceFreshnessLabel}</span>}
+          <a class="primary-link" href={tripUrl}>Trip overview</a>
+        </div>
+      </header>
+
+      <nav class="jump-links" aria-label="Transport report sections">
+        {transportAirportArrival.length > 0 && <a href="#arrival">Airport arrival</a>}
+        {transportCityTravel.length > 0 && <a href="#city-travel">City travel</a>}
+        {hasOsloPassSection && <a href="#oslo-pass">Oslo Pass</a>}
+        {transportCostMarkers.length > 0 && <a href="#cost-markers">Cost markers</a>}
+        {transportLateNotes.length > 0 && <a href="#late-arrivals">Late arrivals</a>}
+        {(transportBrief.paymentReadiness?.summary || transportReportSections.length > 0) && <a href="#pass-payment">Pass & payment</a>}
+        {transportToolkit.length > 0 && <a href="#apps-links">Apps & links</a>}
+        {transportReportSections.length > 0 && <a href="#full-report">Report notes</a>}
+        {transportCaveats.length > 0 && <a href="#caveats">Caveats</a>}
+        {transportSources.length > 0 && <a href="#sources">Sources</a>}
+      </nav>
+
+      {transportAirportArrival.length > 0 && (
+        <section id="arrival" class="report-section" aria-label="Airport arrival options">
+          <div class="section-head">
+            <h2>Airport Arrival</h2>
+            <span class="section-note">Times, fares, coverage, caveats and route steps</span>
+          </div>
+          <div class="arrival-stack">
+            {transportAirportArrival.map((route: any) => {
+              const steps = getList(route.routeDetails?.steps);
+              const coverage = getSortedCoverage(route.coverage);
+              const routeSources = getSourcesForEvidence(route.evidenceIds);
+              const roleClass = hasText(route.roleLabel) && String(route.roleLabel).toLowerCase().includes("best")
+                ? "best"
+                : hasText(route.roleLabel) && String(route.roleLabel).toLowerCase().includes("fallback")
+                  ? "fallback"
+                  : "";
+
+              return (
+                <article class="report-card arrival-card">
+                  <div>
+                    {route.roleLabel && <span class={`card-kicker ${roleClass}`}>{formatTransportLabel(route.roleLabel)}</span>}
+                    <h3 class="card-title">{formatTransportLabel(route.modeLabel, "Arrival option")}</h3>
+                    {route.routeLabel && <span class="route-label">{route.routeLabel}</span>}
+                  </div>
+
+                  <div class="report-card-body">
+                    <div class="fact-grid">
+                      {route.timeLabel && <div class="fact"><strong>Time</strong><span>{route.timeLabel}</span></div>}
+                      {route.costLabel && <div class="fact"><strong>Cost</strong><span>{route.costLabel}</span></div>}
+                      {route.servicePattern && <div class="fact"><strong>Service</strong><span>{formatTransportLabel(route.servicePattern)}</span></div>}
+                    </div>
+
+                    {coverage.length > 0 && (
+                      <div class="badge-row" aria-label={`${route.modeLabel || "Arrival option"} coverage`}>
+                        {coverage.map((label: string) => (
+                          <span class={`badge ${getCoverageTone(label)}`}>{formatTransportLabel(label)}</span>
+                        ))}
+                      </div>
+                    )}
+                    {route.coverageQualifier && <p class="coverage-qualifier">{route.coverageQualifier}</p>}
+
+                    {route.watchOut && <p class="watch-note">{route.watchOut}</p>}
+
+                    {steps.length > 0 && (
+                      <ol class="route-steps">
+                        {steps.map((step: string) => <li>{step}</li>)}
+                      </ol>
+                    )}
+
+                    <div class="detail-grid">
+                      {route.routeDetails?.ticketNote && (
+                        <div class="detail-box">
+                          <span class="detail-label">Ticket</span>
+                          <p>{route.routeDetails.ticketNote}</p>
+                        </div>
+                      )}
+                      {route.routeDetails?.lateArrivalNote && (
+                        <div class="detail-box">
+                          <span class="detail-label">Late arrival</span>
+                          <p>{route.routeDetails.lateArrivalNote}</p>
+                        </div>
+                      )}
+                      {route.routeDetails?.onwardConnectionNote && (
+                        <div class="detail-box">
+                          <span class="detail-label">Onward</span>
+                          <p>{route.routeDetails.onwardConnectionNote}</p>
+                        </div>
+                      )}
+                      {route.routeDetails?.costNote && (
+                        <div class="detail-box">
+                          <span class="detail-label">Cost note</span>
+                          <p>{route.routeDetails.costNote}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {routeSources.length > 0 && (
+                      <div class="source-list" aria-label={`${route.modeLabel || "Arrival option"} sources`}>
+                        {routeSources.map((source: any) => (
+                          <a class="source-chip" href={source.url} target="_blank" rel="noreferrer">
+                            {source.label || source.id}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {transportCityTravel.length > 0 && (
+        <section id="city-travel" class="report-section" aria-label="City travel modes">
+          <div class="section-head">
+            <h2>City Travel</h2>
+            <span class="section-note">How to move around once you are in town</span>
+          </div>
+          <div class="city-grid">
+            {transportCityTravel.map((item: any) => {
+              const coverage = getSortedCoverage(item.coverage);
+              const itemSources = getSourcesForEvidence(item.evidenceIds);
+
+              return (
+                <article class="report-card city-card">
+                  <h3>{formatTransportLabel(item.modeLabel, "Transport mode")}</h3>
+                  <dl>
+                    {item.useFor && <div><dt>Use for</dt><dd>{item.useFor}</dd></div>}
+                    {item.pattern && <div><dt>Pattern</dt><dd>{item.pattern}</dd></div>}
+                    {item.watchOut && <div><dt>Watch</dt><dd>{item.watchOut}</dd></div>}
+                  </dl>
+                  {coverage.length > 0 && (
+                    <div class="badge-row" aria-label={`${item.modeLabel || "Transport mode"} coverage`}>
+                      {coverage.map((label: string) => (
+                        <span class={`badge ${getCoverageTone(label)}`}>{formatTransportLabel(label)}</span>
+                      ))}
+                    </div>
+                  )}
+                  {item.coverageQualifier && <p class="coverage-qualifier">{item.coverageQualifier}</p>}
+                  {itemSources.length > 0 && (
+                    <div class="source-list" aria-label={`${item.modeLabel || "Transport mode"} sources`}>
+                      {itemSources.map((source: any) => (
+                        <a class="source-chip" href={source.url} target="_blank" rel="noreferrer">
+                          {source.label || source.id}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {hasOsloPassSection && (
+        <section id="oslo-pass" class="report-section" aria-label="Oslo Pass transport detail">
+          <div class="section-head">
+            <h2>Oslo Pass</h2>
+            <span class="section-note">Coverage, exclusions and value logic from the current transport data</span>
+          </div>
+
+          <div class="prose-grid">
+            {osloPassTool && (
+              <article class="report-card prose-card">
+                <h3>{formatTransportLabel(osloPassTool.name, "Oslo Pass")}</h3>
+                {osloPassTool.useFor && <p><strong>{osloPassTool.useFor}.</strong></p>}
+                {osloPassTool.note && <p>{osloPassTool.note}</p>}
+                {osloPassTool.url && (
+                  <a class="resource-link" href={osloPassTool.url} target="_blank" rel="noreferrer">
+                    {osloPassTool.actionLabel || "View pass"}
+                  </a>
+                )}
+              </article>
+            )}
+
+            {osloPassReportSection && (
+              <article class="report-card prose-card">
+                <h3>{osloPassReportSection.title}</h3>
+                {osloPassReportSection.body && <p>{osloPassReportSection.body}</p>}
+              </article>
+            )}
+          </div>
+
+          {osloPassCoverageRows.length > 0 && (
+            <div class="marker-grid">
+              {osloPassCoverageRows.map((item: any) => {
+                const itemSources = getSourcesForEvidence(item.evidenceIds);
+
+                return (
+                  <article class="report-card prose-card">
+                    <h3>{formatTransportLabel(item.modeLabel, "Transport")}</h3>
+                    {item.context && <span class="route-label">{item.context}</span>}
+                    {item.coverage.length > 0 && (
+                      <div class="badge-row" aria-label={`${item.modeLabel || "Transport"} Oslo Pass coverage`}>
+                        {getSortedCoverage(item.coverage).map((label: string) => (
+                          <span class={`badge ${getCoverageTone(label)}`}>{formatTransportLabel(label)}</span>
+                        ))}
+                      </div>
+                    )}
+                    {item.coverageQualifier && <p class="coverage-qualifier">{item.coverageQualifier}</p>}
+                    {item.note && <p>{item.note}</p>}
+                    {itemSources.length > 0 && (
+                      <div class="source-list" aria-label={`${item.modeLabel || "Transport"} Oslo Pass sources`}>
+                        {itemSources.map((source: any) => (
+                          <a class="source-chip" href={source.url} target="_blank" rel="noreferrer">
+                            {source.label || source.id}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+
+          {osloPassSources.length > 0 && (
+            <div class="source-list" aria-label="Oslo Pass source list">
+              {osloPassSources.map((source: any) => (
+                <a class="source-chip" href={source.url} target="_blank" rel="noreferrer">
+                  {source.label || source.id}
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {transportCostMarkers.length > 0 && (
+        <section id="cost-markers" class="report-section" aria-label="Useful cost markers">
+          <div class="section-head">
+            <h2>Useful Cost Markers</h2>
+            <span class="section-note">Planning figures pulled from the current transport cards</span>
+          </div>
+          <div class="marker-grid">
+            {transportCostMarkers.map((item: any) => {
+              const itemSources = getSourcesForEvidence(item.evidenceIds);
+
+              return (
+                <article class="report-card prose-card">
+                  <h3>{formatTransportLabel(item.modeLabel, "Transport")}</h3>
+                  {item.routeLabel && <span class="route-label">{item.routeLabel}</span>}
+                  <div class="fact"><strong>Cost</strong><span>{item.costLabel}</span></div>
+                  {item.costNote && <p>{item.costNote}</p>}
+                  {itemSources.length > 0 && (
+                    <div class="source-list" aria-label={`${item.modeLabel || "Cost marker"} sources`}>
+                      {itemSources.map((source: any) => (
+                        <a class="source-chip" href={source.url} target="_blank" rel="noreferrer">
+                          {source.label || source.id}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {transportLateNotes.length > 0 && (
+        <section id="late-arrivals" class="report-section" aria-label="Service and late arrival notes">
+          <div class="section-head">
+            <h2>Service & Late Arrivals</h2>
+            <span class="section-note">First, last, frequency, night status and fallback warnings</span>
+          </div>
+          <div class="prose-grid">
+            {transportLateNotes.map((item: any) => {
+              const itemSources = getSourcesForEvidence(item.evidenceIds);
+              const serviceWindow = item.serviceWindow || {};
+              const verificationLabel = [
+                serviceWindow.firstServiceVerified ? "First Verified" : "First Not Verified",
+                serviceWindow.lastServiceVerified ? "Last Verified" : "Last Not Verified",
+              ].join(" / ");
+
+              return (
+                <article class="report-card prose-card">
+                  <h3>{formatTransportLabel(item.modeLabel, "Transport")}</h3>
+                  <div class="service-window-grid">
+                    {(serviceWindow.firstService || item.servicePattern) && (
+                      <div class="fact"><strong>First</strong><span>{formatTransportLabel(serviceWindow.firstService || "Check Timetable")}</span></div>
+                    )}
+                    {(serviceWindow.lastService || item.servicePattern) && (
+                      <div class="fact"><strong>Last</strong><span>{formatTransportLabel(serviceWindow.lastService || "Check Timetable")}</span></div>
+                    )}
+                    {(serviceWindow.typicalFrequency || item.servicePattern) && (
+                      <div class="fact"><strong>Frequency</strong><span>{formatTransportLabel(serviceWindow.typicalFrequency || item.servicePattern)}</span></div>
+                    )}
+                    {serviceWindow.nightServiceStatus && (
+                      <div class="fact"><strong>Night</strong><span>{formatTransportLabel(serviceWindow.nightServiceStatus)}</span></div>
+                    )}
+                    {serviceWindow.confidence && (
+                      <div class="fact"><strong>Confidence</strong><span>{formatTransportLabel(serviceWindow.confidence)}</span></div>
+                    )}
+                    {(typeof serviceWindow.firstServiceVerified !== "undefined" || typeof serviceWindow.lastServiceVerified !== "undefined") && (
+                      <div class="fact"><strong>Verified</strong><span>{verificationLabel}</span></div>
+                    )}
+                  </div>
+                  {serviceWindow.frequencyBasis && <p>{serviceWindow.frequencyBasis}</p>}
+                  {serviceWindow.lateArrivalFallback && <p><strong>Fallback:</strong> {serviceWindow.lateArrivalFallback}</p>}
+                  {item.lateArrivalNote && <p>{item.lateArrivalNote}</p>}
+                  {item.watchOut && <p>{item.watchOut}</p>}
+                  {itemSources.length > 0 && (
+                    <div class="source-list" aria-label={`${item.modeLabel || "Service note"} sources`}>
+                      {itemSources.map((source: any) => (
+                        <a class="source-chip" href={source.url} target="_blank" rel="noreferrer">
+                          {source.label || source.id}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {(transportBrief.paymentReadiness?.summary || transportReportSections.length > 0) && (
+        <section id="pass-payment" class="report-section" aria-label="Pass and payment guidance">
+          <div class="section-head">
+            <h2>Pass & Payment</h2>
+            <span class="section-note">Readiness, ticket logic and practical caveats</span>
+          </div>
+          <div class="payment-copy">
+            {transportBrief.paymentReadiness?.summary && <p>{transportBrief.paymentReadiness.summary}</p>}
+            {transportBrief.paymentReadiness?.cashCaveat && <p>{transportBrief.paymentReadiness.cashCaveat}</p>}
+            {transportBrief.paymentReadiness?.cardOrContactlessRequired && (
+              <p><strong>Card/contactless:</strong> {String(transportBrief.paymentReadiness.cardOrContactlessRequired)}</p>
+            )}
+            {typeof transportBrief.paymentReadiness?.appPaymentSupported !== "undefined" && (
+              <p><strong>App payment:</strong> {transportBrief.paymentReadiness.appPaymentSupported ? "Supported" : "Check before relying on it"}</p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {transportReportSections.length > 0 && (
+        <section id="full-report" class="report-section" aria-label="Full transport report notes">
+          <div class="section-head">
+            <h2>Report Notes</h2>
+            <span class="section-note">Longer context behind the summary cards</span>
+          </div>
+          {transportBrief.fullReport?.summary && (
+            <div class="payment-copy">
+              <p>{transportBrief.fullReport.summary}</p>
+            </div>
+          )}
+          <div class="prose-grid">
+            {transportReportSections.map((section: any) => {
+              const sectionSources = getSourcesForEvidence(section.evidenceIds);
+
+              return (
+                <article class="report-card prose-card">
+                  {section.title && <h3>{section.title}</h3>}
+                  {section.body && <p>{section.body}</p>}
+                  {sectionSources.length > 0 && (
+                    <div class="source-list" aria-label={`${section.title || "Report note"} sources`}>
+                      {sectionSources.map((source: any) => (
+                        <a class="source-chip" href={source.url} target="_blank" rel="noreferrer">
+                          {source.label || source.id}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {transportCaveats.length > 0 && (
+        <section id="caveats" class="report-section" aria-label="Important transport caveats">
+          <div class="section-head">
+            <h2>Important Caveats</h2>
+            <span class="section-note">Visible warnings from the transport decision data</span>
+          </div>
+          <div class="prose-grid">
+            {transportCaveats.map((item: any) => {
+              const itemSources = getSourcesForEvidence(item.evidenceIds);
+
+              return (
+                <article class="report-card prose-card">
+                  {item.title && <h3>{formatTransportLabel(item.title, "Caveat")}</h3>}
+                  <p>{item.body}</p>
+                  {itemSources.length > 0 && (
+                    <div class="source-list" aria-label={`${item.title || "Caveat"} sources`}>
+                      {itemSources.map((source: any) => (
+                        <a class="source-chip" href={source.url} target="_blank" rel="noreferrer">
+                          {source.label || source.id}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {transportToolkit.length > 0 && (
+        <section id="apps-links" class="report-section" aria-label="Apps and useful links">
+          <div class="section-head">
+            <h2>Apps & Links</h2>
+            <span class="section-note">Planners, tickets, operators, passes and fallbacks</span>
+          </div>
+          <div class="resource-grid">
+            {transportToolkit.map((item: any) => {
+              const faviconUrl = getTransportFaviconUrl(item);
+              const itemSources = getSourcesForEvidence(item.evidenceIds);
+
+              return (
+                <article class="report-resource">
+                  <div>
+                    <h3>{formatTransportLabel(item.name, "Resource")}</h3>
+                    {item.category && <span class="resource-type">{formatTransportLabel(item.category)}</span>}
+                    {(item.useFor || item.note) && (
+                      <p>{item.useFor && <strong>{item.useFor}. </strong>}{item.note}</p>
+                    )}
+                    {itemSources.length > 0 && (
+                      <div class="source-list" aria-label={`${item.name || "Resource"} sources`}>
+                        {itemSources.map((source: any) => (
+                          <a class="source-chip" href={source.url} target="_blank" rel="noreferrer">
+                            {source.label || source.id}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {item.url ? (
+                    <a class="resource-icon" href={item.url} target="_blank" rel="noreferrer" aria-label={item.actionLabel || `Open ${item.name || "resource"}`}>
+                      {faviconUrl ? <img src={faviconUrl} alt="" loading="lazy" /> : <span>{String(item.name || "R").slice(0, 1)}</span>}
+                    </a>
+                  ) : (
+                    <div class="resource-icon" aria-hidden="true">
+                      {faviconUrl ? <img src={faviconUrl} alt="" loading="lazy" /> : <span>{String(item.name || "R").slice(0, 1)}</span>}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {transportSources.length > 0 && (
+        <section id="sources" class="report-section" aria-label="Transport sources">
+          <div class="section-head">
+            <h2>Sources</h2>
+            <span class="section-note">{sourceFreshnessLabel || "Evidence currently attached to the transport data"}</span>
+          </div>
+          <div class="source-grid">
+            {transportSources.map((source: any) => (
+              <a class="source-row" href={source.url} target="_blank" rel="noreferrer">
+                <h3>{source.label || source.id || "Transport source"}</h3>
+                {source.checked && <p>Checked: {formatDate(source.checked)}</p>}
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+    </main>
+  </body>
+</html>

@@ -84,6 +84,8 @@ const transportToolkit = getTransportList(transportBrief?.toolkit)
   .filter((item: any) => ["name", "useFor", "note", "url"].some((field) => hasText(item?.[field])));
 const transportReportSections = getTransportList(transportBrief?.fullReport?.sections)
   .filter((item: any) => ["title", "body"].some((field) => hasText(item?.[field])));
+const transportSources = getTransportList(transportBrief?.sources)
+  .filter((item: any) => ["label", "url", "checked"].some((field) => hasText(item?.[field])));
 
 const hasTransportBrief = Boolean(transportBrief && [
   transportBrief.defaultRecommendation,
@@ -94,6 +96,25 @@ const hasTransportBrief = Boolean(transportBrief && [
   transportBrief.fullReport?.summary,
   ...transportReportSections,
 ].some((item) => typeof item === "string" ? hasText(item) : Boolean(item)));
+const transportReportUrl = `/trips/${slug}/transport/`;
+
+const getSourceFreshnessLabel = (sources: any[]) => {
+  const checkedDates = sources
+    .map((source) => hasText(source?.checked) ? String(source.checked).slice(0, 10) : "")
+    .filter(Boolean)
+    .sort();
+
+  if (checkedDates.length === 0) return "";
+
+  const first = checkedDates[0];
+  const last = checkedDates[checkedDates.length - 1];
+
+  return first === last
+    ? `Sources Checked: ${formatDate(first)}`
+    : `Sources Checked: ${formatDate(first)} - ${formatDate(last)}`;
+};
+
+const transportSourceFreshnessLabel = getSourceFreshnessLabel(transportSources);
 
 const getTransportRoleClass = (value: unknown) => {
   const label = hasText(value) ? String(value).toLowerCase() : "";
@@ -106,8 +127,19 @@ const joinTransportBadges = (value: unknown) => (
   getTransportList(value).filter((item) => hasText(item))
 );
 
+const getTransportCoverageSortRank = (value: unknown) => {
+  const label = hasText(value) ? String(value).toLowerCase() : "";
+  if (label.includes("pass") || label.includes("covered")) return 0;
+  if (label.includes("ticket")) return 1;
+  if (label.includes("payment") || label.includes("card") || label.includes("app")) return 2;
+  return 3;
+};
+
 const getTransportCoverageBadges = (value: unknown) => {
-  const labels = joinTransportBadges(value);
+  const labels = joinTransportBadges(value).sort((a, b) => (
+    getTransportCoverageSortRank(a) - getTransportCoverageSortRank(b) ||
+    String(a).localeCompare(String(b))
+  ));
   const seen = new Set<string>();
 
   return labels.flatMap((label) => {
@@ -129,7 +161,6 @@ const getTransportCoverageBadges = (value: unknown) => {
     return [{
       label: displayLabel,
       tone,
-      title: displayLabel === original ? "" : original,
     }];
   });
 };
@@ -169,6 +200,16 @@ const getTransportArrivalIcon = (value: unknown) => {
   if (label.includes("taxi") || label.includes("ride")) return "taxi";
   if (label.includes("flytoget") || label.includes("express")) return "express";
   return "train";
+};
+
+const getTransportServiceWindowItems = (serviceWindow: any) => {
+  if (!serviceWindow) return [];
+
+  return [
+    ["First", serviceWindow.firstService],
+    ["Last", serviceWindow.lastService],
+    ["Night", serviceWindow.nightServiceStatus],
+  ].filter(([, value]) => hasText(value));
 };
 
 const getPlaceScheduleBadge = (place: any) => {
@@ -739,7 +780,7 @@ const getTimingStatusLabel = (status: unknown) => (
         flex-wrap: wrap;
         gap: 0.35rem;
         margin-top: auto;
-        padding: 0 0.95rem 0.75rem;
+        padding: 0 0.95rem;
       }
 
       .transport-badge {
@@ -762,6 +803,40 @@ const getTimingStatusLabel = (status: unknown) => (
       .transport-badge.warn {
         background: #fee2e2;
         color: #b91c1c;
+      }
+
+      .transport-coverage-qualifier {
+        padding: 0.32rem 0.95rem 0.75rem;
+        color: #475569;
+        font-size: 0.72rem;
+        font-weight: 800;
+        line-height: 1.35;
+      }
+
+      .transport-service-window {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.35rem;
+        padding: 0 0.95rem 0.75rem;
+      }
+
+      .transport-service-window span {
+        min-width: 0;
+        padding: 0.38rem 0.45rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 0.68rem;
+        font-weight: 850;
+        line-height: 1.25;
+      }
+
+      .transport-service-window strong {
+        display: block;
+        color: var(--muted);
+        font-size: 0.62rem;
+        text-transform: uppercase;
       }
 
       .transport-watch {
@@ -908,6 +983,10 @@ const getTimingStatusLabel = (status: unknown) => (
         padding: 0.85rem 0 0;
       }
 
+      .transport-mode-card .transport-coverage-qualifier {
+        padding: 0.32rem 0 0;
+      }
+
       .transport-payment-card {
         padding: 0.9rem;
         background: #dff4ef;
@@ -1038,6 +1117,35 @@ const getTimingStatusLabel = (status: unknown) => (
 
       .transport-report-body p {
         margin: 0.35rem 0 0;
+      }
+
+      .transport-report-link-card {
+        display: grid;
+        gap: 0.55rem;
+        padding: 0.9rem;
+      }
+
+      .transport-report-link-card p {
+        margin: 0;
+        color: #475569;
+        font-size: 0.84rem;
+        line-height: 1.45;
+        font-weight: 700;
+      }
+
+      .transport-report-link-card a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        min-height: 2.15rem;
+        padding: 0.42rem 0.8rem;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #ffffff;
+        font-size: 0.82rem;
+        font-weight: 900;
+        text-decoration: none;
       }
 
       .weather-card-header {
@@ -1272,6 +1380,10 @@ const getTimingStatusLabel = (status: unknown) => (
         .transport-meta {
           justify-items: start;
           text-align: left;
+        }
+
+        .transport-service-window {
+          grid-template-columns: 1fr;
         }
 
         .weather-card-header {
@@ -2239,6 +2351,7 @@ const getTimingStatusLabel = (status: unknown) => (
                 {transportBrief.destinationLabel && <span>{transportBrief.destinationLabel}</span>}
                 {transportBrief.stayAreaLabel && <span>Stay area: {transportBrief.stayAreaLabel}</span>}
                 {transportBrief.generatedAt && <span>Checked: {formatDate(transportBrief.generatedAt)}</span>}
+                {transportSourceFreshnessLabel && <span>{transportSourceFreshnessLabel}</span>}
               </div>
             </header>
 
@@ -2248,13 +2361,14 @@ const getTimingStatusLabel = (status: unknown) => (
                   <section class="transport-block" aria-label="Airport arrival">
                     <div class="transport-section-head">
                       <h3 class="transport-block-title">Airport Arrival</h3>
-                      <span class="transport-section-note">Compare first, drill down second</span>
+                      <span class="transport-section-note">Compare First, Drill Down Second</span>
                     </div>
                     <div class="transport-arrival-grid">
                       {transportAirportArrival.map((route: any) => {
                         const coverage = getTransportCoverageBadges(route.coverage);
                         const steps = getTransportList(route.routeDetails?.steps);
                         const arrivalIcon = getTransportArrivalIcon(route.modeLabel);
+                        const serviceWindowItems = getTransportServiceWindowItems(route.serviceWindow);
 
                         return (
                           <article class={`transport-arrival-card ${getTransportRoleClass(route.roleLabel)}`}>
@@ -2291,7 +2405,7 @@ const getTimingStatusLabel = (status: unknown) => (
                                   </svg>
                                 )}
                               </span>
-                              {route.roleLabel && <span class="transport-role">{route.roleLabel}</span>}
+                              {route.roleLabel && <span class="transport-role">{formatTransportLabel(route.roleLabel)}</span>}
                               <h4>{formatTransportLabel(route.modeLabel, "Arrival Option")}</h4>
                               {route.routeLabel && <span class="transport-route-label">{route.routeLabel}</span>}
                             </div>
@@ -2299,13 +2413,25 @@ const getTimingStatusLabel = (status: unknown) => (
                             <div class="transport-facts">
                               {route.timeLabel && <div class="transport-fact"><strong>Time</strong><span>{route.timeLabel}</span></div>}
                               {route.costLabel && <div class="transport-fact"><strong>Cost</strong><span>{route.costLabel}</span></div>}
-                              {route.servicePattern && <div class="transport-fact"><strong>Service</strong><span>{route.servicePattern}</span></div>}
+                              {route.servicePattern && <div class="transport-fact"><strong>Service</strong><span>{formatTransportLabel(route.servicePattern)}</span></div>}
                             </div>
 
                             {coverage.length > 0 && (
                               <div class="transport-badges">
                                 {coverage.map((badge) => (
-                                  <span class={`transport-badge ${badge.tone}`} title={badge.title || undefined}>{badge.label}</span>
+                                  <span class={`transport-badge ${badge.tone}`}>{badge.label}</span>
+                                ))}
+                              </div>
+                            )}
+
+                            {route.coverageQualifier && (
+                              <div class="transport-coverage-qualifier">{route.coverageQualifier}</div>
+                            )}
+
+                            {serviceWindowItems.length > 0 && (
+                              <div class="transport-service-window" aria-label={`${route.modeLabel || "Arrival option"} service window`}>
+                                {serviceWindowItems.map(([label, value]) => (
+                                  <span><strong>{label}</strong>{formatTransportLabel(value)}</span>
                                 ))}
                               </div>
                             )}
@@ -2314,7 +2440,7 @@ const getTimingStatusLabel = (status: unknown) => (
 
                             {route.showRoute !== false && route.routeDetails && (
                               <details class="transport-route-details">
-                                <summary>Show route</summary>
+                                <summary>Show Route</summary>
                                 <div class="transport-route-body">
                                   {steps.length > 0 && (
                                     <ol>
@@ -2339,7 +2465,7 @@ const getTimingStatusLabel = (status: unknown) => (
                   <section class="transport-block" aria-label="General city travel">
                     <div class="transport-section-head">
                       <h3 class="transport-block-title">General City Travel</h3>
-                      <span class="transport-section-note">Mode decisions for the trip</span>
+                      <span class="transport-section-note">Mode Decisions For The Trip</span>
                     </div>
                     <div class="transport-city-grid">
                       {transportCityTravel.map((item: any) => {
@@ -2388,9 +2514,12 @@ const getTimingStatusLabel = (status: unknown) => (
                             {coverage.length > 0 && (
                               <div class="transport-badges" aria-label={`${item.modeLabel || "Transport mode"} coverage`}>
                                 {coverage.map((badge) => (
-                                  <span class={`transport-badge ${badge.tone}`} title={badge.title || undefined}>{badge.label}</span>
+                                  <span class={`transport-badge ${badge.tone}`}>{badge.label}</span>
                                 ))}
                               </div>
+                            )}
+                            {item.coverageQualifier && (
+                              <div class="transport-coverage-qualifier">{item.coverageQualifier}</div>
                             )}
                           </article>
                         );
@@ -2456,18 +2585,11 @@ const getTimingStatusLabel = (status: unknown) => (
                   )}
 
                   {(transportBrief.fullReport?.summary || transportReportSections.length > 0) && (
-                    <details class="transport-report">
-                      <summary>Read full transport report</summary>
-                      <div class="transport-report-body">
-                        {transportBrief.fullReport?.summary && <p>{transportBrief.fullReport.summary}</p>}
-                        {transportReportSections.map((section: any) => (
-                          <>
-                            {section.title && <h4>{section.title}</h4>}
-                            {section.body && <p>{section.body}</p>}
-                          </>
-                        ))}
-                      </div>
-                    </details>
+                    <section class="transport-report transport-report-link-card">
+                      <h3>Full Transport Guide</h3>
+                      <p>Fare notes, route steps, pass logic, caveats, apps and source freshness.</p>
+                      <a href={transportReportUrl}>Open transport guide</a>
+                    </section>
                   )}
                 </div>
               )}

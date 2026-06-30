@@ -1,6 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "@sanity/client";
+import {
+  formatTransportPayloadIssues,
+  validateTransportPayload,
+} from "./validate-transport-payload.mjs";
 
 const client = createClient({
   projectId: "943oi1hw",
@@ -19,6 +23,12 @@ const transportBrief = payload.transportBrief;
 
 if (!transportBrief) {
   throw new Error("Missing transportBrief in source JSON.");
+}
+
+const validation = validateTransportPayload(payload);
+
+if (!validation.ok) {
+  throw new Error(`Transport payload validation failed before Sanity write:\n${formatTransportPayloadIssues(validation.issues)}`);
 }
 
 const trip = await client.fetch(

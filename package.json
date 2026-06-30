@@ -8,6 +8,7 @@
     "build": "astro build",
     "check": "astro check",
     "audit:content": "node scripts/audit-content.mjs",
+    "validate:transport": "node scripts/validate-transport-payload.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },

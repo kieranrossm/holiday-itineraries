@@ -56,7 +56,19 @@ export const tripDetailQuery = `*[_type == "trip" && slug.current == $slug][0] {
       costLabel,
       servicePattern,
       coverage,
+      coverageQualifier,
       watchOut,
+      serviceWindow {
+        firstService,
+        lastService,
+        typicalFrequency,
+        nightServiceStatus,
+        confidence,
+        frequencyBasis,
+        firstServiceVerified,
+        lastServiceVerified,
+        lateArrivalFallback
+      },
       showRoute,
       routeDetails {
         steps,
@@ -73,6 +85,7 @@ export const tripDetailQuery = `*[_type == "trip" && slug.current == $slug][0] {
       useFor,
       pattern,
       coverage,
+      coverageQualifier,
       watchOut,
       evidenceIds
     },
@@ -100,7 +113,8 @@ export const tripDetailQuery = `*[_type == "trip" && slug.current == $slug][0] {
       summary,
       sections[] {
         title,
-        body
+        body,
+        evidenceIds
       }
     },
     sources[] {
