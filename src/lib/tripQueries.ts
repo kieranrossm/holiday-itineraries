@@ -275,6 +275,34 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
     coordinates,
     notes
   },
+  availabilityPreview {
+    note,
+    dateRange {
+      checkIn,
+      checkOut,
+      nights
+    },
+    hotels[] {
+      propertyName,
+      source {
+        platform,
+        url
+      },
+      price {
+        perNight,
+        currency
+      },
+      review {
+        scorePercent,
+        reviewCount
+      },
+      distance {
+        walkingMinutes,
+        fromReferenceLabel
+      },
+      coordinates
+    }
+  },
   metadata {
     searchedAt,
     dataFreshness,

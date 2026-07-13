@@ -56,6 +56,21 @@ export type HotelCandidate = {
   notes?: string[];
 };
 
+export type AvailabilityPreviewHotel = {
+  propertyName?: string;
+  source?: { platform?: string; url?: string };
+  price?: { perNight?: number; currency?: string };
+  review?: { scorePercent?: number; reviewCount?: number };
+  distance?: { walkingMinutes?: number; fromReferenceLabel?: string };
+  coordinates?: Coordinates;
+};
+
+export type AvailabilityPreview = {
+  note?: string;
+  dateRange?: DateRange;
+  hotels?: AvailabilityPreviewHotel[];
+};
+
 export type HotelSearch = {
   title?: string;
   slug?: string;
@@ -93,6 +108,7 @@ export type HotelSearch = {
     notes?: string[];
   };
   hotels?: HotelCandidate[];
+  availabilityPreview?: AvailabilityPreview;
   metadata?: {
     searchedAt?: string;
     dataFreshness?: string;
@@ -235,6 +251,25 @@ export const getSortedHotels = (hotels: HotelCandidate[]) => (
   })
 );
 
+export const formatPreviewPrice = (hotel: AvailabilityPreviewHotel, fallbackCurrency = "GBP") => {
+  const currency = hotel?.price?.currency || fallbackCurrency;
+  const money = formatMoney(hotel?.price?.perNight, currency);
+
+  return money ? `${money}/night` : "Price not confirmed";
+};
+
+export const formatPreviewReview = (hotel: AvailabilityPreviewHotel) => {
+  const score = hasNumber(hotel?.review?.scorePercent) ? `${hotel.review?.scorePercent}%` : "";
+  const count = hasNumber(hotel?.review?.reviewCount) ? `(${hotel.review?.reviewCount?.toLocaleString("en-GB")})` : "";
+
+  return [score, count].filter(Boolean).join(" ") || "Review not confirmed";
+};
+
+export const formatPreviewWalk = (hotel: AvailabilityPreviewHotel) => {
+  const minutes = hotel?.distance?.walkingMinutes;
+  return hasNumber(minutes) ? `${minutes} min` : "Walk not confirmed";
+};
+
 export const getHotelMapPoints = (hotelSearch: HotelSearch): MapPoint[] => {
   const points: MapPoint[] = [];
   const reference = hotelSearch.search?.referencePoint;
@@ -273,6 +308,22 @@ export const getHotelMapPoints = (hotelSearch: HotelSearch): MapPoint[] => {
         mapUrl: getHotelPrimaryUrl(hotel),
         hotelRank: hotel.rank,
         priceLabel: formatPerNight(hotel, hotelSearch.search?.budget?.currency || "GBP"),
+      });
+    });
+
+  (hotelSearch.availabilityPreview?.hotels || [])
+    .filter((hotel) => hasNumber(hotel.coordinates?.lat) && hasNumber(hotel.coordinates?.lng))
+    .forEach((hotel, index) => {
+      points.push({
+        name: hotel.propertyName || "Preview hotel",
+        type: "Availability preview",
+        category: "Reference only — not your travel dates",
+        lat: hotel.coordinates?.lat as number,
+        lng: hotel.coordinates?.lng as number,
+        markerColor: "purple",
+        mapUrl: hotel.source?.url || "",
+        previewKey: String(index),
+        priceLabel: formatPreviewPrice(hotel, hotelSearch.search?.budget?.currency || "GBP"),
       });
     });
 

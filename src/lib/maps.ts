@@ -45,6 +45,9 @@ export type MapPoint = {
   // hover tooltip.
   hotelRank?: number;
   priceLabel?: string;
+  // Availability-preview markers only: links back to its list item
+  // (DOM id `preview-${previewKey}`) for click-to-scroll.
+  previewKey?: string;
 };
 
 export const getCoordinateMapUrl = (coordinates: Coordinates | undefined) => {

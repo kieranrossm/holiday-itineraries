@@ -6,6 +6,9 @@ import {
   formatDateRange,
   formatMoney,
   formatPerNight,
+  formatPreviewPrice,
+  formatPreviewReview,
+  formatPreviewWalk,
   formatReview,
   formatWalk,
   getBudgetDeltaLabel,
@@ -59,6 +62,9 @@ const budgetLabel = [
 ].filter(Boolean).join(" / ") || "Budget not specified";
 const checkedDate = formatCheckedDate(hotelSearch.metadata?.searchedAt) || formatCheckedDate(hotels.find((hotel) => hotel.price?.checkedAt)?.price?.checkedAt);
 const mapPoints = getHotelMapPoints(hotelSearch);
+const availabilityPreview = hotelSearch.availabilityPreview;
+const previewDateLabel = formatDateRange(availabilityPreview?.dateRange);
+const previewHotels = availabilityPreview?.hotels || [];
 
 const countByBudgetStatus = (status: string) => hotels.filter((hotel) => hotel.price?.budgetStatus === status).length;
 const hasText = (value: unknown) => typeof value === "string" && value.trim().length > 0;
@@ -123,6 +129,90 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
         max-width: 900px;
         min-width: 0;
         padding: clamp(1rem, 3vw, 2rem);
+      }
+
+      .section-divider {
+        height: 1px;
+        margin: 1.25rem 0;
+        background: linear-gradient(90deg, transparent, var(--border-color) 15%, var(--border-color) 85%, transparent);
+      }
+
+      .preview-panel {
+        margin-bottom: 0.25rem;
+        padding: 1.1rem;
+        border: 1px solid #fde68a;
+        border-radius: 12px;
+        background: #fffbeb;
+        scroll-margin-top: 1rem;
+      }
+
+      .preview-panel.map-highlight {
+        box-shadow: 0 0 0 3px #b45309;
+      }
+
+      .preview-eyebrow {
+        margin: 0 0 0.5rem;
+        color: #b45309;
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .preview-item.map-highlight {
+        box-shadow: 0 0 0 3px #b45309;
+      }
+
+      .preview-panel-header h2 {
+        margin: 0;
+        color: #92400e;
+        font-size: 0.92rem;
+        font-weight: 850;
+      }
+
+      .preview-panel-header p {
+        margin: 0.25rem 0 0;
+        color: #b45309;
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+
+      .preview-note {
+        margin: 0.75rem 0 0;
+        color: #78350f;
+        font-size: 0.85rem;
+        line-height: 1.5;
+      }
+
+      .preview-list {
+        margin: 0.75rem 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .preview-item {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.5rem;
+        padding: 0.6rem 0.7rem;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid #fde68a;
+      }
+
+      .preview-name {
+        color: var(--text-main);
+        font-weight: 800;
+        font-size: 0.88rem;
+      }
+
+      .preview-meta {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-weight: 700;
       }
 
       .map-panel {
@@ -502,6 +592,11 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
         color: var(--text-muted);
       }
 
+      .pill.preview {
+        background: #f3e8ff;
+        color: #7e22ce;
+      }
+
       .card-bottom {
         display: flex;
         flex-wrap: wrap;
@@ -772,6 +867,34 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
           </div>
         )}
 
+        {availabilityPreview && (availabilityPreview.note || previewHotels.length > 0) && (
+          <>
+            <div class="section-divider" aria-hidden="true"></div>
+            <section id="availability-preview" class="preview-panel" aria-label="Availability preview">
+              <p class="preview-eyebrow">Reference preview — not your travel dates</p>
+              <div class="preview-panel-header">
+                <h2>Early-search caveat: what's available closer to your dates</h2>
+                {previewDateLabel && <p>Reference search for {previewDateLabel}</p>}
+              </div>
+              {availabilityPreview.note && <p class="preview-note">{availabilityPreview.note}</p>}
+              {previewHotels.length > 0 && (
+                <ul class="preview-list">
+                  {previewHotels.map((hotel, index) => (
+                    <li id={`preview-${index}`} class="preview-item">
+                      <span class="preview-name">{hotel.propertyName || "Unnamed property"}</span>
+                      <span class="preview-meta">
+                        {[formatPreviewPrice(hotel, currency), formatPreviewReview(hotel), hotel.distance?.fromReferenceLabel || formatPreviewWalk(hotel)].filter(Boolean).join(" · ")}
+                      </span>
+                      {hotel.source?.url && <a class="text-link" href={hotel.source.url} target="_blank" rel="noreferrer">{hotel.source?.platform || "View listing"} &#8599;</a>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            <div class="section-divider" aria-hidden="true"></div>
+          </>
+        )}
+
         <section class="map-panel" aria-label="Hotel map">
           <div class="map-panel-header">
             <h2>{referenceLabel}</h2>
@@ -789,6 +912,7 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
             <span class="pill within">Green within target</span>
             <span class="pill flex">Yellow within flex</span>
             <span class="pill over">Red over budget</span>
+            {previewHotels.length > 0 && <span class="pill preview">Purple availability preview (not your dates)</span>}
           </div>
         </section>
 
@@ -1071,6 +1195,16 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                 card.scrollIntoView({ behavior: "smooth", block: "center" });
                 card.classList.add("map-highlight");
                 window.setTimeout(() => card.classList.remove("map-highlight"), 1600);
+              });
+            } else if (point.previewKey != null) {
+              marker.on("click", () => {
+                const item = document.getElementById(`preview-${point.previewKey}`);
+                const panel = document.getElementById("availability-preview");
+                const target = item || panel;
+                if (!target) return;
+                target.scrollIntoView({ behavior: "smooth", block: "center" });
+                target.classList.add("map-highlight");
+                window.setTimeout(() => target.classList.remove("map-highlight"), 1600);
               });
             }
 
