@@ -27,6 +27,18 @@ type WeatherIconSetPreviewSelection = {
   title?: string;
 };
 
+type HotelSearchPreviewSelection = {
+  title?: string;
+  locationLabel?: string;
+  status?: string;
+};
+
+type HotelCandidatePreviewSelection = {
+  title?: string;
+  propertyType?: string;
+  pricePerNight?: number;
+};
+
 const decisionStateOptions = [
   { title: 'Must do', value: 'must-do' },
   { title: 'Maybe', value: 'maybe' },
@@ -43,6 +55,21 @@ const openingHoursFields = [
   { name: 'friday', title: 'Friday', type: 'string' },
   { name: 'saturday', title: 'Saturday', type: 'string' },
   { name: 'sunday', title: 'Sunday', type: 'string' },
+];
+
+const transportCoverageLabelOptions = [
+  { title: 'Oslo Pass-covered', value: 'Oslo Pass-covered' },
+  { title: 'Not Oslo Pass-covered', value: 'Not Oslo Pass-covered' },
+  { title: 'Ruter ticket', value: 'Ruter ticket' },
+  { title: 'Vy/Ruter ticket', value: 'Vy/Ruter ticket' },
+  { title: 'Flytoget ticket', value: 'Flytoget ticket' },
+  { title: 'Card/app payment', value: 'Card/app payment' },
+];
+
+const transportPaymentRequiredOptions = [
+  { title: 'Yes', value: 'yes' },
+  { title: 'No', value: 'no' },
+  { title: 'Unknown / check locally', value: 'unknown' },
 ];
 
 const weatherIconSetFields = [
@@ -231,6 +258,287 @@ const weatherIconSetSchema = {
       return {
         title,
         subtitle: 'Reusable weather icons',
+      };
+    },
+  },
+};
+
+const hotelPropertyTypeOptions = [
+  { title: 'Hotel', value: 'hotel' },
+  { title: 'Aparthotel', value: 'aparthotel' },
+  { title: 'Self-catering', value: 'self_catering' },
+  { title: 'Apartment', value: 'apartment' },
+  { title: 'Villa', value: 'villa' },
+  { title: 'Guesthouse', value: 'guesthouse' },
+  { title: 'Resort', value: 'resort' },
+  { title: 'Hostel', value: 'hostel' },
+  { title: 'Unknown / not checked', value: 'unknown' },
+];
+
+const hotelBudgetStatusOptions = [
+  { title: 'Within target', value: 'within' },
+  { title: 'Within flex range', value: 'flex' },
+  { title: 'Over flex range', value: 'over' },
+  { title: 'Unknown / not checked', value: 'unknown' },
+];
+
+const hotelSourceFields = [
+  { name: 'platform', title: 'Platform', type: 'string' },
+  { name: 'url', title: 'URL', type: 'url' },
+];
+
+const hotelCandidateField = {
+  name: 'hotelCandidate',
+  title: 'Hotel Candidate',
+  type: 'object',
+  fields: [
+    { name: 'rank', title: 'Rank', type: 'number' },
+    {
+      name: 'propertyName',
+      title: 'Property Name',
+      type: 'string',
+      validation: (Rule: ValidationRule) => Rule.required(),
+    },
+    {
+      name: 'propertyType',
+      title: 'Property Type',
+      type: 'string',
+      options: {
+        list: hotelPropertyTypeOptions,
+        layout: 'dropdown',
+      },
+      initialValue: 'unknown',
+    },
+    { name: 'area', title: 'Area / Neighbourhood', type: 'string' },
+    {
+      name: 'sources',
+      title: 'Sources',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: hotelSourceFields,
+        },
+      ],
+    },
+    {
+      name: 'review',
+      title: 'Review Signal',
+      type: 'object',
+      fields: [
+        { name: 'scorePercent', title: 'Score Percent', type: 'number' },
+        { name: 'reviewCount', title: 'Review Count', type: 'number' },
+        { name: 'source', title: 'Review Source', type: 'string' },
+      ],
+    },
+    {
+      name: 'price',
+      title: 'Price Snapshot',
+      type: 'object',
+      fields: [
+        { name: 'perNight', title: 'Cost Per Night', type: 'number' },
+        { name: 'currency', title: 'Currency', type: 'string', initialValue: 'GBP' },
+        {
+          name: 'budgetStatus',
+          title: 'Budget Status',
+          type: 'string',
+          options: {
+            list: hotelBudgetStatusOptions,
+            layout: 'dropdown',
+          },
+          initialValue: 'unknown',
+        },
+        { name: 'overTargetAmount', title: 'Amount Over Target', type: 'number' },
+        { name: 'overFlexAmount', title: 'Amount Over Flex Limit', type: 'number' },
+        { name: 'checkedAt', title: 'Price Checked At', type: 'datetime' },
+      ],
+    },
+    {
+      name: 'distance',
+      title: 'Distance From Reference',
+      type: 'object',
+      fields: [
+        { name: 'fromReferenceLabel', title: 'Reference Label', type: 'string' },
+        { name: 'walkingMinutes', title: 'Walking Time (Minutes)', type: 'number' },
+        { name: 'walkingMeters', title: 'Walking Distance (Metres)', type: 'number' },
+        { name: 'source', title: 'Distance Source', type: 'string', initialValue: 'google_directions_api' },
+        { name: 'checkedAt', title: 'Distance Checked At', type: 'datetime' },
+      ],
+    },
+    {
+      name: 'amenities',
+      title: 'Amenities',
+      type: 'object',
+      fields: [
+        { name: 'airConditioning', title: 'Air conditioning confirmed', type: 'boolean' },
+        { name: 'pool', title: 'Pool confirmed', type: 'boolean' },
+      ],
+    },
+    { name: 'coordinates', title: 'Map Coordinates', type: 'geopoint' },
+    { name: 'notes', title: 'Notes', type: 'array', of: [{ type: 'string' }] },
+  ],
+  preview: {
+    select: {
+      title: 'propertyName',
+      propertyType: 'propertyType',
+      pricePerNight: 'price.perNight',
+    },
+    prepare({ title, propertyType, pricePerNight }: HotelCandidatePreviewSelection) {
+      return {
+        title,
+        subtitle: [
+          propertyType,
+          typeof pricePerNight === 'number' ? `GBP ${pricePerNight}/night` : '',
+        ].filter(Boolean).join(' - ') || 'Hotel candidate',
+      };
+    },
+  },
+};
+
+const hotelSearchSchema = {
+  name: 'hotelSearch',
+  type: 'document',
+  title: 'Hotel Search',
+  fields: [
+    {
+      name: 'title',
+      title: 'Title',
+      type: 'string',
+      validation: (Rule: ValidationRule) => Rule.required(),
+    },
+    {
+      name: 'slug',
+      title: 'Slug',
+      type: 'slug',
+      options: {
+        source: 'title',
+        maxLength: 96,
+      },
+      validation: (Rule: ValidationRule) => Rule.required(),
+    },
+    {
+      name: 'status',
+      title: 'Search Status',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'Draft', value: 'draft' },
+          { title: 'Completed', value: 'completed' },
+          { title: 'Archived', value: 'archived' },
+        ],
+        layout: 'dropdown',
+      },
+      initialValue: 'completed',
+    },
+    {
+      name: 'search',
+      title: 'Search Context',
+      type: 'object',
+      fields: [
+        {
+          name: 'location',
+          title: 'Location',
+          type: 'object',
+          fields: [
+            { name: 'label', title: 'Location Label', type: 'string' },
+            { name: 'country', title: 'Country', type: 'string' },
+            { name: 'geo', title: 'Location Centre', type: 'geopoint' },
+          ],
+        },
+        {
+          name: 'referencePoint',
+          title: 'Reference Point',
+          type: 'object',
+          fields: [
+            {
+              name: 'type',
+              title: 'Reference Type',
+              type: 'string',
+              options: {
+                list: [
+                  { title: 'Landmark', value: 'landmark' },
+                  { title: 'Location centre', value: 'location_center' },
+                  { title: 'Attraction', value: 'attraction' },
+                  { title: 'Beach', value: 'beach' },
+                  { title: 'Station', value: 'station' },
+                  { title: 'Other', value: 'other' },
+                ],
+                layout: 'dropdown',
+              },
+            },
+            { name: 'label', title: 'Reference Label', type: 'string' },
+            { name: 'geo', title: 'Reference Coordinates', type: 'geopoint' },
+          ],
+        },
+        {
+          name: 'dateRange',
+          title: 'Date Range',
+          type: 'object',
+          fields: [
+            { name: 'checkIn', title: 'Check-in', type: 'date' },
+            { name: 'checkOut', title: 'Check-out', type: 'date' },
+            { name: 'nights', title: 'Nights', type: 'number' },
+          ],
+        },
+        {
+          name: 'guests',
+          title: 'Guests',
+          type: 'object',
+          fields: [
+            { name: 'adults', title: 'Adults', type: 'number' },
+            { name: 'children', title: 'Children', type: 'number' },
+            { name: 'rooms', title: 'Rooms', type: 'number' },
+          ],
+        },
+        {
+          name: 'budget',
+          title: 'Budget',
+          type: 'object',
+          fields: [
+            { name: 'currency', title: 'Currency', type: 'string', initialValue: 'GBP' },
+            { name: 'targetPerNight', title: 'Target Per Night', type: 'number' },
+            { name: 'flexPerNight', title: 'Flex Per Night', type: 'number' },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'summary',
+      title: 'Summary',
+      type: 'object',
+      fields: [
+        { name: 'headline', title: 'Headline', type: 'text', rows: 2 },
+        { name: 'bestOverallHotelName', title: 'Best Overall Hotel Name', type: 'string' },
+        { name: 'notes', title: 'Notes', type: 'array', of: [{ type: 'string' }] },
+      ],
+    },
+    {
+      name: 'hotels',
+      title: 'Hotel Options',
+      type: 'array',
+      of: [hotelCandidateField],
+    },
+    {
+      name: 'metadata',
+      title: 'Metadata',
+      type: 'object',
+      fields: [
+        { name: 'searchedAt', title: 'Searched At', type: 'datetime' },
+        { name: 'dataFreshness', title: 'Data Freshness', type: 'string', initialValue: 'snapshot' },
+        { name: 'resultStatus', title: 'Result Status', type: 'string', initialValue: 'completed' },
+      ],
+    },
+  ],
+  preview: {
+    select: {
+      title: 'title',
+      locationLabel: 'search.location.label',
+      status: 'status',
+    },
+    prepare({ title, locationLabel, status }: HotelSearchPreviewSelection) {
+      return {
+        title,
+        subtitle: [locationLabel, status].filter(Boolean).join(' - ') || 'Hotel search',
       };
     },
   },
@@ -436,7 +744,7 @@ const transportBriefField = {
             { name: 'timeLabel', title: 'Time Label', type: 'string', description: 'Compact comparison value only, e.g. 40-55 min.' },
             { name: 'costLabel', title: 'Cost Label', type: 'string', description: 'Compact fare/range only, e.g. 900-1400 NOK / ~GBP 66-102. Put caveats in Watch Out or Route Details.' },
             { name: 'servicePattern', title: 'Service Pattern', type: 'string', description: 'Compact service marker only, e.g. Regular departures, Every 10-20 min, or On demand.' },
-            { name: 'coverage', title: 'Coverage Badges', type: 'array', of: [{ type: 'string' }], description: 'Use canonical compact labels only: Oslo Pass-covered, Not Oslo Pass-covered, Ruter ticket, Vy/Ruter ticket, Flytoget ticket, or Card/app payment. Put zone/operator detail in Coverage Qualifier.' },
+            { name: 'coverage', title: 'Coverage Badges', type: 'array', of: [{ type: 'string' }], description: 'Use canonical compact labels only. Put zone/operator detail in Coverage Qualifier.', options: { list: transportCoverageLabelOptions } },
             { name: 'coverageQualifier', title: 'Coverage Qualifier', type: 'string', description: 'Visible compact detail shown under the badge row, e.g. zones 1, 2, 3, 4V, 4N or local Vy airport trains only. Do not rely on hover-only title text for important coverage detail.' },
             { name: 'watchOut', title: 'Watch Out', type: 'text', rows: 2 },
             {
@@ -492,10 +800,16 @@ const transportBriefField = {
             { name: 'modeLabel', title: 'Mode Label', type: 'string' },
             { name: 'useFor', title: 'Use For', type: 'string' },
             { name: 'pattern', title: 'Pattern', type: 'text', rows: 2 },
-            { name: 'coverage', title: 'Coverage Badges', type: 'array', of: [{ type: 'string' }], description: 'Use canonical compact labels only: Oslo Pass-covered, Not Oslo Pass-covered, Ruter ticket, Vy/Ruter ticket, Flytoget ticket, or Card/app payment. Put zone/operator detail in Coverage Qualifier.' },
+            { name: 'coverage', title: 'Coverage Badges', type: 'array', of: [{ type: 'string' }], description: 'Use canonical compact labels only. Put zone/operator detail in Coverage Qualifier.', options: { list: transportCoverageLabelOptions } },
             { name: 'coverageQualifier', title: 'Coverage Qualifier', type: 'string', description: 'Visible compact detail shown under the badge row, e.g. zones 1, 2, 3, 4V, 4N. Do not rely on hover-only title text for important coverage detail.' },
+            { name: 'passQualifier', title: 'Pass Qualifier', type: 'string', description: 'Visible pass detail such as zones, exclusions, or local train only.' },
+            { name: 'ticketQualifier', title: 'Ticket Qualifier', type: 'string', description: 'Visible ticket/operator detail such as which local ticket, app, or operator to use.' },
+            { name: 'seasonality', title: 'Seasonality', type: 'string', description: 'Short seasonality note, especially for ferries, mountain routes, beaches, or island services.' },
+            { name: 'lateNightNote', title: 'Late-night Note', type: 'string', description: 'Short late-service warning or planner-check note.' },
+            { name: 'bestFor', title: 'Best For', type: 'string', description: 'Short traveller decision cue.' },
             { name: 'watchOut', title: 'Watch Out', type: 'text', rows: 2 },
             { name: 'evidenceIds', title: 'Evidence IDs', type: 'array', of: [{ type: 'string' }] },
+            { name: 'sourceIds', title: 'Source IDs', type: 'array', of: [{ type: 'string' }], description: 'Optional alias for evidence IDs when importing from source-oriented payloads.' },
           ],
           preview: {
             select: {
@@ -524,6 +838,7 @@ const transportBriefField = {
             { name: 'iconUrl', title: 'Icon URL', type: 'url', description: 'Optional explicit icon URL if it is not a normal favicon.' },
             { name: 'note', title: 'Note', type: 'text', rows: 2 },
             { name: 'evidenceIds', title: 'Evidence IDs', type: 'array', of: [{ type: 'string' }] },
+            { name: 'sourceIds', title: 'Source IDs', type: 'array', of: [{ type: 'string' }], description: 'Optional alias for evidence IDs when importing from source-oriented payloads.' },
           ],
           preview: {
             select: {
@@ -540,7 +855,7 @@ const transportBriefField = {
       type: 'object',
       fields: [
         { name: 'summary', title: 'Summary', type: 'text', rows: 2 },
-        { name: 'cardOrContactlessRequired', title: 'Card / Contactless Required', type: 'string' },
+        { name: 'cardOrContactlessRequired', title: 'Card / Contactless Required', type: 'string', options: { list: transportPaymentRequiredOptions, layout: 'dropdown' }, initialValue: 'unknown' },
         { name: 'appPaymentSupported', title: 'App Payment Supported', type: 'boolean' },
         { name: 'cashCaveat', title: 'Cash Caveat', type: 'text', rows: 2 },
         { name: 'evidenceIds', title: 'Evidence IDs', type: 'array', of: [{ type: 'string' }] },
@@ -1037,6 +1352,6 @@ export default defineConfig({
   dataset: 'production',
   plugins: [structureTool()],
   schema: {
-    types: [tripSchema, weatherIconSetSchema],
+    types: [tripSchema, hotelSearchSchema, weatherIconSetSchema],
   },
 });

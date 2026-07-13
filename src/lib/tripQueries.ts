@@ -1,5 +1,7 @@
 export const visibleTripSlugsQuery = `*[_type == "trip" && (!defined(displayStatus) || displayStatus == "visible")] { "slug": slug.current }`;
 
+export const visibleHotelSearchSlugsQuery = `*[_type == "hotelSearch" && (!defined(status) || status != "archived")] { "slug": slug.current }`;
+
 export const weatherForecastQuery = `
   enabled,
   locationLabel,
@@ -77,7 +79,8 @@ export const tripDetailQuery = `*[_type == "trip" && slug.current == $slug][0] {
         onwardConnectionNote,
         costNote
       },
-      evidenceIds
+      evidenceIds,
+      sourceIds
     },
     cityTravel[] {
       id,
@@ -86,8 +89,14 @@ export const tripDetailQuery = `*[_type == "trip" && slug.current == $slug][0] {
       pattern,
       coverage,
       coverageQualifier,
+      passQualifier,
+      ticketQualifier,
+      seasonality,
+      lateNightNote,
+      bestFor,
       watchOut,
-      evidenceIds
+      evidenceIds,
+      sourceIds
     },
     toolkit[] {
       id,
@@ -186,5 +195,84 @@ export const tripDetailQuery = `*[_type == "trip" && slug.current == $slug][0] {
       transitDetails,
       hotelDetails
     }
+  }
+}`;
+
+export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current == $slug][0] {
+  title,
+  "slug": slug.current,
+  status,
+  search {
+    location {
+      label,
+      country,
+      geo
+    },
+    referencePoint {
+      type,
+      label,
+      geo
+    },
+    dateRange {
+      checkIn,
+      checkOut,
+      nights
+    },
+    guests {
+      adults,
+      children,
+      rooms
+    },
+    budget {
+      currency,
+      targetPerNight,
+      flexPerNight
+    }
+  },
+  summary {
+    headline,
+    bestOverallHotelName,
+    notes
+  },
+  hotels[] {
+    rank,
+    propertyName,
+    propertyType,
+    area,
+    sources[] {
+      platform,
+      url
+    },
+    review {
+      scorePercent,
+      reviewCount,
+      source
+    },
+    price {
+      perNight,
+      currency,
+      budgetStatus,
+      overTargetAmount,
+      overFlexAmount,
+      checkedAt
+    },
+    distance {
+      fromReferenceLabel,
+      walkingMinutes,
+      walkingMeters,
+      source,
+      checkedAt
+    },
+    amenities {
+      airConditioning,
+      pool
+    },
+    coordinates,
+    notes
+  },
+  metadata {
+    searchedAt,
+    dataFreshness,
+    resultStatus
   }
 }`;

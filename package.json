@@ -9,6 +9,10 @@
     "check": "astro check",
     "audit:content": "node scripts/audit-content.mjs",
     "validate:transport": "node scripts/validate-transport-payload.mjs",
+    "validate:hotel-search": "node scripts/validate-hotel-search-payload.mjs",
+    "load:hotel-search": "node scripts/load-hotel-search.mjs",
+    "check:transport": "node scripts/check-oslo-transport-brief.mjs",
+    "load:transport": "node scripts/load-oslo-transport-brief.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },

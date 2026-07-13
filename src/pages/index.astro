@@ -1,5 +1,6 @@
 ---
 import { sanityClient } from "sanity:client";
+import { formatDateRange, formatMoney } from "../lib/hotelSearch";
 import { getTripStatusInfo } from "../lib/itineraryLabels";
 import { getTripStats } from "../lib/itineraryStats";
 
@@ -25,7 +26,41 @@ const query = `*[_type == "trip" && (!defined(displayStatus) || displayStatus ==
   }
 }`;
 
-const trips = await sanityClient.fetch(query) as any[];
+const hotelSearchesQuery = `*[_type == "hotelSearch" && (!defined(status) || status != "archived")] | order(metadata.searchedAt desc) {
+  title,
+  "slug": slug.current,
+  status,
+  search {
+    location {
+      label,
+      country
+    },
+    dateRange {
+      checkIn,
+      checkOut,
+      nights
+    },
+    budget {
+      currency,
+      targetPerNight,
+      flexPerNight
+    }
+  },
+  summary {
+    headline
+  },
+  "hotelCount": count(hotels),
+  "withinBudgetCount": count(hotels[price.budgetStatus == "within"]),
+  "flexBudgetCount": count(hotels[price.budgetStatus == "flex"]),
+  metadata {
+    searchedAt
+  }
+}`;
+
+const [trips, hotelSearches] = await Promise.all([
+  sanityClient.fetch(query) as Promise<any[]>,
+  sanityClient.fetch(hotelSearchesQuery) as Promise<any[]>,
+]);
 
 const formatDate = (dateString: string) => {
   if (!dateString) return "";
@@ -55,6 +90,15 @@ const getTripStatus = (trip: any) => {
 
 const plural = (count: number, singular: string, pluralLabel: string) => {
   return `${count} ${count === 1 ? singular : pluralLabel}`;
+};
+
+const getHotelSearchBudgetLabel = (search: any) => {
+  const budget = search?.search?.budget || {};
+  const currency = budget.currency || "GBP";
+  const target = typeof budget.targetPerNight === "number" ? `${formatMoney(budget.targetPerNight, currency)} target` : "";
+  const flex = typeof budget.flexPerNight === "number" ? `${formatMoney(budget.flexPerNight, currency)} flex` : "";
+
+  return [target, flex].filter(Boolean).join(" / ");
 };
 
 const getDateContext = (trip: any) => {
@@ -166,6 +210,36 @@ const getDateContext = (trip: any) => {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
         gap: 1.25rem;
+      }
+
+      .directory-section {
+        margin-top: 3rem;
+      }
+
+      .directory-section:first-child {
+        margin-top: 0;
+      }
+
+      .section-heading {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: end;
+        margin-bottom: 1rem;
+      }
+
+      .section-heading h2 {
+        margin: 0;
+        color: var(--ink);
+        font-size: 1.35rem;
+        letter-spacing: -0.02em;
+      }
+
+      .section-heading p {
+        margin: 0.35rem 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+        font-weight: 700;
       }
 
       .directory-card {
@@ -311,6 +385,11 @@ const getDateContext = (trip: any) => {
           justify-content: flex-start;
         }
 
+        .section-heading {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
         .grid-directory {
           grid-template-columns: 1fr;
         }
@@ -330,44 +409,98 @@ const getDateContext = (trip: any) => {
     </header>
 
     <main>
-      {trips && trips.length > 0 ? (
-        <div class="grid-directory">
-          {trips.map((trip) => {
-            const stats = getTripStats(trip);
-            const status = getTripStatus(trip);
+      <section class="directory-section" aria-labelledby="trip-directory-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="trip-directory-title">Trips</h2>
+            <p>Confirmed and in-progress itinerary pages.</p>
+          </div>
+        </div>
 
-            return (
-              <a href={`/trips/${trip.slug}`} class="directory-card">
-                {trip.heroImageUrl && (
-                  <img src={trip.heroImageUrl} alt="" class="card-image" loading="lazy" />
-                )}
-                <div class="card-body">
-                  <div class="card-topline">
-                    {trip.startDate && <div class="card-date">{formatDate(trip.startDate)}</div>}
-                    <span class={`status-pill ${status.className}`}>{status.label}</span>
+        {trips && trips.length > 0 ? (
+          <div class="grid-directory">
+            {trips.map((trip) => {
+              const stats = getTripStats(trip);
+              const status = getTripStatus(trip);
+
+              return (
+                <a href={`/trips/${trip.slug}`} class="directory-card">
+                  {trip.heroImageUrl && (
+                    <img src={trip.heroImageUrl} alt="" class="card-image" loading="lazy" />
+                  )}
+                  <div class="card-body">
+                    <div class="card-topline">
+                      {trip.startDate && <div class="card-date">{formatDate(trip.startDate)}</div>}
+                      <span class={`status-pill ${status.className}`}>{status.label}</span>
+                    </div>
+                    <h2 class="card-title">{trip.title}</h2>
+                    {getDateContext(trip) && <p class="card-desc">{getDateContext(trip)}</p>}
+                    {trip.heroIntro && <p class="card-desc">{trip.heroIntro}</p>}
+                    <div class="card-metrics" aria-label={`${trip.title} quick stats`}>
+                      <span class="card-metric">{plural(stats.sections, "section", "sections")}</span>
+                      <span class="card-metric">{plural(stats.stops, "stop", "stops")}</span>
+                      <span class="card-metric">{plural(stats.food, "food option", "food options")}</span>
+                      <span class="card-metric">{stats.mapped} mapped</span>
+                      {stats.bookingActions > 0 && <span class="card-metric">{plural(stats.bookingActions, "action", "actions")}</span>}
+                    </div>
+                    <div class="view-link">Open itinerary -></div>
                   </div>
-                  <h2 class="card-title">{trip.title}</h2>
-                  {getDateContext(trip) && <p class="card-desc">{getDateContext(trip)}</p>}
-                  {trip.heroIntro && <p class="card-desc">{trip.heroIntro}</p>}
-                  <div class="card-metrics" aria-label={`${trip.title} quick stats`}>
-                    <span class="card-metric">{plural(stats.sections, "section", "sections")}</span>
-                    <span class="card-metric">{plural(stats.stops, "stop", "stops")}</span>
-                    <span class="card-metric">{plural(stats.food, "food option", "food options")}</span>
-                    <span class="card-metric">{stats.mapped} mapped</span>
-                    {stats.bookingActions > 0 && <span class="card-metric">{plural(stats.bookingActions, "action", "actions")}</span>}
+                </a>
+              );
+            })}
+          </div>
+        ) : (
+          <div class="empty-state">
+            <h2>No visible itineraries yet</h2>
+            <p style="color: var(--muted)">Add a trip in Sanity and set its visibility to show on website.</p>
+          </div>
+        )}
+      </section>
+
+      <section class="directory-section" aria-labelledby="hotel-search-directory-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="hotel-search-directory-title">Hotel Searches</h2>
+            <p>Snapshot comparisons generated from a specific brief.</p>
+          </div>
+        </div>
+
+        {hotelSearches && hotelSearches.length > 0 ? (
+          <div class="grid-directory">
+            {hotelSearches.map((search) => {
+              const budgetLabel = getHotelSearchBudgetLabel(search);
+              const dateLabel = formatDateRange(search.search?.dateRange);
+              const locationLabel = [search.search?.location?.label, search.search?.location?.country].filter(Boolean).join(", ");
+
+              return (
+                <a href={`/hotel-searches/${search.slug}`} class="directory-card">
+                  <div class="card-body">
+                    <div class="card-topline">
+                      <div class="card-date">{dateLabel || "Dates not set"}</div>
+                      <span class="status-pill">{search.status || "completed"}</span>
+                    </div>
+                    <h2 class="card-title">{search.title}</h2>
+                    {locationLabel && <p class="card-desc">{locationLabel}</p>}
+                    {search.summary?.headline && <p class="card-desc">{search.summary.headline}</p>}
+                    <div class="card-metrics" aria-label={`${search.title} hotel search stats`}>
+                      <span class="card-metric">{plural(search.hotelCount || 0, "option", "options")}</span>
+                      <span class="card-metric">{search.withinBudgetCount || 0} within target</span>
+                      <span class="card-metric">{search.flexBudgetCount || 0} within flex</span>
+                      {budgetLabel && <span class="card-metric">{budgetLabel}</span>}
+                    </div>
+                    <div class="view-link">Open comparison -></div>
                   </div>
-                  <div class="view-link">Open itinerary -></div>
-                </div>
-              </a>
-            );
-          })}
-        </div>
-      ) : (
-        <div class="empty-state">
-          <h2>No visible itineraries yet</h2>
-          <p style="color: var(--muted)">Add a trip in Sanity and set its visibility to show on website.</p>
-        </div>
-      )}
+                </a>
+              );
+            })}
+          </div>
+        ) : (
+          <div class="empty-state">
+            <h2>No hotel searches yet</h2>
+            <p style="color: var(--muted)">When Claude writes a hotelSearch document to Sanity, it will appear here.</p>
+          </div>
+        )}
+      </section>
     </main>
   </body>
 </html>
