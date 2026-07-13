@@ -61,6 +61,16 @@ const normalizeSource = (source, index) => {
   return normalized;
 };
 
+const normalizeImage = (image) => {
+  if (!isObject(image) || !isString(image.url)) return undefined;
+
+  const normalized = { url: image.url.trim() };
+  if (isString(image.alt)) normalized.alt = image.alt.trim();
+  if (isString(image.source)) normalized.source = image.source.trim();
+
+  return normalized;
+};
+
 const normalizePayload = (input) => {
   const currentSlug = isObject(input.slug) ? input.slug.current : input.slug;
   const slug = slugify(currentSlug || input.title);
@@ -70,6 +80,7 @@ const normalizePayload = (input) => {
     _type: "hotelCandidate",
     _key: isString(hotel?._key) ? slugify(hotel._key) : slugify(hotel?.propertyName || `hotel-${index + 1}`),
     propertyType: propertyTypes.has(hotel?.propertyType) ? hotel.propertyType : "unknown",
+    image: normalizeImage(hotel?.image),
     sources: Array.isArray(hotel?.sources)
       ? hotel.sources.map(normalizeSource).filter(Boolean)
       : [],

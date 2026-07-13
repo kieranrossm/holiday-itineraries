@@ -131,7 +131,12 @@ if (!Array.isArray(payload.hotels)) {
         if (!isString(source?._key)) addWarning(`${sourcePath}._key`, "source _key is missing");
         if (!isString(source?.platform)) addWarning(`${sourcePath}.platform`, "source platform is missing");
         if (source?.url === null) addWarning(`${sourcePath}.url`, "source URL is null; omit it or provide a URL when available");
+        if (!isString(source?.url)) addWarning(`${sourcePath}.url`, "source has no listing URL; the site can only link to it if a URL is provided");
       });
+    }
+
+    if (hotel.image !== undefined && !isString(hotel.image?.url)) {
+      addWarning(`${pathPrefix}.image.url`, "image object is present but has no url; omit image entirely or provide a hosted photo URL");
     }
 
     if (!isNumber(hotel.review?.scorePercent)) addWarning(`${pathPrefix}.review.scorePercent`, "review score is missing or not numeric");

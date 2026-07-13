@@ -12,11 +12,21 @@ type DateRange = {
   nights?: number;
 };
 
+export type HotelSourceLink = {
+  platform: string;
+  url?: string;
+};
+
 export type HotelCandidate = {
   rank?: number;
   propertyName?: string;
   propertyType?: string;
   area?: string;
+  image?: {
+    url?: string;
+    alt?: string;
+    source?: string;
+  };
   sources?: { platform?: string; url?: string }[];
   review?: {
     scorePercent?: number;
@@ -187,16 +197,17 @@ export const formatCheckedDate = (value: unknown) => {
   });
 };
 
-export const getHotelSourceSummary = (hotel: HotelCandidate) => {
-  const sources = (hotel.sources || []).filter((source) => source?.platform || source?.url);
-  if (sources.length === 0) return "Source not confirmed";
-
-  return sources.map((source) => source.platform || "Listing").join(" + ");
-};
+export const getHotelSourceLinks = (hotel: HotelCandidate): HotelSourceLink[] => (
+  (hotel.sources || [])
+    .filter((source) => source?.platform || source?.url)
+    .map((source) => ({ platform: source.platform || "Listing", url: source.url }))
+);
 
 export const getHotelPrimaryUrl = (hotel: HotelCandidate) => (
   (hotel.sources || []).find((source) => source?.url)?.url || ""
 );
+
+export const getHotelImageUrl = (hotel: HotelCandidate) => hotel.image?.url || "";
 
 export const getBudgetDeltaLabel = (hotel: HotelCandidate, targetPerNight?: number, flexPerNight?: number) => {
   const perNight = hotel.price?.perNight;

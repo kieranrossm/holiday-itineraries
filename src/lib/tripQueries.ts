@@ -239,6 +239,11 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
     propertyName,
     propertyType,
     area,
+    image {
+      url,
+      alt,
+      source
+    },
     sources[] {
       platform,
       url
