@@ -40,6 +40,11 @@ export type MapPoint = {
   mapUrl?: string;
   showOnDashboardMap?: boolean;
   sectionTitle?: string;
+  // Hotel-search map only: links a marker back to its card (DOM id
+  // `hotel-${hotelRank}`) for click-to-scroll, and a price line for the
+  // hover tooltip.
+  hotelRank?: number;
+  priceLabel?: string;
 };
 
 export const getCoordinateMapUrl = (coordinates: Coordinates | undefined) => {

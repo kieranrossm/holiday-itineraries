@@ -271,6 +271,8 @@ export const getHotelMapPoints = (hotelSearch: HotelSearch): MapPoint[] => {
         lng: hotel.coordinates?.lng as number,
         markerColor,
         mapUrl: getHotelPrimaryUrl(hotel),
+        hotelRank: hotel.rank,
+        priceLabel: formatPerNight(hotel, hotelSearch.search?.budget?.currency || "GBP"),
       });
     });
 
