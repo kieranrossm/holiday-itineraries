@@ -24,6 +24,7 @@ import {
   type HotelSearch,
 } from "../../lib/hotelSearch";
 import { getCoordinateMapUrl } from "../../lib/maps";
+import { findHotelPhoto } from "../../lib/googlePlaces";
 import { hotelSearchDetailQuery, visibleHotelSearchSlugsQuery } from "../../lib/tripQueries";
 
 export async function getStaticPaths() {
@@ -62,6 +63,35 @@ const budgetLabel = [
 ].filter(Boolean).join(" / ") || "Budget not specified";
 const checkedDate = formatCheckedDate(hotelSearch.metadata?.searchedAt) || formatCheckedDate(hotels.find((hotel) => hotel.price?.checkedAt)?.price?.checkedAt);
 const mapPoints = getHotelMapPoints(hotelSearch);
+
+// Google Places photos are a live, build-time-only fallback for hotels no
+// other source could image — Google's terms don't allow caching the photo
+// reference, so this resolves fresh on every build rather than being stored
+// in Sanity like every other image source. See src/lib/googlePlaces.ts.
+const googleApiKey = import.meta.env.GOOGLE_MAPS_API_KEY || "";
+const googlePhotos = new Map<HotelCandidate, { url: string; attributionName: string; attributionUri: string }>();
+if (googleApiKey) {
+  await Promise.all(
+    hotels
+      .filter((hotel) => !hotel.image?.url && hasNumber(hotel.coordinates?.lat) && hasNumber(hotel.coordinates?.lng))
+      .map(async (hotel) => {
+        const photo = await findHotelPhoto(
+          hotel.propertyName || "",
+          hotel.coordinates!.lat as number,
+          hotel.coordinates!.lng as number,
+          googleApiKey,
+        );
+        if (photo) googlePhotos.set(hotel, photo);
+      }),
+  );
+}
+const getHotelPhoto = (hotel: HotelCandidate) => {
+  const url = getHotelImageUrl(hotel);
+  if (url) return { url, attribution: null as { name: string; uri: string } | null };
+  const google = googlePhotos.get(hotel);
+  if (google) return { url: google.url, attribution: { name: google.attributionName, uri: google.attributionUri } };
+  return { url: "", attribution: null };
+};
 const availabilityPreview = hotelSearch.availabilityPreview;
 const previewDateLabel = formatDateRange(availabilityPreview?.dateRange);
 const previewHotels = availabilityPreview?.hotels || [];
@@ -433,6 +463,26 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
         width: 100%;
         height: 100%;
         object-fit: cover;
+      }
+
+      .photo-attribution {
+        position: absolute;
+        z-index: 2;
+        right: 0.5rem;
+        top: 0.75rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        background: rgba(15, 23, 42, 0.65);
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 0.62rem;
+        font-weight: 700;
+        text-decoration: none;
+        line-height: 1.2;
+      }
+
+      .photo-attribution:hover {
+        color: #fff;
+        text-decoration: underline;
       }
 
       .hotel-visual::after {
@@ -950,7 +1000,8 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
           <section class="hotel-list" data-sort-list aria-label="Ranked hotel options">
             {hotels.map((hotel, index) => {
               const budgetClass = getBudgetStatusClass(hotel.price?.budgetStatus);
-              const imageUrl = getHotelImageUrl(hotel);
+              const photo = getHotelPhoto(hotel);
+              const imageUrl = photo.url;
               const sourceLinks = getHotelSourceLinks(hotel);
               const mapUrl = getCoordinateMapUrl(hotel.coordinates);
               const notes = (hotel.notes || []).filter(hasText);
@@ -975,6 +1026,11 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                         alt={hotel.image?.alt || hotel.propertyName || "Hotel photo"}
                         loading="lazy"
                       />
+                    )}
+                    {photo.attribution && (
+                      <a class="photo-attribution" href={photo.attribution.uri || undefined} target="_blank" rel="noreferrer">
+                        Photo: {photo.attribution.name} / Google
+                      </a>
                     )}
                     <span class="rank-badge">{hotel.rank ? `Rank ${hotel.rank}` : "Option"}</span>
                     <div class="visual-price">
