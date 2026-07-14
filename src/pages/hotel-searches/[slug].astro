@@ -21,6 +21,7 @@ import {
   getSortedHotels,
   hasNumber,
   type HotelCandidate,
+  type HotelExclusion,
   type HotelSearch,
 } from "../../lib/hotelSearch";
 import { getCoordinateMapUrl } from "../../lib/maps";
@@ -98,6 +99,7 @@ const previewHotels = availabilityPreview?.hotels || [];
 
 const countByBudgetStatus = (status: string) => hotels.filter((hotel) => hotel.price?.budgetStatus === status).length;
 const hasText = (value: unknown) => typeof value === "string" && value.trim().length > 0;
+const exclusions: HotelExclusion[] = (hotelSearch.exclusions || []).filter((item) => hasText(item?.propertyName) || hasText(item?.reason));
 
 const getBudgetRank = (hotel: HotelCandidate) => {
   const status = hotel.price?.budgetStatus;
@@ -839,6 +841,36 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
         text-decoration: underline;
       }
 
+      .exclusion-list {
+        margin: 0;
+        padding: 1rem;
+        list-style: none;
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .exclusion-item {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.5rem;
+        padding: 0.55rem 0.7rem;
+        border-radius: 8px;
+        background: var(--panel-soft);
+      }
+
+      .exclusion-name {
+        color: var(--text-main);
+        font-weight: 800;
+        font-size: 0.86rem;
+      }
+
+      .exclusion-reason {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
       .empty-state {
         padding: 1.5rem;
         border: 1px dashed var(--border-color);
@@ -1164,6 +1196,20 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                 </tbody>
               </table>
             </div>
+          </details>
+        )}
+
+        {exclusions.length > 0 && (
+          <details class="comparison-panel">
+            <summary>Excluded Properties ({exclusions.length})</summary>
+            <ul class="exclusion-list">
+              {exclusions.map((item) => (
+                <li class="exclusion-item">
+                  <span class="exclusion-name">{item.propertyName || "Unnamed property"}</span>
+                  <span class="exclusion-reason">{item.reason || "Reason not recorded"}</span>
+                </li>
+              ))}
+            </ul>
           </details>
         )}
       </section>

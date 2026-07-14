@@ -275,6 +275,10 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
     coordinates,
     notes
   },
+  exclusions[] {
+    propertyName,
+    reason
+  },
   availabilityPreview {
     note,
     dateRange {

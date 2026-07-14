@@ -519,6 +519,41 @@ const hotelSearchSchema = {
       of: [hotelCandidateField],
     },
     {
+      name: 'exclusions',
+      title: 'Excluded Properties',
+      description: 'Properties the search found but filtered out (budget, review score, walk distance), with a one-line reason. Nothing from a run is silently dropped.',
+      type: 'array',
+      options: {
+        collapsible: true,
+        collapsed: true,
+      },
+      of: [
+        {
+          type: 'object',
+          fields: [
+            {
+              name: 'propertyName',
+              title: 'Property Name',
+              type: 'string',
+              validation: (Rule: ValidationRule) => Rule.required(),
+            },
+            {
+              name: 'reason',
+              title: 'Exclusion Reason',
+              type: 'string',
+              validation: (Rule: ValidationRule) => Rule.required(),
+            },
+          ],
+          preview: {
+            select: {
+              title: 'propertyName',
+              subtitle: 'reason',
+            },
+          },
+        },
+      ],
+    },
+    {
       name: 'metadata',
       title: 'Metadata',
       type: 'object',

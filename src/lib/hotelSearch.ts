@@ -56,6 +56,11 @@ export type HotelCandidate = {
   notes?: string[];
 };
 
+export type HotelExclusion = {
+  propertyName?: string;
+  reason?: string;
+};
+
 export type AvailabilityPreviewHotel = {
   propertyName?: string;
   source?: { platform?: string; url?: string };
@@ -108,6 +113,7 @@ export type HotelSearch = {
     notes?: string[];
   };
   hotels?: HotelCandidate[];
+  exclusions?: HotelExclusion[];
   availabilityPreview?: AvailabilityPreview;
   metadata?: {
     searchedAt?: string;
