@@ -70,6 +70,14 @@ export type HotelBookingOutcome = {
   actualPricePerNight?: number;
 };
 
+export type HotelStayReview = {
+  reviewedAt?: string;
+  matchedExpectations?: boolean;
+  whatWorked?: string;
+  whatDidnt?: string;
+  wouldReturn?: "yes" | "no" | "unsure";
+};
+
 export type AvailabilityPreviewHotel = {
   propertyName?: string;
   source?: { platform?: string; url?: string };
@@ -124,6 +132,7 @@ export type HotelSearch = {
   hotels?: HotelCandidate[];
   exclusions?: HotelExclusion[];
   bookingOutcome?: HotelBookingOutcome;
+  stayReview?: HotelStayReview;
   availabilityPreview?: AvailabilityPreview;
   metadata?: {
     searchedAt?: string;
@@ -163,6 +172,17 @@ export const getPropertyTypeLabel = (value: unknown) => {
 export const getBudgetStatusLabel = (value: unknown) => {
   const key = typeof value === "string" && value ? value : "unknown";
   return budgetStatusLabels[key] || "Budget Unknown";
+};
+
+export const wouldReturnLabels: Record<string, string> = {
+  yes: "Would return",
+  no: "Would not return",
+  unsure: "Unsure about returning",
+};
+
+export const getWouldReturnLabel = (value: unknown) => {
+  const key = typeof value === "string" && value ? value : "";
+  return wouldReturnLabels[key] || "";
 };
 
 export const getBudgetStatusClass = (value: unknown) => {

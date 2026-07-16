@@ -20,6 +20,7 @@ import {
   getPropertyTypeLabel,
   getSortedHotels,
   hasNumber,
+  getWouldReturnLabel,
   type HotelCandidate,
   type HotelExclusion,
   type HotelSearch,
@@ -102,6 +103,7 @@ const hasText = (value: unknown) => typeof value === "string" && value.trim().le
 const exclusions: HotelExclusion[] = (hotelSearch.exclusions || []).filter((item) => hasText(item?.propertyName) || hasText(item?.reason));
 const bookingOutcome = hotelSearch.bookingOutcome;
 const bookedHotel = hotels.find((hotel) => hotel.booked);
+const stayReview = hotelSearch.stayReview;
 
 const getBudgetRank = (hotel: HotelCandidate) => {
   const status = hotel.price?.budgetStatus;
@@ -580,6 +582,21 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
         font-weight: 750;
       }
 
+      .stay-review {
+        margin-top: 0.7rem;
+        padding-top: 0.6rem;
+        border-top: 1px dashed #fde68a;
+      }
+
+      .outcome-eyebrow {
+        margin: 0 0 0.3rem;
+        color: #b45309;
+        font-size: 0.68rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
       .visual-price {
         position: absolute;
         left: 0.75rem;
@@ -999,6 +1016,15 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                   bookingOutcome.bookedAt ? `Decided ${formatCheckedDate(bookingOutcome.bookedAt)}` : "",
                   hasNumber(bookingOutcome.actualPricePerNight) ? `Actual price: ${formatMoney(bookingOutcome.actualPricePerNight, currency)}/night` : "",
                 ].filter(Boolean).join(" · ")}
+              </div>
+            )}
+            {stayReview && (stayReview.whatWorked || stayReview.whatDidnt || stayReview.wouldReturn) && (
+              <div class="stay-review">
+                <p class="outcome-eyebrow">After the stay</p>
+                {stayReview.matchedExpectations === false && <div class="outcome-meta">Didn't match the evidence that won the ranking.</div>}
+                {stayReview.whatWorked && <div class="outcome-meta"><strong>Worked:</strong> {stayReview.whatWorked}</div>}
+                {stayReview.whatDidnt && <div class="outcome-meta"><strong>Didn't:</strong> {stayReview.whatDidnt}</div>}
+                {stayReview.wouldReturn && <div class="outcome-meta">{getWouldReturnLabel(stayReview.wouldReturn)}</div>}
               </div>
             )}
           </div>

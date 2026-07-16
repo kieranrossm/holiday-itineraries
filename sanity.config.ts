@@ -603,6 +603,40 @@ const hotelSearchSchema = {
       ],
     },
     {
+      name: 'stayReview',
+      title: 'Post-Stay Review',
+      description: 'How the stay actually went, captured after checkout — separate from Booking Outcome because that\'s a decision made before the trip and this is evidence from after it. This is the raw material preferences.md actually needs; right now that file rests on two hotels\' worth of evidence.',
+      type: 'object',
+      options: {
+        collapsible: true,
+        collapsed: false,
+      },
+      fields: [
+        { name: 'reviewedAt', title: 'Reviewed At', type: 'date' },
+        {
+          name: 'matchedExpectations',
+          title: 'Matched the Ranking\'s Evidence?',
+          type: 'boolean',
+          description: 'Did the cleanliness/location signal that won the ranking actually hold up in person?',
+        },
+        { name: 'whatWorked', title: 'What Worked', type: 'text', rows: 2 },
+        { name: 'whatDidnt', title: 'What Didn\'t', type: 'text', rows: 2 },
+        {
+          name: 'wouldReturn',
+          title: 'Would Return?',
+          type: 'string',
+          options: {
+            list: [
+              { title: 'Yes', value: 'yes' },
+              { title: 'No', value: 'no' },
+              { title: 'Unsure', value: 'unsure' },
+            ],
+            layout: 'radio',
+          },
+        },
+      ],
+    },
+    {
       name: 'metadata',
       title: 'Metadata',
       type: 'object',

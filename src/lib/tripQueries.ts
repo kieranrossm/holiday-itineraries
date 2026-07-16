@@ -287,6 +287,13 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
     whyNote,
     actualPricePerNight
   },
+  stayReview {
+    reviewedAt,
+    matchedExpectations,
+    whatWorked,
+    whatDidnt,
+    wouldReturn
+  },
   availabilityPreview {
     note,
     dateRange {
