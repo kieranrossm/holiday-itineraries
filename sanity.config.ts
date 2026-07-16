@@ -379,6 +379,16 @@ const hotelCandidateField = {
     { name: 'coordinates', title: 'Map Coordinates', type: 'geopoint' },
     { name: 'notes', title: 'Notes', type: 'array', of: [{ type: 'string' }] },
     {
+      name: 'image',
+      title: 'Listing Image',
+      description: 'A photo pulled from one of the gather sources (Tripadvisor/Trip.com/DirectBooker) — not a Sanity-hosted asset. Was already written and queried by every hotelSearch document; never actually declared in this schema until now (same gap as exclusions).',
+      type: 'object',
+      fields: [
+        { name: 'url', title: 'Image URL', type: 'url' },
+        { name: 'source', title: 'Image Source Platform', type: 'string' },
+      ],
+    },
+    {
       name: 'booked',
       title: 'Actually Booked',
       description: 'Turn on for the one property that was actually booked, once a decision is made — closes the loop between this search and what really happened.',
