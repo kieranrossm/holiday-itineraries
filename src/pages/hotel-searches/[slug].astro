@@ -1185,6 +1185,7 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                       )}
                       <span class="pill">Air con: {formatAmenity(hotel.amenities?.airConditioning)}</span>
                       <span class="pill">Pool: {formatAmenity(hotel.amenities?.pool)}</span>
+                      <span class="pill">Fridge: {formatAmenity(hotel.amenities?.fridge)}</span>
                     </div>
 
                     <div class="card-bottom">
@@ -1227,6 +1228,7 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                     <th>Walk</th>
                     <th>Air con</th>
                     <th>Pool</th>
+                    <th>Fridge</th>
                     <th>Budget</th>
                     <th>Notes</th>
                   </tr>
@@ -1272,6 +1274,7 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                         <td class="numeric">{formatWalk(hotel)}</td>
                         <td>{formatAmenity(hotel.amenities?.airConditioning)}</td>
                         <td>{formatAmenity(hotel.amenities?.pool)}</td>
+                        <td>{formatAmenity(hotel.amenities?.fridge)}</td>
                         <td>
                           <span class={`pill ${budgetClass}`}>{getBudgetStatusLabel(hotel.price?.budgetStatus)}</span>
                           {getBudgetDeltaLabel(hotel, targetPerNight, flexPerNight) && (

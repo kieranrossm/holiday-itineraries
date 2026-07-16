@@ -51,6 +51,7 @@ export type HotelCandidate = {
   amenities?: {
     airConditioning?: boolean | null;
     pool?: boolean | null;
+    fridge?: boolean | null;
   };
   coordinates?: Coordinates;
   notes?: string[];

@@ -270,7 +270,8 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
     },
     amenities {
       airConditioning,
-      pool
+      pool,
+      fridge
     },
     coordinates,
     notes,

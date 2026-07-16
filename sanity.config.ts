@@ -374,6 +374,7 @@ const hotelCandidateField = {
       fields: [
         { name: 'airConditioning', title: 'Air conditioning confirmed', type: 'boolean' },
         { name: 'pool', title: 'Pool confirmed', type: 'boolean' },
+        { name: 'fridge', title: 'Fridge confirmed', type: 'boolean' },
       ],
     },
     { name: 'coordinates', title: 'Map Coordinates', type: 'geopoint' },
