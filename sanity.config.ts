@@ -31,12 +31,14 @@ type HotelSearchPreviewSelection = {
   title?: string;
   locationLabel?: string;
   status?: string;
+  bookedName?: string;
 };
 
 type HotelCandidatePreviewSelection = {
   title?: string;
   propertyType?: string;
   pricePerNight?: number;
+  booked?: boolean;
 };
 
 const decisionStateOptions = [
@@ -376,19 +378,28 @@ const hotelCandidateField = {
     },
     { name: 'coordinates', title: 'Map Coordinates', type: 'geopoint' },
     { name: 'notes', title: 'Notes', type: 'array', of: [{ type: 'string' }] },
+    {
+      name: 'booked',
+      title: 'Actually Booked',
+      description: 'Turn on for the one property that was actually booked, once a decision is made — closes the loop between this search and what really happened.',
+      type: 'boolean',
+      initialValue: false,
+    },
   ],
   preview: {
     select: {
       title: 'propertyName',
       propertyType: 'propertyType',
       pricePerNight: 'price.perNight',
+      booked: 'booked',
     },
-    prepare({ title, propertyType, pricePerNight }: HotelCandidatePreviewSelection) {
+    prepare({ title, propertyType, pricePerNight, booked }: HotelCandidatePreviewSelection) {
       return {
-        title,
+        title: booked ? `✓ ${title}` : title,
         subtitle: [
           propertyType,
           typeof pricePerNight === 'number' ? `GBP ${pricePerNight}/night` : '',
+          booked ? 'BOOKED' : '',
         ].filter(Boolean).join(' - ') || 'Hotel candidate',
       };
     },
@@ -554,6 +565,44 @@ const hotelSearchSchema = {
       ],
     },
     {
+      name: 'bookingOutcome',
+      title: 'Booking Outcome',
+      description: 'What actually got booked, and why — the retrospective step both the event-travel and hotel-finder skills promise but had no tooling for until this field existed. Fill in once a decision is made, not at search time.',
+      type: 'object',
+      options: {
+        collapsible: true,
+        collapsed: false,
+      },
+      fields: [
+        {
+          name: 'bookedPropertyName',
+          title: 'Booked Property Name',
+          description: 'Denormalised copy of the booked hotel\'s name, so the outcome is readable without cross-referencing which hotels[] entry has booked=true.',
+          type: 'string',
+        },
+        { name: 'bookedAt', title: 'Decision Date', type: 'date' },
+        {
+          name: 'matchedTopPick',
+          title: 'Matched the Top-Ranked Recommendation?',
+          type: 'boolean',
+          description: 'False means the actual booking diverged from rank 1 — that divergence is usually the most useful signal for preferences.md.',
+        },
+        {
+          name: 'whyNote',
+          title: 'Why This One',
+          type: 'text',
+          rows: 3,
+          description: 'The reasoning behind the actual choice, especially when it differs from the top pick — this is the raw material for updating preferences.md.',
+        },
+        {
+          name: 'actualPricePerNight',
+          title: 'Actual Price Paid Per Night',
+          type: 'number',
+          description: 'Only fill in if it differs materially from the ranked snapshot price (rates move between search and booking).',
+        },
+      ],
+    },
+    {
       name: 'metadata',
       title: 'Metadata',
       type: 'object',
@@ -569,11 +618,12 @@ const hotelSearchSchema = {
       title: 'title',
       locationLabel: 'search.location.label',
       status: 'status',
+      bookedName: 'bookingOutcome.bookedPropertyName',
     },
-    prepare({ title, locationLabel, status }: HotelSearchPreviewSelection) {
+    prepare({ title, locationLabel, status, bookedName }: HotelSearchPreviewSelection) {
       return {
         title,
-        subtitle: [locationLabel, status].filter(Boolean).join(' - ') || 'Hotel search',
+        subtitle: [locationLabel, status, bookedName ? `Booked: ${bookedName}` : ''].filter(Boolean).join(' - ') || 'Hotel search',
       };
     },
   },

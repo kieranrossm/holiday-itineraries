@@ -100,6 +100,8 @@ const previewHotels = availabilityPreview?.hotels || [];
 const countByBudgetStatus = (status: string) => hotels.filter((hotel) => hotel.price?.budgetStatus === status).length;
 const hasText = (value: unknown) => typeof value === "string" && value.trim().length > 0;
 const exclusions: HotelExclusion[] = (hotelSearch.exclusions || []).filter((item) => hasText(item?.propertyName) || hasText(item?.reason));
+const bookingOutcome = hotelSearch.bookingOutcome;
+const bookedHotel = hotels.find((hotel) => hotel.booked);
 
 const getBudgetRank = (hotel: HotelCandidate) => {
   const status = hotel.price?.budgetStatus;
@@ -534,6 +536,50 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
         font-weight: 850;
       }
 
+      .booked-badge {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        min-height: 1.75rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 6px;
+        background: #b45309;
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 850;
+        letter-spacing: 0.02em;
+      }
+
+      .hotel-card.is-booked {
+        box-shadow: 0 0 0 2px #b45309;
+      }
+
+      .outcome-box {
+        margin-bottom: 1.1rem;
+        padding: 1rem;
+        border-left: 4px solid #b45309;
+        border-radius: 8px;
+        background: #fffbeb;
+        color: #78350f;
+        font-size: 0.93rem;
+        line-height: 1.55;
+      }
+
+      .outcome-box strong {
+        color: #78350f;
+      }
+
+      .outcome-meta {
+        margin-top: 0.4rem;
+        color: #92400e;
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+
       .visual-price {
         position: absolute;
         left: 0.75rem;
@@ -942,6 +988,22 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
           </div>
         </header>
 
+        {bookingOutcome && (bookingOutcome.bookedPropertyName || bookingOutcome.whyNote) && (
+          <div class="outcome-box">
+            <strong>Booked: </strong>{bookingOutcome.bookedPropertyName || bookedHotel?.propertyName || "Unnamed property"}
+            {bookingOutcome.matchedTopPick === false && <span> — diverged from the top-ranked recommendation.</span>}
+            {bookingOutcome.whyNote && <div class="outcome-meta">{bookingOutcome.whyNote}</div>}
+            {(bookingOutcome.bookedAt || hasNumber(bookingOutcome.actualPricePerNight)) && (
+              <div class="outcome-meta">
+                {[
+                  bookingOutcome.bookedAt ? `Decided ${formatCheckedDate(bookingOutcome.bookedAt)}` : "",
+                  hasNumber(bookingOutcome.actualPricePerNight) ? `Actual price: ${formatMoney(bookingOutcome.actualPricePerNight, currency)}/night` : "",
+                ].filter(Boolean).join(" · ")}
+              </div>
+            )}
+          </div>
+        )}
+
         {(hotelSearch.summary?.headline || checkedDate) && (
           <div class="summary-box">
             {hotelSearch.summary?.headline && <><strong>Curator's Take: </strong>{hotelSearch.summary.headline}</>}
@@ -1041,7 +1103,7 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
               return (
                 <article
                   id={`hotel-${hotel.rank ?? index}`}
-                  class={`hotel-card budget-${budgetClass}`}
+                  class={`hotel-card budget-${budgetClass}${hotel.booked ? " is-booked" : ""}`}
                   data-sort-item
                   data-rank={getSortValue(hotel.rank, 9999)}
                   data-rating={getSortValue(hotel.review?.scorePercent, -1)}
@@ -1065,6 +1127,7 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                       </a>
                     )}
                     <span class="rank-badge">{hotel.rank ? `Rank ${hotel.rank}` : "Option"}</span>
+                    {hotel.booked && <span class="booked-badge">✓ Booked</span>}
                     <div class="visual-price">
                       <strong>{formatMoney(hotel.price?.perNight, hotel.price?.currency || currency) || "-"}</strong>
                       <span>per night</span>
@@ -1161,7 +1224,7 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                       >
                         <td class="numeric">{hotel.rank || ""}</td>
                         <td class="property-cell">
-                          <strong>{hotel.propertyName || "Unnamed property"}</strong>
+                          <strong>{hotel.booked && "✓ "}{hotel.propertyName || "Unnamed property"}</strong>
                           {hotel.area && <span class="property-sub">{hotel.area}</span>}
                           {mapUrl && <div><a class="text-link" href={mapUrl} target="_blank" rel="noreferrer">Map</a></div>}
                         </td>

@@ -273,11 +273,19 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
       pool
     },
     coordinates,
-    notes
+    notes,
+    booked
   },
   exclusions[] {
     propertyName,
     reason
+  },
+  bookingOutcome {
+    bookedPropertyName,
+    bookedAt,
+    matchedTopPick,
+    whyNote,
+    actualPricePerNight
   },
   availabilityPreview {
     note,

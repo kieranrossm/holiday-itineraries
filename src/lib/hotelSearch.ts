@@ -54,11 +54,20 @@ export type HotelCandidate = {
   };
   coordinates?: Coordinates;
   notes?: string[];
+  booked?: boolean;
 };
 
 export type HotelExclusion = {
   propertyName?: string;
   reason?: string;
+};
+
+export type HotelBookingOutcome = {
+  bookedPropertyName?: string;
+  bookedAt?: string;
+  matchedTopPick?: boolean;
+  whyNote?: string;
+  actualPricePerNight?: number;
 };
 
 export type AvailabilityPreviewHotel = {
@@ -114,6 +123,7 @@ export type HotelSearch = {
   };
   hotels?: HotelCandidate[];
   exclusions?: HotelExclusion[];
+  bookingOutcome?: HotelBookingOutcome;
   availabilityPreview?: AvailabilityPreview;
   metadata?: {
     searchedAt?: string;
