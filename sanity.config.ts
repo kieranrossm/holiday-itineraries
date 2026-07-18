@@ -287,6 +287,21 @@ const hotelBudgetStatusOptions = [
 const hotelSourceFields = [
   { name: 'platform', title: 'Platform', type: 'string' },
   { name: 'url', title: 'URL', type: 'url' },
+  {
+    name: 'nightlyPrice',
+    title: 'Nightly Price (this source)',
+    type: 'number',
+    description:
+      'This specific source\'s own quoted nightly rate, so a Kieran-visible price can be traced back to which platform it came from — different sources for the same property routinely disagree (2026-07-18, Es Cana run: one property showed a 46% spread across 5 sources), and the top-level price.perNight silently picking the lowest one without saying whose number it was is exactly what made those prices unverifiable.',
+  },
+  { name: 'priceCurrency', title: 'Nightly Price Currency (this source)', type: 'string' },
+  {
+    name: 'regionLocked',
+    title: 'Region-Locked Price',
+    type: 'boolean',
+    description:
+      'True when this source\'s tool only returns a price via a spoofed/non-UK region (e.g. Expedia\'s search tool hard-fails with GEOFENCING_ERROR on a real GB user_location). NOT a signal the price is wrong or unbookable — 2026-07-18, Kieran confirmed via his own VPN that Expedia\'s region-locked price is genuinely reachable and can beat the UK-facing price. It means "may need a VPN or region switch to book at this rate," shown as a caveat alongside the price, not a reason to hide or deprioritise it.',
+  },
 ];
 
 const hotelCandidateField = {
@@ -340,6 +355,26 @@ const hotelCandidateField = {
       fields: [
         { name: 'perNight', title: 'Cost Per Night', type: 'number' },
         { name: 'currency', title: 'Currency', type: 'string', initialValue: 'GBP' },
+        {
+          name: 'source',
+          title: 'Price Source Platform',
+          type: 'string',
+          description:
+            'Which source\'s own price is shown as perNight (e.g. "Expedia") — added 2026-07-18 after perNight silently used the lowest across all sources with no way to tell which platform it came from or whether it was reliable.',
+        },
+        {
+          name: 'multipleSources',
+          title: 'Multiple Sources Disagree',
+          type: 'boolean',
+          description: 'True when 2+ sources quoted a comparable price and they differ — a real disagreement to flag, not resolved by silently picking the lowest.',
+        },
+        {
+          name: 'sourceRegionLocked',
+          title: 'Winning Price Is Region-Locked',
+          type: 'boolean',
+          description:
+            'True when the source that supplied perNight is region-locked (see sources[].regionLocked) — a caveat to show next to the headline price, not a reason it was excluded from winning.',
+        },
         {
           name: 'budgetStatus',
           title: 'Budget Status',

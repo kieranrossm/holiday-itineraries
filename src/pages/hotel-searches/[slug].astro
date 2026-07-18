@@ -17,6 +17,7 @@ import {
   getFlagLabel,
   getHotelImageUrl,
   getHotelMapPoints,
+  getHotelPricingTable,
   getHotelSourceLinks,
   getPropertyTypeLabel,
   getSortedHotels,
@@ -771,6 +772,52 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
         font-weight: 750;
       }
 
+      .pricing-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 0.6rem;
+        font-size: 0.82rem;
+      }
+
+      .pricing-table caption {
+        text-align: left;
+        color: var(--text-muted);
+        font-size: 0.68rem;
+        font-weight: 850;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.3rem;
+      }
+
+      .pricing-table th {
+        text-align: left;
+        color: var(--text-muted);
+        font-size: 0.68rem;
+        font-weight: 850;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        padding: 0.2rem 0.5rem 0.2rem 0;
+        border-bottom: 1px solid var(--border-color, #e5e7eb);
+      }
+
+      .pricing-table td {
+        padding: 0.28rem 0.5rem 0.28rem 0;
+        border-bottom: 1px solid var(--border-color, #e5e7eb);
+      }
+
+      .pricing-table tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      .region-locked-note {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.66rem;
+        font-weight: 800;
+        opacity: 0.9;
+        color: #fde68a;
+      }
+
       .links-row {
         display: flex;
         flex-wrap: wrap;
@@ -1136,6 +1183,8 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
               const photo = getHotelPhoto(hotel);
               const imageUrl = photo.url;
               const sourceLinks = getHotelSourceLinks(hotel);
+              const pricingTable = getHotelPricingTable(hotel);
+              const unpricedSources = sourceLinks.filter((source) => source.url && !hasNumber(source.nightlyPrice));
               const mapUrl = getCoordinateMapUrl(hotel.coordinates);
               const notes = (hotel.notes || []).filter(hasText);
 
@@ -1169,7 +1218,10 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                     {hotel.booked && <span class="booked-badge">✓ Booked</span>}
                     <div class="visual-price">
                       <strong>{formatMoney(hotel.price?.perNight, hotel.price?.currency || currency) || "-"}</strong>
-                      <span>per night</span>
+                      <span>per night{hotel.price?.source ? ` · ${hotel.price.source}` : ""}</span>
+                      {hotel.price?.sourceRegionLocked && (
+                        <span class="region-locked-note">Region-locked price — may need a VPN/region switch to book</span>
+                      )}
                     </div>
                   </div>
 
@@ -1210,16 +1262,35 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                     )}
 
                     <div class="card-bottom">
-                      <div class="sources-row">
-                        <span class="sources-label">Seen on</span>
-                        {sourceLinks.length > 0 ? sourceLinks.map((source) => (
-                          source.url ? (
+                      {pricingTable.length > 0 ? (
+                        <table class="pricing-table">
+                          <caption>Price by source, cheapest first</caption>
+                          <thead>
+                            <tr><th>Source</th><th>Price</th><th>Note</th></tr>
+                          </thead>
+                          <tbody>
+                            {pricingTable.map((source) => (
+                              <tr>
+                                <td>
+                                  {source.url ? (
+                                    <a class="source-link" href={source.url} target="_blank" rel="noreferrer">{source.platform} &#8599;</a>
+                                  ) : source.platform}
+                                </td>
+                                <td>{formatMoney(source.nightlyPrice, source.priceCurrency || hotel.price?.currency || currency)}</td>
+                                <td>{source.regionLocked ? "Region-locked — needs VPN/region switch" : ""}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : <span class="source-plain">No priced source confirmed</span>}
+                      {unpricedSources.length > 0 && (
+                        <div class="sources-row">
+                          <span class="sources-label">Also seen on</span>
+                          {unpricedSources.map((source) => (
                             <a class="source-link" href={source.url} target="_blank" rel="noreferrer">{source.platform} &#8599;</a>
-                          ) : (
-                            <span class="source-plain">{source.platform}</span>
-                          )
-                        )) : <span class="source-plain">Source not confirmed</span>}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                       <div class="links-row">
                         {mapUrl && <a class="action-link secondary-link" href={mapUrl} target="_blank" rel="noreferrer">Open Map</a>}
                       </div>

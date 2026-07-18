@@ -246,7 +246,10 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
     },
     sources[] {
       platform,
-      url
+      url,
+      nightlyPrice,
+      priceCurrency,
+      regionLocked
     },
     review {
       scorePercent,
@@ -256,6 +259,9 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
     price {
       perNight,
       currency,
+      source,
+      multipleSources,
+      sourceRegionLocked,
       budgetStatus,
       overTargetAmount,
       overFlexAmount,

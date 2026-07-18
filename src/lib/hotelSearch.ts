@@ -15,6 +15,9 @@ type DateRange = {
 export type HotelSourceLink = {
   platform: string;
   url?: string;
+  nightlyPrice?: number;
+  priceCurrency?: string;
+  regionLocked?: boolean;
 };
 
 export type HotelCandidate = {
@@ -27,7 +30,7 @@ export type HotelCandidate = {
     alt?: string;
     source?: string;
   };
-  sources?: { platform?: string; url?: string }[];
+  sources?: { platform?: string; url?: string; nightlyPrice?: number; priceCurrency?: string; regionLocked?: boolean }[];
   review?: {
     scorePercent?: number;
     reviewCount?: number;
@@ -36,6 +39,9 @@ export type HotelCandidate = {
   price?: {
     perNight?: number;
     currency?: string;
+    source?: string;
+    multipleSources?: boolean;
+    sourceRegionLocked?: boolean;
     budgetStatus?: string;
     overTargetAmount?: number;
     overFlexAmount?: number;
@@ -181,6 +187,7 @@ export const flagLabels: Record<string, string> = {
   "shared-pin-suspect": "Location pin may be inexact",
   "possible-duplicate-unresolved": "Possible duplicate, unresolved",
   "google-places-only": "Found via Google Maps only, not yet on a booking site",
+  "price-disagreement": "Sources disagree on price — see per-source prices below",
 };
 
 export const getFlagLabel = (flag: string): string => {
@@ -290,7 +297,25 @@ export const formatCheckedDate = (value: unknown) => {
 export const getHotelSourceLinks = (hotel: HotelCandidate): HotelSourceLink[] => (
   (hotel.sources || [])
     .filter((source) => source?.platform || source?.url)
-    .map((source) => ({ platform: source.platform || "Listing", url: source.url }))
+    .map((source) => ({
+      platform: source.platform || "Listing",
+      url: source.url,
+      nightlyPrice: source.nightlyPrice,
+      priceCurrency: source.priceCurrency,
+      regionLocked: source.regionLocked,
+    }))
+);
+
+// 2026-07-18 (Kieran's call): a per-source pricing table, cheapest first, so
+// he can see and choose between prices himself rather than the pipeline
+// picking one "canonical" number and hiding the rest. Region-locked sources
+// (e.g. Expedia, see sanity.config.ts hotelSourceFields.regionLocked) are
+// NOT excluded or sorted last — Kieran confirmed via his own VPN that a
+// region-locked price is genuinely bookable and can be the cheapest.
+export const getHotelPricingTable = (hotel: HotelCandidate): HotelSourceLink[] => (
+  getHotelSourceLinks(hotel)
+    .filter((source) => hasNumber(source.nightlyPrice))
+    .sort((first, second) => (first.nightlyPrice as number) - (second.nightlyPrice as number))
 );
 
 export const getHotelPrimaryUrl = (hotel: HotelCandidate) => (
