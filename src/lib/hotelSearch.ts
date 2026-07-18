@@ -56,6 +56,7 @@ export type HotelCandidate = {
   coordinates?: Coordinates;
   notes?: string[];
   booked?: boolean;
+  flags?: string[];
 };
 
 export type HotelExclusion = {
@@ -159,6 +160,42 @@ export const budgetStatusLabels: Record<string, string> = {
   flex: "Within Flex",
   over: "Over Budget",
   unknown: "Budget Unknown",
+};
+
+// 2026-07-17 (Kieran's call): filters became soft labels instead of hard
+// cutoffs in the gather pipeline — a property that would previously have
+// been excluded now survives with a flag instead. These are the
+// human-readable labels for those flags; a few (required-amenity-absent:X,
+// X-required-unconfirmed) are dynamic and handled in getFlagLabel below
+// rather than listed here individually.
+export const flagLabels: Record<string, string> = {
+  "below-review-threshold": "Below review threshold",
+  "over-budget": "Over budget",
+  "over-target-within-flex": "Over target, within flex",
+  "far-walk": "Far walk",
+  "longer-walk": "Longer walk than usual",
+  "no-review-data": "No review data",
+  "price-not-comparable-to-budget": "Price not comparable to budget",
+  "distance-estimated": "Distance estimated, not routed",
+  "pin-conflict": "Sources disagree on location",
+  "shared-pin-suspect": "Location pin may be inexact",
+  "possible-duplicate-unresolved": "Possible duplicate, unresolved",
+  "google-places-only": "Found via Google Maps only, not yet on a booking site",
+};
+
+export const getFlagLabel = (flag: string): string => {
+  if (flagLabels[flag]) return flagLabels[flag];
+
+  const absentMatch = flag.match(/^required-amenity-absent:(.+)$/);
+  if (absentMatch) return `${absentMatch[1]} required but absent`;
+
+  const unconfirmedMatch = flag.match(/^(.+)-required-unconfirmed$/);
+  if (unconfirmedMatch) return `${unconfirmedMatch[1]} required, unconfirmed`;
+
+  // Fallback so a new/unmapped flag is still readable, never silently
+  // dropped — same "nothing is silently dropped" rule the pipeline itself
+  // follows for exclusions.
+  return flag.replaceAll(/[-_]/g, " ").replace(/^./, (c) => c.toUpperCase());
 };
 
 export const hasNumber = (value: unknown): value is number => (

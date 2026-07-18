@@ -141,7 +141,9 @@ const validatePayload = (payload) => {
     const prefix = `hotels[${index}]`;
     if (!isString(hotel._key)) addError(`${prefix}._key`, "is required");
     if (!isString(hotel.propertyName)) addError(`${prefix}.propertyName`, "is required");
-    if (!isNumber(hotel.price?.perNight)) addError(`${prefix}.price.perNight`, "must be numeric");
+    if (hotel.price?.perNight != null && !isNumber(hotel.price.perNight)) {
+      addError(`${prefix}.price.perNight`, "must be numeric or null");
+    }
     if (!budgetStatuses.has(hotel.price?.budgetStatus)) addError(`${prefix}.price.budgetStatus`, "is invalid");
     if (!isNumber(hotel.coordinates?.lat) || !isNumber(hotel.coordinates?.lng)) {
       addError(`${prefix}.coordinates`, "lat/lng are required for map rendering");

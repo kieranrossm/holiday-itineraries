@@ -396,6 +396,13 @@ const hotelCandidateField = {
       type: 'boolean',
       initialValue: false,
     },
+    {
+      name: 'flags',
+      title: 'Soft-Filter Flags',
+      description: 'Machine-readable flags from the gather pipeline (e.g. "below-review-threshold", "over-budget", "far-walk") — 2026-07-17: filters became soft labels instead of hard cutoffs, so a property that would previously have been excluded now survives here, flagged, with a full card rather than a bare name+reason line.',
+      type: 'array',
+      of: [{ type: 'string' }],
+    },
   ],
   preview: {
     select: {

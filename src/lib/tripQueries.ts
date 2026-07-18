@@ -275,7 +275,8 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
     },
     coordinates,
     notes,
-    booked
+    booked,
+    flags
   },
   exclusions[] {
     propertyName,

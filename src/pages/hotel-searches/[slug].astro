@@ -14,6 +14,7 @@ import {
   getBudgetDeltaLabel,
   getBudgetStatusClass,
   getBudgetStatusLabel,
+  getFlagLabel,
   getHotelImageUrl,
   getHotelMapPoints,
   getHotelSourceLinks,
@@ -683,6 +684,18 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
         margin-top: 0.78rem;
       }
 
+      .hotel-flags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.4rem;
+      }
+
+      .pill.flag-pill {
+        background: #fef9c3;
+        color: #854d0e;
+      }
+
       .pill.within,
       .budget-status.status-within {
         background: #e6fbf1;
@@ -1187,6 +1200,14 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                       <span class="pill">Pool: {formatAmenity(hotel.amenities?.pool)}</span>
                       <span class="pill">Fridge: {formatAmenity(hotel.amenities?.fridge)}</span>
                     </div>
+
+                    {(hotel.flags?.length ?? 0) > 0 && (
+                      <div class="hotel-flags">
+                        {hotel.flags!.map((flag) => (
+                          <span class="pill flag-pill">{getFlagLabel(flag)}</span>
+                        ))}
+                      </div>
+                    )}
 
                     <div class="card-bottom">
                       <div class="sources-row">
