@@ -46,6 +46,7 @@ export type HotelCandidate = {
     source?: string;
     multipleSources?: boolean;
     sourceRegionLocked?: boolean;
+    cancellationNote?: string;
     budgetStatus?: string;
     overTargetAmount?: number;
     overFlexAmount?: number;
@@ -62,6 +63,7 @@ export type HotelCandidate = {
     airConditioning?: boolean | null;
     pool?: boolean | null;
     fridge?: boolean | null;
+    breakfastIncluded?: boolean | null;
   };
   coordinates?: Coordinates;
   notes?: string[];

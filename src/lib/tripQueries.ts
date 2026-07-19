@@ -266,6 +266,7 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
       source,
       multipleSources,
       sourceRegionLocked,
+      cancellationNote,
       budgetStatus,
       overTargetAmount,
       overFlexAmount,
@@ -281,7 +282,8 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
     amenities {
       airConditioning,
       pool,
-      fridge
+      fridge,
+      breakfastIncluded
     },
     coordinates,
     notes,

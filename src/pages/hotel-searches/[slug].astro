@@ -672,6 +672,14 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
         opacity: 0.85;
       }
 
+      .cancellation-note {
+        margin-top: 0.4rem;
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        font-weight: 650;
+        line-height: 1.35;
+      }
+
       .expert-note {
         margin-top: 0.75rem;
         padding: 0.78rem;
@@ -1261,7 +1269,13 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                       <span class="pill">Air con: {formatAmenity(hotel.amenities?.airConditioning)}</span>
                       <span class="pill">Pool: {formatAmenity(hotel.amenities?.pool)}</span>
                       <span class="pill">Fridge: {formatAmenity(hotel.amenities?.fridge)}</span>
+                      {hotel.amenities?.breakfastIncluded != null && (
+                        <span class="pill">Breakfast: {formatAmenity(hotel.amenities.breakfastIncluded)}</span>
+                      )}
                     </div>
+                    {hasText(hotel.price?.cancellationNote) && (
+                      <div class="cancellation-note">{hotel.price?.cancellationNote}</div>
+                    )}
 
                     {(hotel.flags?.length ?? 0) > 0 && (
                       <div class="hotel-flags">

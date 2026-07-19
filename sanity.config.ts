@@ -409,6 +409,13 @@ const hotelCandidateField = {
         { name: 'overTargetAmount', title: 'Amount Over Target', type: 'number' },
         { name: 'overFlexAmount', title: 'Amount Over Flex Limit', type: 'number' },
         { name: 'checkedAt', title: 'Price Checked At', type: 'datetime' },
+        {
+          name: 'cancellationNote',
+          title: 'Cancellation Terms',
+          type: 'string',
+          description:
+            'Added 2026-07-18 (Action 5) — free-text cancellation deadline as stated on the booking page (e.g. "Free cancellation before 18:00, 7 Oct"), captured during pre-publish price verification. Free text, not a strict datetime, because sources phrase this inconsistently (relative to check-in, a fixed date, etc.) and forcing a parse would silently misrepresent ambiguous cases.',
+        },
       ],
     },
     {
@@ -431,6 +438,13 @@ const hotelCandidateField = {
         { name: 'airConditioning', title: 'Air conditioning confirmed', type: 'boolean' },
         { name: 'pool', title: 'Pool confirmed', type: 'boolean' },
         { name: 'fridge', title: 'Fridge confirmed', type: 'boolean' },
+        {
+          name: 'breakfastIncluded',
+          title: 'Breakfast included confirmed',
+          type: 'boolean',
+          description:
+            'Added 2026-07-18 (Action 5) — this was real data read directly off a booking page during pre-publish price verification (e.g. "Includes breakfast for 2 guests" vs. "breakfast for £2.19 (optional)") but had nowhere structured to go before this field existed, so it was only ever captured in free-text notes.',
+        },
       ],
     },
     { name: 'coordinates', title: 'Map Coordinates', type: 'geopoint' },
