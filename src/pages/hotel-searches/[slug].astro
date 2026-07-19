@@ -1276,7 +1276,7 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                         <table class="pricing-table">
                           <caption>Price by source, cheapest first</caption>
                           <thead>
-                            <tr><th>Source</th><th>Price</th><th>Note</th></tr>
+                            <tr><th>Source</th><th>Price</th><th>Review</th><th>Note</th></tr>
                           </thead>
                           <tbody>
                             {pricingTable.map((source) => (
@@ -1287,6 +1287,7 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                                   ) : source.platform}
                                 </td>
                                 <td>{formatMoney(source.nightlyPrice, source.priceCurrency || hotel.price?.currency || currency)}</td>
+                                <td>{hasNumber(source.reviewScorePercent) ? `${source.reviewScorePercent}%${hasNumber(source.reviewCount) ? ` (${source.reviewCount})` : ""}` : "—"}</td>
                                 <td>{source.regionLocked ? "Region-locked — needs VPN/region switch" : ""}</td>
                               </tr>
                             ))}

@@ -248,8 +248,11 @@ export const hotelSearchDetailQuery = `*[_type == "hotelSearch" && slug.current 
     sources[] {
       platform,
       url,
+      listingName,
       nightlyPrice,
       priceCurrency,
+      reviewScorePercent,
+      reviewCount,
       regionLocked
     },
     review {

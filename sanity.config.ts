@@ -288,6 +288,12 @@ const hotelSourceFields = [
   { name: 'platform', title: 'Platform', type: 'string' },
   { name: 'url', title: 'URL', type: 'url' },
   {
+    name: 'listingName',
+    title: 'Listing Name (this source)',
+    type: 'string',
+    description: 'The platform\'s own name for this listing, when it differs from the canonical propertyName (decorated marketing titles, translations, shortened forms).',
+  },
+  {
     name: 'nightlyPrice',
     title: 'Nightly Price (this source)',
     type: 'number',
@@ -295,6 +301,14 @@ const hotelSourceFields = [
       'This specific source\'s own quoted nightly rate, so a Kieran-visible price can be traced back to which platform it came from — different sources for the same property routinely disagree (2026-07-18, Es Cana run: one property showed a 46% spread across 5 sources), and the top-level price.perNight silently picking the lowest one without saying whose number it was is exactly what made those prices unverifiable.',
   },
   { name: 'priceCurrency', title: 'Nightly Price Currency (this source)', type: 'string' },
+  {
+    name: 'reviewScorePercent',
+    title: 'Review Score Percent (this source)',
+    type: 'number',
+    description:
+      'This specific source\'s own review score — added 2026-07-18 after an audit found the same gap as the per-source price fix: only the single most-reviewed source\'s score ever reached the document, so a real disagreement between sources (e.g. 92% on one platform, 78% on another) was invisible.',
+  },
+  { name: 'reviewCount', title: 'Review Count (this source)', type: 'number' },
   {
     name: 'regionLocked',
     title: 'Region-Locked Price',

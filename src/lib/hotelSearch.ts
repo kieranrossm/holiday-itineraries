@@ -15,8 +15,11 @@ type DateRange = {
 export type HotelSourceLink = {
   platform: string;
   url?: string;
+  listingName?: string;
   nightlyPrice?: number;
   priceCurrency?: string;
+  reviewScorePercent?: number;
+  reviewCount?: number;
   regionLocked?: boolean;
 };
 
@@ -31,7 +34,7 @@ export type HotelCandidate = {
     alt?: string;
     source?: string;
   };
-  sources?: { platform?: string; url?: string; nightlyPrice?: number; priceCurrency?: string; regionLocked?: boolean }[];
+  sources?: { platform?: string; url?: string; listingName?: string; nightlyPrice?: number; priceCurrency?: string; reviewScorePercent?: number; reviewCount?: number; regionLocked?: boolean }[];
   review?: {
     scorePercent?: number;
     reviewCount?: number;
@@ -301,8 +304,11 @@ export const getHotelSourceLinks = (hotel: HotelCandidate): HotelSourceLink[] =>
     .map((source) => ({
       platform: source.platform || "Listing",
       url: source.url,
+      listingName: source.listingName,
       nightlyPrice: source.nightlyPrice,
       priceCurrency: source.priceCurrency,
+      reviewScorePercent: source.reviewScorePercent,
+      reviewCount: source.reviewCount,
       regionLocked: source.regionLocked,
     }))
 );
