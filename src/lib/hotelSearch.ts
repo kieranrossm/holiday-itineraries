@@ -25,6 +25,7 @@ export type HotelCandidate = {
   propertyName?: string;
   propertyType?: string;
   area?: string;
+  address?: string;
   image?: {
     url?: string;
     alt?: string;

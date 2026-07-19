@@ -328,6 +328,13 @@ const hotelCandidateField = {
     },
     { name: 'area', title: 'Area / Neighbourhood', type: 'string' },
     {
+      name: 'address',
+      title: 'Street Address',
+      type: 'string',
+      description:
+        'The real street address from the source that provided it (Booking, DirectBooker, or Google Places) — added 2026-07-18 after noticing this data was already captured by the pipeline but discarded at export, despite being visible on many source listings.',
+    },
+    {
       name: 'sources',
       title: 'Sources',
       type: 'array',

@@ -663,6 +663,15 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
         line-height: 1.4;
       }
 
+      .address-line {
+        margin-top: 0.15rem;
+        color: var(--text-muted);
+        font-size: 0.74rem;
+        font-weight: 550;
+        line-height: 1.35;
+        opacity: 0.85;
+      }
+
       .expert-note {
         margin-top: 0.75rem;
         padding: 0.78rem;
@@ -1234,6 +1243,7 @@ const getSortValue = (value: unknown, fallback: number) => hasNumber(value) ? va
                     <div class="location-distance">
                       {[getPropertyTypeLabel(hotel.propertyType), hotel.area, `${formatWalk(hotel)} walk from ${referenceLabel}`].filter(Boolean).join(" / ")}
                     </div>
+                    {hasText(hotel.address) && <div class="address-line">{hotel.address}</div>}
 
                     {notes.length > 0 && (
                       <div class="expert-note">
