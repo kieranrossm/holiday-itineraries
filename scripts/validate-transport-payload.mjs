@@ -19,6 +19,7 @@ const exampleCoverageLabels = [
   "Flytoget ticket",
   "Card/app payment",
 ];
+const paymentRequiredValues = new Set(["yes", "no", "unknown", true, false]);
 const bannedCoveragePatterns = [
   /^Oslo Pass airport\b/i,
   /^Oslo Pass zones\b/i,
@@ -27,6 +28,8 @@ const bannedCoveragePatterns = [
 const qualifierCuePattern = /\b(zone|zones|local vy|airport trains?|airport train|ferry|season|seasonal|separate ticket|taxi|ride-app|premium airport)\b/i;
 const canonicalPassCoveragePattern = /^(?:Not )?[A-Z][A-Za-z0-9 +&/]*(?: Pass| Card| Travelcard| Ticket)?-covered$/;
 const canonicalTicketOrPaymentPattern = /^[A-Z][A-Za-z0-9 +&/]*(?: ticket| payment)$/i;
+const taxiLikePattern = /\b(taxi|ride app|ride-app|private transfer|pre-booked transfer|transfer)\b/i;
+const negativePassCoveragePattern = /^Not .*-covered$/i;
 const serviceConfidenceValues = new Set(["high", "medium", "low"]);
 
 const isRecord = (value) => Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -89,10 +92,12 @@ const collectSources = (payload) => {
 const collectEvidenceRefs = (payload) => {
   const refs = [];
   walk(payload, (node, parts) => {
-    asArray(node.evidenceIds).forEach((id, index) => {
-      if (typeof id === "string" && id.trim()) {
-        refs.push({ id: id.trim(), path: `${pathLabel(parts)}.evidenceIds.${index}` });
-      }
+    ["evidenceIds", "sourceIds"].forEach((field) => {
+      asArray(node[field]).forEach((id, index) => {
+        if (typeof id === "string" && id.trim()) {
+          refs.push({ id: id.trim(), path: `${pathLabel(parts)}.${field}.${index}` });
+        }
+      });
     });
   });
   return refs;
@@ -114,6 +119,20 @@ const isCanonicalCoverageLabel = (label) => (
   canonicalPassCoveragePattern.test(label) ||
   canonicalTicketOrPaymentPattern.test(label)
 );
+
+const isTaxiLikeCard = (card) => {
+  const fields = [
+    card.id,
+    card.modeLabel,
+    card.roleLabel,
+    card.routeLabel,
+    card.useFor,
+    card.bestFor,
+    card.pattern,
+    card.coverageQualifier,
+  ].filter(hasText);
+  return taxiLikePattern.test(fields.join(" "));
+};
 
 const validateServiceWindow = (card, cardPath, issues) => {
   const serviceWindow = card.serviceWindow;
@@ -216,10 +235,14 @@ export const validateTransportPayload = (rawPayload, options = {}) => {
     const coverage = asArray(card.coverage).filter((label) => typeof label === "string" && label.trim());
     const passLikeLabels = coverage.filter((label) => passLikeCoveragePattern.test(label));
     const coverageQualifier = typeof card.coverageQualifier === "string" ? card.coverageQualifier.trim() : "";
+    const taxiLikeCard = isTaxiLikeCard(card);
 
     coverage.forEach((label, index) => {
       if (!isCanonicalCoverageLabel(label)) {
         addIssue(issues, "non_canonical_coverage_label", `${cardPath}.coverage`, `Coverage label "${label}" is not canonical. Use compact pass/ticket/payment labels, for example: ${exampleCoverageLabels.join(", ")}.`);
+      }
+      if (taxiLikeCard && negativePassCoveragePattern.test(label)) {
+        addIssue(issues, "taxi_negative_pass_coverage", `${cardPath}.coverage`, `Taxi, ride-app and transfer cards should not display negative pass coverage "${label}"; omit the pass chip unless a source proves a positive taxi benefit.`);
       }
       if (qualifierCuePattern.test(label)) {
         addIssue(issues, "coverage_detail_in_label", `${cardPath}.coverage`, `Move decision detail from coverage label "${label}" into coverageQualifier.`);
@@ -254,9 +277,9 @@ export const validateTransportPayload = (rawPayload, options = {}) => {
 
     ["timeLabel", "costLabel", "servicePattern"].forEach((field) => {
       if (typeof card[field] === "string" && farePattern.test(card[field])) {
-        const cardRefs = asArray(card.evidenceIds);
+        const cardRefs = [...asArray(card.evidenceIds), ...asArray(card.sourceIds)];
         if (cardRefs.length === 0) {
-          addIssue(issues, "fare_without_evidence", `${cardPath}.${field}`, `${field} contains fare-like data but the card has no evidenceIds.`);
+          addIssue(issues, "fare_without_evidence", `${cardPath}.${field}`, `${field} contains fare-like data but the card has no evidenceIds/sourceIds.`);
         }
         cardRefs.forEach((id) => {
           const source = sources.get(id);
@@ -279,6 +302,43 @@ export const validateTransportPayload = (rawPayload, options = {}) => {
     }
   });
   asArray(transportBrief.cityTravel).forEach((card, index) => validateCard(card, `transportBrief.cityTravel.${index}`));
+
+  const toolkit = asArray(transportBrief.toolkit);
+  if (toolkit.length === 0) {
+    addIssue(issues, "missing_toolkit", "transportBrief.toolkit", "Transport payload should include toolkit entries for planners, tickets, operators, passes, maps or fallback apps.");
+  }
+
+  toolkit.forEach((item, index) => {
+    if (!isRecord(item)) return;
+    const itemPath = `transportBrief.toolkit.${index}`;
+    ["name", "category", "useFor", "actionLabel"].forEach((field) => {
+      if (!hasText(item[field])) {
+        addIssue(issues, "incomplete_toolkit_item", `${itemPath}.${field}`, `Toolkit item needs ${field}.`);
+      }
+    });
+    if (![...asArray(item.evidenceIds), ...asArray(item.sourceIds)].length) {
+      addIssue(issues, "toolkit_without_evidence", `${itemPath}.evidenceIds`, "Toolkit item should reference evidenceIds/sourceIds.");
+    }
+  });
+
+  const fullReport = transportBrief.fullReport || transportReport;
+  if (!isRecord(fullReport)) {
+    addIssue(issues, "missing_full_report", "transportBrief.fullReport", "Transport payload should preserve a full report or transportReport object for rich guide rendering.");
+  } else {
+    const sections = asArray(fullReport.sections);
+    if (!hasText(fullReport.summary) && sections.length === 0) {
+      addIssue(issues, "empty_full_report", "transportBrief.fullReport", "Full report needs a summary or sections.");
+    }
+  }
+
+  const cardOrContactlessRequired = transportBrief.paymentReadiness?.cardOrContactlessRequired;
+  if (
+    typeof cardOrContactlessRequired !== "undefined" &&
+    !paymentRequiredValues.has(cardOrContactlessRequired) &&
+    !paymentRequiredValues.has(String(cardOrContactlessRequired).toLowerCase())
+  ) {
+    addIssue(issues, "invalid_payment_required", "transportBrief.paymentReadiness.cardOrContactlessRequired", "Use yes, no, unknown, true, or false for cardOrContactlessRequired.");
+  }
 
   if (transportReport && !isRecord(transportReport)) {
     addIssue(issues, "invalid_transport_report", "transportReport", "transportReport must be an object when present.");

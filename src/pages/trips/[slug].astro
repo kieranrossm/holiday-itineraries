@@ -214,16 +214,16 @@ const getTransportServiceWindowItems = (serviceWindow: any) => {
 
 const getPlaceScheduleBadge = (place: any) => {
   const schedule = place.schedule || {};
+  const dateLabel = hasText(schedule.date) ? formatInlineDate(schedule.date) : "";
+  let timingLabel = "";
 
   if (hasText(schedule.startTime)) {
-    return `${schedule.startTime}${hasText(schedule.endTime) ? ` - ${schedule.endTime}` : ""}`;
+    timingLabel = `${schedule.startTime}${hasText(schedule.endTime) ? ` - ${schedule.endTime}` : ""}`;
+  } else if (hasText(schedule.suggestedTime)) {
+    timingLabel = schedule.suggestedTime;
   }
 
-  if (hasText(schedule.suggestedTime)) {
-    return schedule.suggestedTime;
-  }
-
-  return "";
+  return [dateLabel, timingLabel].filter(hasText).join(" - ");
 };
 
 const hasPlaceScheduleDetails = (place: any) => {
@@ -1629,7 +1629,7 @@ const getTimingStatusLabel = (status: unknown) => (
         border-radius: 999px;
         font-size: 0.75rem;
         font-weight: 800;
-        line-height: 1;
+        line-height: 1.15;
       }
 
       .time-badge { background: var(--blue-bg); color: var(--blue-ink); }
@@ -2508,7 +2508,12 @@ const getTimingStatusLabel = (status: unknown) => (
                             </h4>
                             <dl>
                               {item.useFor && <div><dt>Use for</dt><dd>{item.useFor}</dd></div>}
+                              {item.bestFor && <div><dt>Best for</dt><dd>{item.bestFor}</dd></div>}
                               {item.pattern && <div><dt>Pattern</dt><dd>{item.pattern}</dd></div>}
+                              {item.passQualifier && <div><dt>Pass</dt><dd>{item.passQualifier}</dd></div>}
+                              {item.ticketQualifier && <div><dt>Ticket</dt><dd>{item.ticketQualifier}</dd></div>}
+                              {item.seasonality && <div><dt>Season</dt><dd>{item.seasonality}</dd></div>}
+                              {item.lateNightNote && <div><dt>Late</dt><dd>{item.lateNightNote}</dd></div>}
                               {item.watchOut && <div><dt>Watch</dt><dd>{item.watchOut}</dd></div>}
                             </dl>
                             {coverage.length > 0 && (

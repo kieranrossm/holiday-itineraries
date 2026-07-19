@@ -56,9 +56,21 @@ const getSortedCoverage = (value: unknown) => (
 
 const getCoverageTone = (value: unknown) => {
   const label = hasText(value) ? String(value).toLowerCase() : "";
-  if (label.includes("not pass") || label.includes("not oslo pass") || label.includes("no oslo pass")) return "warn";
+  if (label.includes("not ") || label.includes("no ")) return "warn";
   if (label.includes("pass") || label.includes("ticket") || label.includes("payment") || label.includes("covered")) return "good";
   return "";
+};
+
+const getUnknownableBooleanLabel = (value: unknown, trueLabel: string, falseLabel: string, unknownLabel = "Unknown") => {
+  if (value === true) return trueLabel;
+  if (value === false) return falseLabel;
+  if (hasText(value)) {
+    const normalised = String(value).trim().toLowerCase();
+    if (normalised === "yes" || normalised === "true") return trueLabel;
+    if (normalised === "no" || normalised === "false") return falseLabel;
+    if (normalised === "unknown") return unknownLabel;
+  }
+  return unknownLabel;
 };
 
 const getTransportFaviconUrl = (item: any) => {
@@ -118,9 +130,9 @@ const osloPassCoverageRows = [
     coverageQualifier: item.coverageQualifier,
     coverage: getList(item.coverage).filter((label: string) => String(label).toLowerCase().includes("pass")),
     note: item.watchOut || item.pattern,
-    evidenceIds: item.evidenceIds,
+    evidenceIds: [...getList(item.evidenceIds), ...getList(item.sourceIds)],
   })),
-].filter((item) => item.coverage.length > 0 || hasText(item.note));
+].filter((item) => item.coverage.length > 0);
 const transportCostMarkers = transportAirportArrival
   .filter((item: any) => hasText(item.costLabel))
   .map((item: any) => ({
@@ -154,8 +166,13 @@ const transportCaveats = [
 ];
 
 const sourceById = new Map(transportSources.map((source: any) => [source.id, source]));
+const getEvidenceSourceIds = (item: any) => Array.from(new Set([
+  ...getList(item?.evidenceIds),
+  ...getList(item?.sourceIds),
+]));
+
 const getSourcesForEvidence = (evidenceIds: unknown) => (
-  getList(evidenceIds)
+  Array.from(new Set(getList(evidenceIds)))
     .map((id) => sourceById.get(id))
     .filter(Boolean)
 );
@@ -868,14 +885,19 @@ const pageTitle = `${transportBrief.title || "Transport Brief"} - ${trip.title}`
           <div class="city-grid">
             {transportCityTravel.map((item: any) => {
               const coverage = getSortedCoverage(item.coverage);
-              const itemSources = getSourcesForEvidence(item.evidenceIds);
+              const itemSources = getSourcesForEvidence(getEvidenceSourceIds(item));
 
               return (
                 <article class="report-card city-card">
                   <h3>{formatTransportLabel(item.modeLabel, "Transport mode")}</h3>
                   <dl>
                     {item.useFor && <div><dt>Use for</dt><dd>{item.useFor}</dd></div>}
+                    {item.bestFor && <div><dt>Best for</dt><dd>{item.bestFor}</dd></div>}
                     {item.pattern && <div><dt>Pattern</dt><dd>{item.pattern}</dd></div>}
+                    {item.passQualifier && <div><dt>Pass</dt><dd>{item.passQualifier}</dd></div>}
+                    {item.ticketQualifier && <div><dt>Ticket</dt><dd>{item.ticketQualifier}</dd></div>}
+                    {item.seasonality && <div><dt>Season</dt><dd>{item.seasonality}</dd></div>}
+                    {item.lateNightNote && <div><dt>Late</dt><dd>{item.lateNightNote}</dd></div>}
                     {item.watchOut && <div><dt>Watch</dt><dd>{item.watchOut}</dd></div>}
                   </dl>
                   {coverage.length > 0 && (
@@ -1076,10 +1098,18 @@ const pageTitle = `${transportBrief.title || "Transport Brief"} - ${trip.title}`
             {transportBrief.paymentReadiness?.summary && <p>{transportBrief.paymentReadiness.summary}</p>}
             {transportBrief.paymentReadiness?.cashCaveat && <p>{transportBrief.paymentReadiness.cashCaveat}</p>}
             {transportBrief.paymentReadiness?.cardOrContactlessRequired && (
-              <p><strong>Card/contactless:</strong> {String(transportBrief.paymentReadiness.cardOrContactlessRequired)}</p>
+              <p><strong>Card/contactless:</strong> {getUnknownableBooleanLabel(
+                transportBrief.paymentReadiness.cardOrContactlessRequired,
+                "Required",
+                "Not Required",
+              )}</p>
             )}
             {typeof transportBrief.paymentReadiness?.appPaymentSupported !== "undefined" && (
-              <p><strong>App payment:</strong> {transportBrief.paymentReadiness.appPaymentSupported ? "Supported" : "Check before relying on it"}</p>
+              <p><strong>App payment:</strong> {getUnknownableBooleanLabel(
+                transportBrief.paymentReadiness.appPaymentSupported,
+                "Supported",
+                "Check Before Relying On It",
+              )}</p>
             )}
           </div>
         </section>
